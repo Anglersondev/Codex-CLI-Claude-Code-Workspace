@@ -20,7 +20,15 @@
   <a href="https://pixgg.com/Anglerson">Support the maintainer</a>
 </div>
 
-# Assistente IA — AI assistant for macOS, Linux and Windows
+# Assistente IA — Codex CLI and Claude Code Project Workspace
+
+**Organize AI coding projects on macOS, Linux and Windows.** Assistente IA gives Codex CLI and Claude Code a consistent project menu for instructions, reusable prompts, session handoffs, Git checks and local development tasks. It is a workflow launcher; the official agent CLIs supply the AI models and handle authentication.
+
+| Release | macOS | Linux | Windows |
+| --- | --- | --- | --- |
+| [1.0](https://github.com/Anglersondev/assistente-ia-mac/releases/tag/v1.0) | Bash 3.2+ menu, project checks and optional RTK tools | Bash menu with project checks and optional RTK tools | PowerShell 5.1+ menu; a smaller feature set described below |
+
+**Best for:** developers who switch projects or agents often, want durable instructions next to the code, and prefer a local terminal workflow. It does not add a new AI account, model subscription or cloud service.
 
 ## Choose your system
 
@@ -55,6 +63,18 @@ Maintained by [Anglersondev](https://github.com/Anglersondev). If this project h
 Choose a project in the system folder picker or enter its path. Start a new conversation, resume an existing one, inspect Git changes, or launch a local development server. The project can live anywhere you choose, and its code can be at the project root or inside `CODIGO/` and a first-level subfolder.
 
 The terminal interface supports Brazilian Portuguese and English. The repository documentation is available in both languages.
+
+## How it compares with launching an agent directly
+
+| Task | Official CLI alone | Assistente IA with the official CLI |
+| --- | --- | --- |
+| Start a coding session | Open a terminal in a project and launch the CLI | Choose the project and agent from one menu, then launch the same CLI |
+| Keep project instructions | Write and maintain the agent's project file yourself | Create a project structure with durable instructions linked from `AGENTS.md` or `CLAUDE.md` |
+| Reuse task prompts | Find and paste a saved prompt manually | Select a prompt from the project's `PROMPTS/` folder |
+| Resume or hand off work | Use the CLI's own history and write notes | Launch the CLI's resume flow and optionally create wrap-up or summary shortcuts |
+| Review project state | Run Git and package commands yourself | Inspect Git status, project checks and available local server commands from the menu |
+
+The menu **does not replace or modify the AI model**. Agent features, quotas, permissions and supported commands still come from the installed Codex CLI or Claude Code version.
 
 ## At a glance
 
@@ -219,3 +239,25 @@ Contributions are welcome. Fork the repository, create a branch, and open a pull
 ## License
 
 Released under the [MIT License](LICENSE).
+
+## Frequently asked questions
+
+### Is Assistente IA a local AI model or a ChatGPT/Claude subscription?
+
+No. It is a local project organizer and launcher. Install and authenticate [Codex CLI](https://github.com/openai/codex) or [Claude Code](https://github.com/anthropics/claude-code) separately. Their own accounts, model access and charges remain separate.
+
+### Can I use Codex CLI and Claude Code in the same project?
+
+You can select the project's tool profile and keep its native entry file (`AGENTS.md` or `CLAUDE.md`). Review the existing files before changing a project that already has instructions for both tools; the organizer preserves existing project files.
+
+### Does it work on Windows as well as Mac and Linux?
+
+Yes, version 1.0 includes a native PowerShell menu for Windows 10/11. Its project, prompt, session, Git and npm actions are available, while the Bash menu's RTK integration, usage dashboard and automatic project checks have not yet been ported.
+
+### Can it manage a repository that is not inside its default folder structure?
+
+Yes. Choose any accessible project directory. The code may be at the project root or in supported `CODIGO/` and first-level subfolders; the toolkit does not require moving your repository.
+
+### Does it upload my source code or store agent passwords?
+
+The toolkit does not request or store agent passwords. Agent CLIs handle their own authentication and any network use. The optional RTK release check reads public version metadata when enabled; project actions run locally in the selected directory.
