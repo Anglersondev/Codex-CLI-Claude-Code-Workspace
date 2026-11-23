@@ -48,6 +48,7 @@ jobs:
       - name: Build and verify
         env:
           RELEASE_TAG: ${{ github.ref_name }}
+          ASSISTENTE_LANG: pt-BR
         run: |
           set -euo pipefail
           /bin/bash ASSISTENTE-IA-MAC.command --check
