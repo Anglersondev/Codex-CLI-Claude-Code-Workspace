@@ -1,8 +1,14 @@
 # Workspace para Codex CLI e Claude Code
 
+![Assistente IA para Codex CLI e Claude Code no macOS, Linux e Windows](assets/workspace-banner.svg)
+
 **Assistente IA** é um painel leve para trabalhar com Codex CLI e Claude Code no macOS, Linux e Windows. Escolha o projeto e o agente no app. A conversa abre no Terminal, na pasta certa. Os dois agentes podem usar as mesmas instruções, os mesmos pedidos reutilizáveis e o mesmo registro de andamento.
 
-[English](README.md) · [Español](README.es.md) · [Versões publicadas](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/Anglersondev/Codex-CLI-Claude-Code-Workspace?style=flat-square&label=release)](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest) [![MIT License](https://img.shields.io/badge/license-MIT-2877c7?style=flat-square)](LICENSE)
+
+**[Baixar a versão mais recente](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest)** · [English](README.md) · [Español](README.es.md) · [Histórico de versões](CHANGELOG.md)
+
+[Instalação](#baixar-e-abrir) · [Primeiro projeto](#primeiro-projeto) · [Contexto compartilhado](#contexto-compartilhado-e-andamento) · [Ferramentas](#ferramentas-e-atualizações)
 
 ## Baixar e abrir
 
@@ -35,6 +41,36 @@ Em **Ajustes → Idioma**, escolha português do Brasil, inglês, espanhol ou o 
 
 A conta e o histórico ficam com o agente oficial. Em **Ajustes**, você pode trocar de conta e continuar na mesma pasta.
 
+### Qual botão usar para continuar?
+
+| O que você quer fazer | Botão | O que é retomado |
+| --- | --- | --- |
+| Voltar ao chat mais recente do mesmo agente | **Continuar** | A conversa mais recente daquele agente para o projeto. |
+| Procurar uma conversa antiga | **Histórico** | O seletor de conversas do agente. |
+| Passar de Codex para Claude ou trocar de conta | **Salvar andamento da sessão** e depois **Retomar pelo andamento** | Uma conversa nova que usa o resumo na pasta do projeto. |
+
+**O que salva sozinho?** O agente grava na pasta as alterações que faz nos arquivos, e o Assistente guarda os projetos recentes e as preferências. Para manter um resumo do trabalho, use **Salvar andamento da sessão** e deixe o agente concluir a gravação, ou peça durante a conversa para atualizar `DOCS/ANDAMENTO.md`. O histórico da conversa fica com o agente.
+
+### Exemplo: começar no Codex e passar para Claude Code
+
+1. Abra a pasta do site no Assistente. Se faltarem arquivos de contexto, clique em **Preparar contexto compartilhado**.
+2. Em `INSTRUCOES/PROJETO.md`, anote regras que valem para todo o projeto, como “Use npm e rode o build antes de passar a tarefa adiante”.
+3. Abra o Codex e faça a alteração. Antes de trocar, peça para atualizar `DOCS/ANDAMENTO.md` com o que mudou, o que foi testado e o próximo passo.
+4. Selecione Claude Code e clique em **Retomar pelo andamento**. O Claude abre uma conversa nova usando o resumo.
+
+Exemplo de resumo curto:
+
+```markdown
+## Feito
+Atualizei o menu mobile em src/components/Nav.tsx.
+
+## Verificado
+npm run build passou. Falta testar a navegação pelo teclado.
+
+## Próximo passo
+Testar Tab e Esc no menu com a tela em 390 px e corrigir o foco se necessário.
+```
+
 ## Ferramentas e atualizações
 
 O painel tem atalhos para criar pedidos, adicionar anexos, abrir o Terminal, ver o status do Git, iniciar `npm run dev` e criar uma cópia ZIP. Em **Mais ações**, você encontra os atalhos do teclado. A cópia ZIP pode incluir arquivos ocultos.
@@ -42,6 +78,16 @@ O painel tem atalhos para criar pedidos, adicionar anexos, abrir o Terminal, ver
 Quando o RTK está configurado, o Assistente pode evitar a compactação duplicada de saída com o Token Optimizer. O Mac oferece controles das integrações e instalação opcional de atualizações verificadas. Linux e Windows podem avisar quando houver novas versões publicadas.
 
 Os menus completos de Terminal estão nos arquivos `ASSISTENTE-IA-MAC.command`, `ASSISTENTE-IA-LINUX.sh` e `ASSISTENTE-IA-WINDOWS.cmd`. Consulte o [guia de Terminal](GUIA-DE-USO.md), o [guia para Linux e Windows](desktop/LEIA-ME.md), a [documentação do RTK](RTK.md) e o [histórico de versões](CHANGELOG.md).
+
+## Se algo não abrir
+
+| Sintoma | O que conferir |
+| --- | --- |
+| O agente não abre ou pede login | Rode `codex --version` ou `claude --version` no Terminal e entre na conta daquela ferramenta. |
+| **Retomar pelo andamento** está desabilitado | Registre o próximo passo em `DOCS/ANDAMENTO.md` e confira se existe `PROMPTS/CONTINUAR.md`. |
+| O projeto já tem regras próprias | Confira `AGENTS.md`, `AGENTS.override.md` ou `CLAUDE.md` e adicione a referência às regras compartilhadas onde fizer sentido. |
+| O painel abre, mas o Linux não inicia a sessão | Use um terminal gráfico compatível, como GNOME Terminal, Konsole ou xterm. |
+| O Windows mostra erro de Python ou Tkinter | Confira se o Python 3.9+ foi instalado com Tcl/Tk. |
 
 ## Autor e apoio
 

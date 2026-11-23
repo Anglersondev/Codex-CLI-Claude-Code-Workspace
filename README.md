@@ -1,8 +1,14 @@
 # Codex CLI & Claude Code Workspace
 
+![Assistente IA desktop workspace for Codex CLI and Claude Code on macOS, Linux and Windows](assets/workspace-banner.svg)
+
 **Assistente IA** is a lightweight desktop launcher for Codex CLI and Claude Code on macOS, Linux, and Windows. Choose a project, pick an agent, and start or resume work in your system terminal. Both agents can use the same project folder, instructions, prompts, and progress notes.
 
-[Download the latest release](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest) · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Changelog](CHANGELOG.md)
+[![GitHub Release](https://img.shields.io/github/v/release/Anglersondev/Codex-CLI-Claude-Code-Workspace?style=flat-square&label=release)](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest) [![MIT License](https://img.shields.io/badge/license-MIT-2877c7?style=flat-square)](LICENSE)
+
+**[Download the latest release](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest)** · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Changelog](CHANGELOG.md)
+
+[Install](#download-and-install) · [Quick start](#quick-start) · [Shared context](#share-project-context-between-codex-and-claude-code) · [Build from source](#build-and-verify-from-source)
 
 ## Download and install
 
@@ -52,6 +58,36 @@ For an existing folder, **Set up shared context** creates missing files and pres
 
 Use **Save session progress** before switching agents or accounts. Once you have a recorded next step, **Continue from project notes** starts a new chat that can use the handoff. Each agent manages its own account and conversation history. Keep frequently used rules short and put occasional references in `DOCS/`.
 
+### Pick the right way to continue
+
+| If you want to… | Use… | What carries over |
+| --- | --- | --- |
+| Continue your latest chat with the same agent | **Resume** | The agent opens its own latest conversation for this project. |
+| Find an older chat | **History** | The selected agent opens its session picker. |
+| Switch from Codex to Claude Code or change accounts | **Save session progress**, then **Continue from project notes** | The new session uses files in your project folder, including the summary you saved. |
+
+**What gets saved automatically?** File edits go to the project when the agent makes them. The launcher saves preferences and recent folders. To keep a reusable progress summary, ask the agent to update `DOCS/ANDAMENTO.md` or choose **Save session progress** and let the agent finish writing. Each agent keeps its own chat history.
+
+### Example: start with Codex and hand off to Claude Code
+
+1. Open your website repository in Assistente IA. Choose **Set up shared context** if the folders are missing.
+2. In `INSTRUCOES/PROJETO.md`, record conventions that apply to every session. For example, “Use npm and run the build before handing off.”
+3. Start a Codex session and implement the change. Before switching, ask Codex to update `DOCS/ANDAMENTO.md` with the changes, checks, and next step.
+4. Select Claude Code and click **Continue from project notes**. Claude starts a new conversation with the saved summary.
+
+A short handoff might look like this:
+
+```markdown
+## Done
+Updated the mobile navigation in src/components/Nav.tsx.
+
+## Verified
+npm run build passed. Keyboard navigation still needs checking.
+
+## Next
+Test the menu with Tab and Escape at 390 px, then fix any focus issues.
+```
+
 ## What the workspace includes
 
 | Feature | How it helps |
@@ -67,6 +103,16 @@ Use **Save session progress** before switching agents or accounts. Once you have
 Backups can include hidden files. The agent you choose handles authentication, model access, and its own permissions. The launcher uses the CLI's workspace or read-only planning mode and stores its own project preferences locally.
 
 To use the existing terminal menus, open `ASSISTENTE-IA-MAC.command`, `ASSISTENTE-IA-LINUX.sh`, or `ASSISTENTE-IA-WINDOWS.cmd`. See the [terminal workflow guide](GUIA-DE-USO.md), [Linux and Windows panel guide](desktop/LEIA-ME.md), and [RTK integration guide](RTK.md).
+
+## Troubleshooting
+
+| What you see | What to check |
+| --- | --- |
+| The launch button fails or the agent asks you to sign in | Run `codex --version` or `claude --version` in your terminal, then sign in to that CLI. |
+| **Continue from project notes** is unavailable | Record a next step in `DOCS/ANDAMENTO.md` and check that `PROMPTS/CONTINUAR.md` exists. |
+| A project already has its own instructions | Review its `AGENTS.md`, `AGENTS.override.md`, or `CLAUDE.md` and link the shared instructions where appropriate. |
+| Linux opens no terminal | Install a supported graphical terminal and launch the panel from your desktop session. |
+| Windows displays a Python or Tkinter error | Check that Python 3.9+ with Tcl/Tk is installed. |
 
 ## Build and verify from source
 
