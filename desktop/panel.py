@@ -103,7 +103,7 @@ class Panel:
         ttk.Button(header, text=T("Ajustes", "Settings", "Ajustes"), command=self.settings).pack(side="right")
         self.location = ttk.Label(main, style="Sub.TLabel")
         self.location.pack(anchor="w", pady=(2, 14))
-        ttk.Button(header, text=T("Atalhos", "Shortcuts", "Atajos"), command=self.show_shortcuts).pack(side="right", padx=(0, 6))
+        self.add_terminal_commands_menu(header)
 
         session = ttk.LabelFrame(main, text=T("Sessão no Terminal", "Terminal session", "Sesión en Terminal"), padding=(12, 9))
         session.pack(fill="x", pady=(0, 10))
@@ -158,7 +158,6 @@ class Panel:
             (T("Preparar contexto compartilhado", "Set up shared context", "Configurar contexto compartido"), self.prepare),
             (T("Salvar andamento da sessão", "Save session progress", "Guardar progreso de la sesión"), self.wrap_up),
             (T("Copiar caminho completo", "Copy full path", "Copiar la ruta completa"), self.copy_path),
-            (T("Atalhos do teclado", "Keyboard shortcuts", "Atajos de teclado"), self.show_shortcuts),
         ):
             self.tools_menu.add_command(label=title, command=lambda action=command: self.guard(action))
         self.tools = ttk.Menubutton(more, menu=self.tools_menu, text=T("Ferramentas do projeto", "Project tools", "Herramientas del proyecto"))
@@ -194,9 +193,28 @@ class Panel:
         for _, sequence, _, command, needs_project in self.shortcuts():
             self.root.bind(sequence, lambda _event, action=command, required=needs_project: activate(action, required))
 
-    def show_shortcuts(self):
-        rows = [f"{keys:<18} {name}" for keys, _, name, _, _ in self.shortcuts()]
-        self.output(T("Atalhos do teclado", "Keyboard shortcuts", "Atajos de teclado"), "\n".join(rows))
+    def add_terminal_commands_menu(self, parent):
+        title = T("Comandos do Terminal", "Terminal commands", "Comandos del terminal")
+        button = ttk.Menubutton(parent, text=title)
+        menu = tk.Menu(button, tearoff=False)
+        for label, commands in (
+            ("Codex CLI", ("codex", "codex resume --last", "codex resume", "codex login status")),
+            ("Claude Code", ("claude", "claude --continue", "claude --resume", "claude auth status")),
+            ("Git", ("git status --short --branch", "git diff")),
+            ("npm", ("npm run dev",)),
+            ("RTK", ("rtk gain", "rtk git status", "rtk bypass git status")),
+        ):
+            group = tk.Menu(menu, tearoff=False)
+            for command in commands:
+                group.add_command(label=command, command=lambda value=command: self.copy_terminal_command(value))
+            menu.add_cascade(label=label, menu=group)
+        button.configure(menu=menu)
+        button.pack(side="right", padx=(0, 6))
+
+    def copy_terminal_command(self, command):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(command)
+        self.status.set(T("Comando copiado. Cole no Terminal.", "Command copied. Paste it into your terminal.", "Comando copiado. Pégalo en el terminal."))
 
     def render(self, select_agent=False):
         self.paths = self.state.recent()

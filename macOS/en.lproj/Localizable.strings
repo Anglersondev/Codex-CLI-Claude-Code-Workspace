@@ -159,7 +159,6 @@
 "Executar npm run dev" = "Run npm run dev";
 "Atalhos do projeto" = "Project shortcuts";
 "Mais ações" = "More actions";
-"Atalhos do teclado" = "Keyboard shortcuts";
 "Servidor npm…" = "npm server…";
 "Cópia ZIP…" = "ZIP backup…";
 "Idioma" = "Language";
@@ -171,3 +170,6 @@
 "Organização" = "Folder layout";
 "Separar por agente" = "Group by agent";
 "Criar direto na pasta escolhida" = "Create directly in the selected folder";
+"Comandos do Terminal" = "Terminal commands";
+"Escolha um comando para copiar." = "Choose a command to copy.";
+"Comando copiado. Cole no Terminal." = "Command copied. Paste it into your terminal.";

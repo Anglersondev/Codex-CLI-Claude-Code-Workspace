@@ -130,22 +130,17 @@ To use the existing terminal menus, open `ASSISTENTE-IA-MAC.command`, `ASSISTENT
 | Linux opens no terminal | Install a supported graphical terminal and launch the panel from your desktop session. |
 | Windows displays a Python or Tkinter error | Check that Python 3.9+ with Tcl/Tk is installed. |
 
-## Keyboard shortcuts
+## Terminal command menu
 
-Open the keyboard icon on macOS or **Shortcuts** on Linux and Windows to see the guide in the app.
+Open **Terminal commands** in the panel and select a command to copy it. Paste it into your terminal in the project folder.
 
-| Action | macOS | Linux / Windows |
-| --- | --- | --- |
-| New project | `⌘ N` | `Ctrl+N` |
-| Open project | `⌘ O` | `Ctrl+O` |
-| Default folder | `⇧ ⌘ D` | `Ctrl+Shift+D` |
-| New session | `⌘ ↵` | `Ctrl+Enter` |
-| New prompt | `⇧ ⌘ P` | `Ctrl+Shift+P` |
-| Add attachment | `⇧ ⌘ A` | `Ctrl+Shift+A` |
-| Terminal in project | `⇧ ⌘ T` | `Ctrl+Shift+T` |
-| Git status | `⇧ ⌘ G` | `Ctrl+Shift+G` |
-| Start npm server | `⇧ ⌘ R` | `Ctrl+Shift+R` |
-| ZIP backup | `⇧ ⌘ B` | `Ctrl+Shift+B` |
+| Use | Terminal |
+| --- | --- |
+| Resume the last Codex conversation | `codex resume --last` |
+| Resume the last Claude conversation | `claude --continue` |
+| View Git status | `git status --short --branch` |
+| Start the development server | `npm run dev` |
+| View RTK savings | `rtk gain` |
 
 ## Build and verify from source
 

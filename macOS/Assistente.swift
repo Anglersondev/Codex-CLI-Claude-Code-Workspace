@@ -124,9 +124,11 @@ struct Dashboard: View {
             }
             .toolbar {
                 ToolbarItem {
-                    Button {
-                        workspace.detail = .init(title: tr("Atalhos do teclado"), text: projectShortcuts())
-                    } label: { Label(tr("Atalhos do teclado"), systemImage: "keyboard") }
+                    TerminalCommandsMenu { command in
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(command, forType: .string)
+                        workspace.notice = tr("Comando copiado. Cole no Terminal.")
+                    }
                 }
                 ToolbarItem {
                     Button { showSettings = true } label: { Label(tr("Ajustes"), systemImage: "gearshape") }
@@ -380,9 +382,6 @@ struct Dashboard: View {
                     Button(tr("Copiar caminho completo")) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(path, forType: .string)
-                    }
-                    Button(tr("Atalhos do teclado")) {
-                        workspace.detail = .init(title: tr("Atalhos do teclado"), text: projectShortcuts())
                     }
                 } label: { Label(tr("Mais ações"), systemImage: "ellipsis.circle") }
                     .fixedSize()

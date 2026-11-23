@@ -7,13 +7,31 @@ func shortProjectLocation(_ folder: URL) -> String {
     return components.isEmpty ? "/" : components.suffix(2).joined(separator: "  /  ")
 }
 
-func projectShortcuts() -> String {
-    [
-        ("⌘ N", "Novo projeto"), ("⌘ O", "Abrir pasta…"), ("⇧ ⌘ D", "Definir pasta padrão"),
-        ("⌘ ↵", "Nova sessão"), ("⇧ ⌘ P", "Novo pedido"), ("⇧ ⌘ A", "Adicionar anexo…"),
-        ("⇧ ⌘ T", "Terminal"), ("⇧ ⌘ G", "Status do Git"), ("⇧ ⌘ R", "Servidor npm…"),
-        ("⇧ ⌘ B", "Cópia ZIP…"), ("⌘ ,", "Ajustes"),
-    ].map { "\($0.0)   \(tr($0.1))" }.joined(separator: "\n")
+struct TerminalCommandsMenu: View {
+    let onCopy: (String) -> Void
+
+    private let commands = [
+        ("Codex CLI", ["codex", "codex resume --last", "codex resume", "codex login status"]),
+        ("Claude Code", ["claude", "claude --continue", "claude --resume", "claude auth status"]),
+        ("Git", ["git status --short --branch", "git diff"]),
+        ("npm", ["npm run dev"]),
+        ("RTK", ["rtk gain", "rtk git status", "rtk bypass git status"]),
+    ]
+
+    var body: some View {
+        Menu {
+            ForEach(commands, id: \.0) { group in
+                Menu(group.0) {
+                    ForEach(group.1, id: \.self) { command in
+                        Button(command) { onCopy(command) }
+                    }
+                }
+            }
+        } label: {
+            Label(tr("Comandos do Terminal"), systemImage: "terminal")
+        }
+        .help(tr("Escolha um comando para copiar."))
+    }
 }
 
 struct DefaultFolderControl: View {

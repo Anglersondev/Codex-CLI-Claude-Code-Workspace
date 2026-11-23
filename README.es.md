@@ -62,22 +62,17 @@ El panel y los README están disponibles en español, inglés y portugués de Br
 
 Si el botón para continuar desde las notas está deshabilitado, anota el siguiente paso en `DOCS/ANDAMENTO.md` y comprueba que exista `PROMPTS/CONTINUAR.md`. Si el agente no se abre, ejecuta `codex --version` o `claude --version` en el terminal y comprueba el inicio de sesión.
 
-## Atajos de teclado
+## Menú de comandos del terminal
 
-Abre el icono del teclado en macOS o pulsa **Atajos** en Linux y Windows para ver la guía en el panel.
+Abre **Comandos del terminal** en el panel y selecciona un comando para copiarlo. Pégalo en el terminal desde la carpeta del proyecto.
 
-| Acción | macOS | Linux / Windows |
-| --- | --- | --- |
-| Nuevo proyecto | `⌘ N` | `Ctrl+N` |
-| Abrir proyecto | `⌘ O` | `Ctrl+O` |
-| Carpeta predeterminada | `⇧ ⌘ D` | `Ctrl+Shift+D` |
-| Nueva sesión | `⌘ ↵` | `Ctrl+Enter` |
-| Nueva solicitud | `⇧ ⌘ P` | `Ctrl+Shift+P` |
-| Añadir archivo adjunto | `⇧ ⌘ A` | `Ctrl+Shift+A` |
-| Terminal del proyecto | `⇧ ⌘ T` | `Ctrl+Shift+T` |
-| Estado de Git | `⇧ ⌘ G` | `Ctrl+Shift+G` |
-| Iniciar servidor npm | `⇧ ⌘ R` | `Ctrl+Shift+R` |
-| Copia ZIP | `⇧ ⌘ B` | `Ctrl+Shift+B` |
+| Acción | Terminal |
+| --- | --- |
+| Reanudar el último chat de Codex | `codex resume --last` |
+| Reanudar el último chat de Claude | `claude --continue` |
+| Ver el estado de Git | `git status --short --branch` |
+| Iniciar el servidor de desarrollo | `npm run dev` |
+| Consultar el ahorro de RTK | `rtk gain` |
 
 ## Autor y apoyo
 

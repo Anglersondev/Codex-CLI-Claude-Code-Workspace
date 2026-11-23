@@ -159,7 +159,6 @@
 "Executar npm run dev" = "Executar npm run dev";
 "Atalhos do projeto" = "Atalhos do projeto";
 "Mais ações" = "Mais ações";
-"Atalhos do teclado" = "Atalhos do teclado";
 "Servidor npm…" = "Servidor npm…";
 "Cópia ZIP…" = "Cópia ZIP…";
 "Idioma" = "Idioma";
@@ -171,3 +170,6 @@
 "Organização" = "Organização";
 "Separar por agente" = "Separar por agente";
 "Criar direto na pasta escolhida" = "Criar direto na pasta escolhida";
+"Comandos do Terminal" = "Comandos do Terminal";
+"Escolha um comando para copiar." = "Escolha um comando para copiar.";
+"Comando copiado. Cole no Terminal." = "Comando copiado. Cole no Terminal.";

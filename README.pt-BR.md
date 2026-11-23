@@ -99,28 +99,23 @@ Testar Tab e Esc no menu com a tela em 390 px e corrigir o foco se necessário.
 
 ## Ferramentas e atualizações
 
-O painel tem atalhos para criar pedidos, adicionar anexos, abrir o Terminal, ver o status do Git, iniciar `npm run dev` e criar uma cópia ZIP. Em **Mais ações**, você encontra os atalhos do teclado. A cópia ZIP pode incluir arquivos ocultos.
+O painel tem atalhos para criar pedidos, adicionar anexos, abrir o Terminal, ver o status do Git, iniciar `npm run dev` e criar uma cópia ZIP. Use **Comandos do Terminal** para copiar os comandos dos agentes e das ferramentas. A cópia ZIP pode incluir arquivos ocultos.
 
 Quando o RTK está configurado, o Assistente pode evitar a compactação duplicada de saída com o Token Optimizer. O Mac oferece controles das integrações e instalação opcional de atualizações verificadas. Linux e Windows podem avisar quando houver novas versões publicadas.
 
 Os menus completos de Terminal estão nos arquivos `ASSISTENTE-IA-MAC.command`, `ASSISTENTE-IA-LINUX.sh` e `ASSISTENTE-IA-WINDOWS.cmd`. Consulte o [guia de Terminal](GUIA-DE-USO.md), o [guia para Linux e Windows](desktop/LEIA-ME.md), a [documentação do RTK](RTK.md) e o [histórico de versões](CHANGELOG.md).
 
-## Atalhos do teclado
+## Menu de comandos do Terminal
 
-Abra o ícone de teclado no macOS ou **Atalhos** no Linux e Windows para ver este guia no painel.
+Abra **Comandos do Terminal** no painel, selecione um comando para copiar e cole no Terminal dentro da pasta do projeto.
 
-| Ação | macOS | Linux / Windows |
-| --- | --- | --- |
-| Novo projeto | `⌘ N` | `Ctrl+N` |
-| Abrir projeto | `⌘ O` | `Ctrl+O` |
-| Definir pasta padrão | `⇧ ⌘ D` | `Ctrl+Shift+D` |
-| Nova sessão | `⌘ ↵` | `Ctrl+Enter` |
-| Novo pedido | `⇧ ⌘ P` | `Ctrl+Shift+P` |
-| Adicionar anexo | `⇧ ⌘ A` | `Ctrl+Shift+A` |
-| Terminal no projeto | `⇧ ⌘ T` | `Ctrl+Shift+T` |
-| Status do Git | `⇧ ⌘ G` | `Ctrl+Shift+G` |
-| Iniciar servidor npm | `⇧ ⌘ R` | `Ctrl+Shift+R` |
-| Cópia ZIP | `⇧ ⌘ B` | `Ctrl+Shift+B` |
+| Ação | Terminal |
+| --- | --- |
+| Retomar a última conversa do Codex | `codex resume --last` |
+| Retomar a última conversa do Claude | `claude --continue` |
+| Ver status do Git | `git status --short --branch` |
+| Iniciar o servidor de desenvolvimento | `npm run dev` |
+| Ver a economia do RTK | `rtk gain` |
 
 ## Se algo não abrir
 

@@ -14,7 +14,7 @@ Instale o Codex CLI ou Claude Code usando o instalador oficial. Em **Ajustes**, 
 3. Selecione Codex ou Claude e clique em **Nova sessão**. O agente abre na pasta do projeto.
 4. Ao sair, o painel fica disponível para escolher o próximo projeto. A janela pode permanecer em segundo plano em ambientes Linux que restringem a mudança automática de foco.
 
-**Contexto e arquivos** reúne instruções, pedidos reutilizáveis, anexos, Terminal, Git, servidor npm e cópia ZIP. A cópia guarda inclusive arquivos ocultos. Em **Ferramentas do projeto**, você encontra **Atalhos do teclado** e ações como copiar o caminho e salvar o andamento.
+**Contexto e arquivos** reúne instruções, pedidos reutilizáveis, anexos, Terminal, Git, servidor npm e cópia ZIP. A cópia guarda inclusive arquivos ocultos. Em **Ferramentas do projeto**, você encontra ações como copiar o caminho e salvar o andamento. Use **Comandos do Terminal** no topo para copiar comandos do Codex, Claude, Git, npm e RTK.
 
 **Ajustes** reúne troca de conta, atualização dos agentes, economia do RTK e avisos opcionais de novas versões publicadas. Use o link **Versões publicadas** para baixar os ZIPs mais recentes. O instalador automático do próprio Assistente fica na edição nativa do Mac.
 

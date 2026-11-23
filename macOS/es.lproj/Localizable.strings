@@ -26,7 +26,6 @@
 "Arquivos do projeto" = "Archivos del proyecto";
 "Assistente atualizado (%@)." = "Assistente está actualizado (%@).";
 "Atalhos do projeto" = "Atajos del proyecto";
-"Atalhos do teclado" = "Atajos de teclado";
 "Ativar %@…" = "Activar en %@…";
 "Atualizar" = "Actualizar";
 "Atualizar RTK e Token Optimizer" = "Actualizar RTK y Token Optimizer";
@@ -171,3 +170,6 @@
 "Organização" = "Organización";
 "Separar por agente" = "Separar por agente";
 "Criar direto na pasta escolhida" = "Crear directamente en la carpeta elegida";
+"Comandos do Terminal" = "Comandos del terminal";
+"Escolha um comando para copiar." = "Elige un comando para copiar.";
+"Comando copiado. Cole no Terminal." = "Comando copiado. Pégalo en el terminal.";
