@@ -85,3 +85,47 @@ app_worktree_create() {
   fi
   printf '%s\n' "$target"
 }
+
+# Only branches and folders matching the app's worktree convention are listed.
+app_list_worktrees() (
+  local folder="$1" listing field current='' branch='' flags='' entry state changes
+  listing="$(mktemp "$STATE_DIR/worktrees.XXXXXXXX")" || return 1
+  trap 'rm -f "$listing"' EXIT
+  git -C "$folder" worktree list --porcelain -z > "$listing" || return 1
+  while IFS= read -r -d '' field; do
+    case "$field" in
+      'worktree '*) current="${field#worktree }" ;;
+      'branch refs/heads/'*) branch="${field#branch refs/heads/}" ;;
+      locked*|prunable*|bare) flags=1 ;;
+      '')
+        if [[ "$branch" =~ ^assistente/(codex|claude)-[a-z0-9][a-z0-9-]{0,39}$ ]] &&
+            [[ "$current" == *-"${branch#assistente/}" ]] && single_line "$current"; then
+          state=unknown
+          changes=''
+          if [ -d "$current" ] && [ -z "$flags" ] &&
+              changes="$(git --no-optional-locks -C "$current" status --porcelain=v1 --untracked-files=all --ignored=matching --ignore-submodules=none 2>/dev/null)"; then
+            state=clean
+            [ -z "$changes" ] || state=dirty
+          fi
+          printf '%s\0%s\0%s\0%s\0' "$current" "$branch" "$state" "$changes"
+        fi
+        current='' branch='' flags='' ;;
+    esac
+  done < "$listing"
+)
+
+app_remove_worktree() (
+  local folder="$1" target="$2" path branch state changes listing
+  listing="$(mktemp "$STATE_DIR/worktree-remove.XXXXXXXX")" || return 1
+  trap 'rm -f "$listing"' EXIT
+  app_list_worktrees "$folder" > "$listing" || return 1
+  while IFS= read -r -d '' path && IFS= read -r -d '' branch &&
+      IFS= read -r -d '' state && IFS= read -r -d '' changes; do
+    if [ "$path" = "$target" ] && [ "$state" = clean ]; then
+      git -C "$folder" worktree remove -- "$target"
+      return $?
+    fi
+  done < "$listing"
+  printf '@blocked_worktree\n' >&2
+  return 1
+)

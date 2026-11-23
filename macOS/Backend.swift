@@ -123,7 +123,9 @@ enum Backend {
         let fileManager = FileManager.default
         let folder = fileManager.temporaryDirectory.appendingPathComponent("assistente-\(UUID().uuidString)", isDirectory: true)
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
-        let job = TerminalJob(folder: folder, project: arguments.first == "launch" ? arguments[1] : nil)
+        let action = arguments.first ?? ""
+        let project = ["launch", "run-check", "shell", "dev", "menu"].contains(action) && arguments.count > 1 ? arguments[1] : nil
+        let job = TerminalJob(folder: folder, project: project)
         let script = folder.appendingPathComponent("Assistente-IA.command")
         let command = (["/bin/bash", launcher.path, "--app"] + arguments).map(shellQuote).joined(separator: " ")
         let stateOverride = ProcessInfo.processInfo.environment["ASSISTENTE_STATE_DIR"].map {

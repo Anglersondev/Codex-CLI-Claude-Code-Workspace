@@ -81,6 +81,7 @@ struct CheckpointPanel: View {
         .disabled(workspace.busy)
         .padding(22).frame(width: 545)
         .task {
+            tests = ProjectChecks(path: project.path).checkpoint
             do { changes = decodedReport(try await Backend.run(["checkpoint-files", project.path])) }
             catch { changes = wf("no_status") }
             loaded = true

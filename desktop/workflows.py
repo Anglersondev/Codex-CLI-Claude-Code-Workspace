@@ -1,6 +1,7 @@
 """Environment checks, reviewed handoffs and isolated Git sessions."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
@@ -168,3 +169,54 @@ def create_worktree(folder, agent, task):
             pass
         raise
     return target
+
+@dataclass
+class Worktree:
+    path: Path
+    branch: str
+    status: str
+    changes: str
+
+    @property
+    def agent(self):
+        return self.branch.split("/", 1)[1].split("-", 1)[0]
+
+
+def list_worktrees(folder):
+    report = git(folder, "worktree", "list", "--porcelain", "-z")
+    if report.returncode:
+        raise ValueError(label("need_repo"))
+    entries = []
+    for record in report.stdout.split("\0\0"):
+        fields = record.split("\0")
+        if not fields[0].startswith("worktree "):
+            continue
+        path = Path(fields[0][len("worktree "):])
+        branch = next((field.removeprefix("branch refs/heads/") for field in fields
+                       if field.startswith("branch refs/heads/")), "")
+        if not re.fullmatch(r"assistente/(codex|claude)-[a-z0-9][a-z0-9-]{0,39}", branch):
+            continue
+        if not path.name.endswith("-" + branch.split("/", 1)[1]):
+            continue
+        status = "unknown"
+        changes = ""
+        if path.is_dir() and not any(field.startswith(("prunable", "locked")) for field in fields):
+            try:
+                result = git(path, "status", "--porcelain=v1", "--untracked-files=all",
+                             "--ignored=matching", "--ignore-submodules=none")
+                if result.returncode == 0:
+                    changes = result.stdout.strip("\n")
+                    status = "dirty" if changes else "clean"
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        entries.append(Worktree(path, branch, status, changes))
+    return entries
+
+
+def remove_worktree(folder, path):
+    entry = next((item for item in list_worktrees(folder) if item.path == path), None)
+    if entry is None or entry.status != "clean":
+        raise ValueError(label("blocked_worktree"))
+    result = git(folder, "worktree", "remove", "--", str(path))
+    if result.returncode:
+        raise ValueError(result.stdout.strip() or label("blocked_worktree"))

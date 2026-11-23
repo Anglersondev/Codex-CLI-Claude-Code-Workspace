@@ -73,7 +73,7 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          archives=("$RUNNER_TEMP"/Assistente-IA-App-*.zip "$RUNNER_TEMP/Assistente-IA-Source.zip" "$RUNNER_TEMP/SHA256SUMS.txt")
+          archives=("$RUNNER_TEMP"/Assistente-IA-App-*.zip "$RUNNER_TEMP/Assistente-IA-Source.zip" "$RUNNER_TEMP/SHA256SUMS.txt" "$RUNNER_TEMP"/Assistente-IA-Build-*.txt)
           if draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
             if [ "$draft" = true ]; then
               gh release upload "$RELEASE_TAG" "${archives[@]}"

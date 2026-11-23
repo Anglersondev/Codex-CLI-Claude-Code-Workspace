@@ -253,5 +253,260 @@
     "Só salvar",
     "Save only",
     "Solo guardar"
+  ],
+  "search_projects": [
+    "Buscar projetos",
+    "Search projects",
+    "Buscar proyectos"
+  ],
+  "pin": [
+    "Fixar projeto",
+    "Pin project",
+    "Fijar proyecto"
+  ],
+  "unpin": [
+    "Desafixar projeto",
+    "Unpin project",
+    "Desfijar proyecto"
+  ],
+  "favorites": [
+    "Favoritos",
+    "Favorites",
+    "Favoritos"
+  ],
+  "profile": [
+    "Perfil do projeto…",
+    "Project profile…",
+    "Perfil del proyecto…"
+  ],
+  "profile_saved": [
+    "Perfil do projeto salvo.",
+    "Project profile saved.",
+    "Perfil del proyecto guardado."
+  ],
+  "checks": [
+    "Verificações",
+    "Checks",
+    "Comprobaciones"
+  ],
+  "edit_checks": [
+    "Configurar comandos…",
+    "Configure commands…",
+    "Configurar comandos…"
+  ],
+  "test_command": [
+    "Comando de teste",
+    "Test command",
+    "Comando de pruebas"
+  ],
+  "build_command": [
+    "Comando de build",
+    "Build command",
+    "Comando de compilación"
+  ],
+  "run_test": [
+    "Rodar testes",
+    "Run tests",
+    "Ejecutar pruebas"
+  ],
+  "run_build": [
+    "Rodar build",
+    "Run build",
+    "Ejecutar compilación"
+  ],
+  "checks_hint": [
+    "Digite os comandos que você costuma rodar na raiz do projeto. Eles serão executados no Terminal.",
+    "Enter the commands you run from the project root. They will run in Terminal.",
+    "Escribe los comandos que ejecutas desde la raíz del proyecto. Se ejecutarán en el terminal."
+  ],
+  "no_command": [
+    "Configure um comando primeiro.",
+    "Configure a command first.",
+    "Configura un comando primero."
+  ],
+  "check_in_progress": [
+    "Verificação aberta no Terminal.",
+    "Check open in Terminal.",
+    "Comprobación abierta en el terminal."
+  ],
+  "check_ok": [
+    "Concluído com sucesso",
+    "Passed",
+    "Completado correctamente"
+  ],
+  "check_error": [
+    "Terminou com código {code}",
+    "Exited with code {code}",
+    "Terminó con el código {code}"
+  ],
+  "check_interrupted": [
+    "Execução interrompida",
+    "Run interrupted",
+    "Ejecución interrumpida"
+  ],
+  "worktrees": [
+    "Gerenciar sessões isoladas…",
+    "Manage isolated sessions…",
+    "Gestionar sesiones aisladas…"
+  ],
+  "no_worktrees": [
+    "Nenhuma sessão isolada deste app neste repositório.",
+    "This repository has no isolated sessions created by the app.",
+    "Este repositorio no tiene sesiones aisladas creadas por la aplicación."
+  ],
+  "worktree_unknown": [
+    "Status indisponível",
+    "Status unavailable",
+    "Estado no disponible"
+  ],
+  "pending": [
+    "Alterações pendentes",
+    "Pending changes",
+    "Cambios pendientes"
+  ],
+  "worktree_clean": [
+    "Sem alterações locais",
+    "No local changes",
+    "Sin cambios locales"
+  ],
+  "open_session": [
+    "Reabrir sessão",
+    "Reopen session",
+    "Reabrir sesión"
+  ],
+  "open_folder": [
+    "Abrir pasta",
+    "Open folder",
+    "Abrir carpeta"
+  ],
+  "remove_worktree": [
+    "Remover pasta isolada…",
+    "Remove isolated folder…",
+    "Eliminar carpeta aislada…"
+  ],
+  "confirm_remove_worktree": [
+    "Remover esta pasta isolada? A branch será preservada.",
+    "Remove this isolated folder? The branch will be kept.",
+    "¿Eliminar esta carpeta aislada? Se conservará la rama."
+  ],
+  "blocked_worktree": [
+    "Encerre a sessão e resolva as alterações pendentes antes de remover a pasta.",
+    "Close the session and resolve pending changes before removing the folder.",
+    "Cierra la sesión y resuelve los cambios pendientes antes de eliminar la carpeta."
+  ],
+  "backup": [
+    "Backup do projeto…",
+    "Project backup…",
+    "Copia del proyecto…"
+  ],
+  "restore": [
+    "Restaurar ZIP…",
+    "Restore ZIP…",
+    "Restaurar ZIP…"
+  ],
+  "backup_review": [
+    "Revise os arquivos antes de salvar o ZIP.",
+    "Review the files before saving the ZIP.",
+    "Revisa los archivos antes de guardar el ZIP."
+  ],
+  "backup_count": [
+    "{count} arquivos e pastas",
+    "{count} files and folders",
+    "{count} archivos y carpetas"
+  ],
+  "backup_excludes": [
+    "O backup padrão exclui credenciais comuns, dependências, caches e dados internos do Git.",
+    "The default backup skips common credentials, dependencies, caches, and Git metadata.",
+    "La copia predeterminada excluye credenciales comunes, dependencias, cachés y metadatos de Git."
+  ],
+  "unsafe_zip": [
+    "O ZIP contém caminhos ou tipos de arquivo incompatíveis com a restauração.",
+    "The ZIP contains paths or file types that cannot be safely restored.",
+    "El ZIP contiene rutas o tipos de archivos incompatibles con la restauración."
+  ],
+  "zip_conflict": [
+    "Já existe uma pasta com esse nome no destino.",
+    "A folder with that name already exists at the destination.",
+    "Ya existe una carpeta con ese nombre en el destino."
+  ],
+  "restored": [
+    "Backup restaurado em uma nova pasta.",
+    "Backup restored to a new folder.",
+    "Copia restaurada en una carpeta nueva."
+  ],
+  "save_zip": [
+    "Salvar ZIP…",
+    "Save ZIP…",
+    "Guardar ZIP…"
+  ],
+  "choose_restore": [
+    "Escolher destino da restauração",
+    "Choose a restore destination",
+    "Elegir el destino de la restauración"
+  ],
+  "invalid_model": [
+    "Nome de modelo inválido.",
+    "Invalid model name.",
+    "Nombre de modelo no válido."
+  ],
+  "save": [
+    "Salvar",
+    "Save",
+    "Guardar"
+  ],
+  "work": [
+    "Trabalhar",
+    "Work",
+    "Trabajar"
+  ],
+  "planning": [
+    "Planejar · leitura",
+    "Plan · read-only",
+    "Planificar · solo lectura"
+  ],
+  "model": [
+    "Modelo (opcional)",
+    "Model (optional)",
+    "Modelo (opcional)"
+  ],
+  "choose_agent": [
+    "Agente padrão",
+    "Default agent",
+    "Agente predeterminado"
+  ],
+  "results": [
+    "Últimos resultados",
+    "Latest results",
+    "Últimos resultados"
+  ],
+  "saved_checks": [
+    "Comandos salvos para este projeto.",
+    "Commands saved for this project.",
+    "Comandos guardados para este proyecto."
+  ],
+  "outside_project": [
+    "Escolha um destino fora do projeto.",
+    "Choose a destination outside the project.",
+    "Elige un destino fuera del proyecto."
+  ],
+  "project_changed": [
+    "O conteúdo do projeto mudou. Abra uma nova prévia.",
+    "The project contents changed. Open a fresh preview.",
+    "El contenido del proyecto cambió. Abre una nueva vista previa."
+  ],
+  "clear_search": [
+    "Limpar busca",
+    "Clear search",
+    "Borrar búsqueda"
+  ],
+  "archive_menu": [
+    "Backup",
+    "Backup",
+    "Copia de seguridad"
+  ],
+  "isolated_menu": [
+    "Sessões isoladas",
+    "Isolated sessions",
+    "Sesiones aisladas"
   ]
 }

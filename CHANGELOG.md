@@ -4,6 +4,9 @@
 
 First release of **Assistente IA** in the Codex CLI & Claude Code Workspace repository.
 
+- Build 2 adds update detection within version 1.0, worktree management, project profiles, favorites and project search.
+- Run configurable test and build commands in the terminal and carry their results to checkpoint review.
+- Preview desktop ZIP backups, skip common credentials and generated files, and restore archives into a new folder.
 - Native macOS app with a default project folder, recent projects, and quick actions.
 - Graphical launchers for Linux and Windows using Python and Tkinter.
 - English, Brazilian Portuguese, and Spanish, plus automatic language selection. New projects use localized folder names and templates. Existing project paths stay valid.

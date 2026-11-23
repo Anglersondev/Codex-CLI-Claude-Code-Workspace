@@ -16,6 +16,8 @@ if [[ ! "$version" =~ ^[0-9]{1,4}\.[0-9]{1,4}(\.[0-9]{1,4})?$ ]]; then
   printf 'Versão inválida: %s\n' "$version" >&2
   exit 2
 fi
+build="$(cat "$root/lib/build-number")"
+[[ "$build" =~ ^[1-9][0-9]{0,8}$ ]] || exit 2
 parent="$(cd "$(dirname "$destination")" && pwd -P)"
 scratch="$(mktemp -d "$parent/.assistente-build.XXXXXXXX")"
 trap 'rm -rf -- "$scratch"' EXIT
@@ -47,7 +49,7 @@ cat > "$bundle/Contents/Info.plist" <<EOF
   <key>CFBundleName</key><string>Assistente IA</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$version</string>
-  <key>CFBundleVersion</key><string>$version</string>
+  <key>CFBundleVersion</key><string>$build</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
   <key>NSHighResolutionCapable</key><true/>

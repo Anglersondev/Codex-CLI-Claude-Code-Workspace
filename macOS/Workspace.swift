@@ -152,12 +152,38 @@ final class Workspace: ObservableObject {
         }
     }
 
-    func backup(_ project: String, to destination: URL) async {
+    func restore(_ archive: URL, to parent: URL) async {
         await perform {
-            let output = try await Backend.run(["backup", project, destination.path])
-            guard let path = Backend.lines(output).first else { return }
-            if selected == project { notice = tr("Cópia ZIP criada.") }
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+            let restored = try await Task.detached(priority: .utility) { try ProjectArchive.restore(source: archive, parent: parent) }.value
+            notice = wf("restored")
+            NSWorkspace.shared.activateFileViewerSelecting([restored])
+        }
+    }
+
+    func reopenWorktree(_ entry: Worktree) async {
+        await perform {
+            _ = try await Backend.run(["select", entry.path])
+            selected = entry.path
+            await reloadProjects()
+            let info = Backend.lines(try await Backend.run(["info", entry.path]))
+            let preferred = Agent(rawValue: info.first ?? "") ?? entry.agent
+            let options = Backend.lines(try await Backend.run(["prefs", entry.path, preferred.rawValue]))
+            guard options.count == 3 else { return }
+            try await terminal(["launch", entry.path, preferred.rawValue, "recente", options[2], options[0], options[1], ""])
+        }
+    }
+
+    private var verificationJobs: [URL: ProjectCheck] = [:]
+
+    func runCheck(_ check: ProjectCheck) async {
+        guard let selected else { return }
+        await perform {
+            let config = ProjectChecks(path: selected)
+            let command = config.command(check)
+            guard !command.isEmpty else { throw AppFailure(wf("no_command")) }
+            let job = try await terminal(["run-check", selected, command])
+            verificationJobs[job.id] = check
+            notice = wf("check_in_progress")
         }
     }
 
@@ -165,18 +191,22 @@ final class Workspace: ObservableObject {
         guard let selected, sessionReady else { return }
         let arguments = ["launch", selected, agent.rawValue, verb, workMode,
                          model.trimmingCharacters(in: .whitespacesAndNewlines), effort, (promptOverride ?? prompt)?.path ?? ""]
-        await perform { try await terminal(arguments) }
+        await perform { _ = try await terminal(arguments) }
     }
 
     func terminalAction(_ args: [String]) async {
-        await perform { try await terminal(args) }
+        await perform { _ = try await terminal(args) }
     }
 
-    private func terminal(_ args: [String]) async throws {
-        if args.first == "launch", jobs.contains(where: { $0.project == args[1] }) {
+    @discardableResult
+    private func terminal(_ args: [String]) async throws -> TerminalJob {
+        if ["launch", "run-check", "shell", "dev", "menu"].contains(args.first ?? ""),
+           args.count > 1, jobs.contains(where: { $0.project == args[1] }) {
             throw AppFailure(wf("busy_folder"))
         }
-        jobs.append(try await Backend.openTerminal(args))
+        let job = try await Backend.openTerminal(args)
+        jobs.append(job)
+        return job
     }
 
     func checkTerminalJobs() async {
@@ -185,7 +215,18 @@ final class Workspace: ObservableObject {
             let stalled = jobs.filter { !fm.fileExists(atPath: $0.startedFile.path) && Date().timeIntervalSince($0.created) > 25 }
             let finished = jobs.filter { fm.fileExists(atPath: $0.statusFile.path) } + stalled
             if !finished.isEmpty {
-                for job in finished { try? fm.removeItem(at: job.folder) }
+                for job in finished {
+                    if let check = verificationJobs.removeValue(forKey: job.id), let path = job.project {
+                        let raw = try? String(contentsOf: job.statusFile, encoding: .utf8)
+                        let code = raw.flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                        let result = code == 130 || code == 143 || code == 129 ? nil : code
+                        ProjectChecks(path: path).record(check, code: result)
+                        if path == selected {
+                            notice = "\(check.runLabel) · \(CheckResult(code: result, date: Date()).report)"
+                        }
+                    }
+                    try? fm.removeItem(at: job.folder)
+                }
                 jobs.removeAll { job in finished.contains { $0.id == job.id } }
                 if !stalled.isEmpty {
                     message = tr("O Terminal não iniciou a sessão. Abra o Terminal uma vez e tente novamente.")
@@ -238,13 +279,13 @@ final class Workspace: ObservableObject {
         do {
             let release = try await Updates.latest()
             guard let version = release.version else { throw AppFailure(tr("A versão publicada tem um formato desconhecido.")) }
-            if Updates.newer(version, than: Updates.currentVersion) {
-                appUpdate = tr("Versão %@ publicada no GitHub.", version)
+            if Updates.isUpdate(release) {
+                appUpdate = tr("Versão %@ publicada no GitHub.", release.build.map { "\(version) · build \($0)" } ?? version)
                 if automatic && UserDefaults.standard.bool(forKey: "installAppUpdates") {
                     let update = try await Updates.stage(release)
                     if UserDefaults.standard.bool(forKey: "installAppUpdates") {
                         staged = update
-                        appUpdate = tr("Versão %@ pronta. Será aplicada ao sair do app.", version)
+                        appUpdate = tr("Versão %@ pronta. Será aplicada ao sair do app.", release.build.map { "\(version) · build \($0)" } ?? version)
                     } else { update.discard() }
                 }
             } else {

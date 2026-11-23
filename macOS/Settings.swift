@@ -233,7 +233,8 @@ struct AboutLinks: View {
     var body: some View {
         let current = language.effective
         VStack(alignment: .leading, spacing: 8) {
-            Text(String(format: current.localized("Versão %@"), Updates.currentVersion)).foregroundStyle(.secondary)
+            Text(String(format: current.localized("Versão %@"), Updates.currentVersion) + " · build \(Updates.currentBuild)")
+                .foregroundStyle(.secondary)
             Link(current.localized("Desenvolvido por Anglerson"), destination: URL(string: "https://anglerson.com.br")!)
             Link(current.localized("Pague um café ☕"), destination: URL(string: "https://pixgg.com/Anglerson")!)
         }

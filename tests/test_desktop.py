@@ -153,6 +153,56 @@ class PortablePanelTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             core.session_arguments("codex", "new", self.root, model="--config")
 
+    def test_same_version_build_notification(self):
+        release = json.dumps({"tag_name": "v1.0", "assets": [
+            {"name": f"Assistente-IA-Build-{core.APP_BUILD + 1}.txt"},
+        ]}).encode()
+        context = mock.MagicMock()
+        context.__enter__.return_value.read.return_value = release
+        with mock.patch.object(core.urllib.request, "urlopen", return_value=context):
+            self.assertEqual(core.check_release(), f"v1.0 · build {core.APP_BUILD + 1}")
+        context.__enter__.return_value.read.return_value = release.replace(b"v1.0", b"v0.9")
+        with mock.patch.object(core.urllib.request, "urlopen", return_value=context):
+            self.assertEqual(core.check_release(), "")
+
+    def test_project_profiles_separate_agents_and_folders(self):
+        project = self.root / "website"
+        project.mkdir()
+        state = core.State(self.root / "state")
+        state.save_profile(project, "codex", "gpt-example", True)
+        state.save_profile(project, "claude", "sonnet", False)
+        self.assertEqual(state.agent_for(project), "claude")
+        self.assertEqual(state.profile(project, "claude"), ("sonnet", False))
+        self.assertEqual(state.profile(project, "codex"), ("gpt-example", True))
+        self.assertEqual(state.profile(self.root, "codex"), ("", False))
+        state.toggle_favorite(project)
+        self.assertEqual(core.State(state.directory).favorites(), [project])
+
+    def test_backup_preview_and_restore_exclude_credentials_and_reject_traversal(self):
+        project = self.root / "work"
+        project.mkdir()
+        (project / ".env").write_text("secret")
+        (project / ".env.example").write_text("example")
+        (project / "node_modules").mkdir()
+        (project / "node_modules" / "dep.js").write_text("dependency")
+        (project / "notas-edição.txt").write_text("local notes")
+        entries = list(core.backup_entries(project))
+        self.assertEqual({path.name for path in entries}, {"work", ".env.example", "notas-edição.txt"})
+        output = self.root / "saved.zip"
+        core.backup_project(project, output, entries)
+        restored = core.restore_backup(output, self.root)
+        self.assertEqual((restored / "work/.env.example").read_text(), "example")
+        self.assertFalse((restored / "work/.env").exists())
+        with self.assertRaises(FileExistsError):
+            core.restore_backup(output, self.root)
+        unsafe = self.root / "unsafe.zip"
+        with zipfile.ZipFile(unsafe, "w") as archive:
+            archive.writestr("../outside.txt", "invalid")
+        with self.assertRaises(ValueError):
+            core.restore_backup(unsafe, self.root)
+        self.assertFalse((self.root / "outside.txt").exists())
+        self.assertFalse((self.root / "unsafe").exists())
+
     def test_update_notification_compares_stable_versions(self):
         self.assertTrue(core.newer_version("v1.0.1"))
         self.assertFalse(core.newer_version("v1.0.0"))

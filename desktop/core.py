@@ -1,5 +1,6 @@
 """Local project files and terminal launch for the Linux and Windows panel."""
 
+from fnmatch import fnmatchcase
 import hashlib
 import json
 import locale
@@ -10,12 +11,15 @@ import shutil
 import signal
 import subprocess
 import sys
+import stat
 import tempfile
 import urllib.request
 import zipfile
 
 
 APP_VERSION = "1.0"
+RESOURCES = Path(__file__).resolve().parents[1] / "lib"
+APP_BUILD = int((RESOURCES / "build-number").read_text().strip())
 REPOSITORY = "Anglersondev/Codex-CLI-Claude-Code-Workspace"
 RELEASES = f"https://github.com/{REPOSITORY}/releases"
 WINDOWS = os.name == "nt"
@@ -46,7 +50,7 @@ def text(pt, en, es):
 
 
 LAYOUTS = {}
-for line in (Path(__file__).resolve().parents[1] / "lib" / "project-layouts.tsv").read_text(encoding="utf-8").splitlines():
+for line in (RESOURCES / "project-layouts.tsv").read_text(encoding="utf-8").splitlines():
     language, *paths = line.split("\t")
     LAYOUTS[language] = dict(zip(
         ("instructions", "progress", "continue", "close", "summary", "start", "plan",
@@ -128,6 +132,45 @@ class State:
 
     def remember_agent(self, folder, agent):
         self.agent_preferences(folder).write("tool", agent + "\n")
+
+    def profile(self, folder, agent):
+        directory = self.agent_preferences(folder).directory
+        def value(key):
+            try:
+                return (directory / f"{agent}.{key}").read_text(encoding="utf-8-sig").strip()
+            except (OSError, UnicodeError):
+                return ""
+        return value("model"), value("mode") == "planejar"
+
+    def save_profile(self, folder, agent, model, plan):
+        session_arguments(agent, "new", folder, plan, model)
+        prefs = self.agent_preferences(folder)
+        prefs.write(f"{agent}.model", model + "\n")
+        prefs.write(f"{agent}.mode", ("planejar" if plan else "trabalhar") + "\n")
+        self.remember_agent(folder, agent)
+
+    def checks(self, folder):
+        prefs = self.agent_preferences(folder)
+        try:
+            content = json.loads((prefs.directory / "checks.json").read_text(encoding="utf-8"))
+            return content if isinstance(content, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
+    def save_checks(self, folder, entries):
+        self.agent_preferences(folder).write("checks.json", json.dumps(entries, ensure_ascii=False))
+
+    def favorites(self):
+        stored = self.config.get("favorites", [])
+        return [Path(p) for p in stored if isinstance(p, str) and Path(p).is_dir()]
+
+    def toggle_favorite(self, folder):
+        favorites = self.favorites()
+        if folder in favorites:
+            favorites.remove(folder)
+        else:
+            favorites.append(folder)
+        self.set_value("favorites", list(map(str, favorites)))
 
     def recent(self):
         try:
@@ -303,24 +346,84 @@ def attach_file(folder, source):
             raise
 
 
-def backup_project(folder, destination):
+BACKUP_RULES = (RESOURCES / "backup-excludes.txt").read_text(encoding="utf-8").lower().splitlines()
+
+
+def included_in_backup(path):
+    name = path.name.lower()
+    allowed = any(fnmatchcase(name, pattern[1:]) for pattern in BACKUP_RULES if pattern.startswith("!"))
+    return not is_link(path) and (allowed or not any(
+        fnmatchcase(name, pattern) for pattern in BACKUP_RULES if not pattern.startswith("!")
+    ))
+
+
+def backup_entries(folder):
+    yield folder
+    def failed(error):
+        raise error
+
+    for root, directories, files in os.walk(folder, onerror=failed):
+        root = Path(root)
+        directories[:] = sorted(name for name in directories if included_in_backup(root / name))
+        yield from (root / name for name in directories)
+        yield from (root / name for name in sorted(files)
+                    if included_in_backup(root / name) and (root / name).is_file())
+
+
+def backup_project(folder, destination, entries=None):
     if destination.resolve().is_relative_to(folder.resolve()):
         raise ValueError(text("Escolha destino fora do projeto.", "Choose a destination outside the project.", "Elige un destino fuera del proyecto."))
     with destination.open("xb") as output:
         try:
             with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
-                for root, directories, files in os.walk(folder):
-                    root = Path(root)
-                    directories[:] = [name for name in directories if not is_link(root / name)]
-                    archive.write(root, root.relative_to(folder.parent).as_posix())
-                    for name in files:
-                        path = root / name
-                        if path.is_file() and not is_link(path):
-                            archive.write(path, path.relative_to(folder.parent).as_posix())
-        except (OSError, zipfile.BadZipFile):
+                for path in entries if entries is not None else backup_entries(folder):
+                    if path != folder and any(not included_in_backup(parent)
+                                              for parent in (path, *path.parents) if parent.is_relative_to(folder) and parent != folder):
+                        raise ValueError(text("O conteúdo do projeto mudou.", "The project contents changed.", "El contenido del proyecto cambió."))
+                    if not path.is_file() and not path.is_dir():
+                        raise ValueError(path)
+                    archive.write(path, path.relative_to(folder.parent).as_posix())
+        except (OSError, ValueError, zipfile.BadZipFile):
             output.close()
             destination.unlink()
             raise
+
+
+def restore_backup(source, destination):
+    bad_zip = text("O ZIP contém caminhos ou tipos de arquivo incompatíveis com a restauração.",
+                   "The ZIP contains paths or file types that cannot be safely restored.",
+                   "El ZIP contiene rutas o tipos de archivos incompatibles con la restauración.")
+    try:
+        with zipfile.ZipFile(source) as archive:
+            entries = archive.infolist()
+            if not entries or len(entries) > 100_000 or sum(f.file_size for f in entries) > 20 * 1024**3:
+                raise ValueError(bad_zip)
+            seen = set()
+            for entry in entries:
+                parts = entry.orig_filename.rstrip("/").split("/")
+                mode = stat.S_IFMT(entry.external_attr >> 16)
+                if entry.flag_bits & 1 or mode not in (0, stat.S_IFDIR, stat.S_IFREG):
+                    raise ValueError(bad_zip)
+                for part in parts:
+                    validate_name(part) if not part.startswith(".") else validate_name("x" + part)
+                    if part in (".", ".."):
+                        raise ValueError(bad_zip)
+                normalized = "/".join(parts).casefold()
+                if normalized in seen:
+                    raise ValueError(bad_zip)
+                seen.add(normalized)
+            output_name = source.stem
+            validate_name(output_name)
+            target = destination / output_name
+            target.mkdir(mode=0o700)
+            try:
+                archive.extractall(target)
+            except BaseException:
+                shutil.rmtree(target)
+                raise
+    except (zipfile.BadZipFile, NotImplementedError, RuntimeError) as error:
+        raise ValueError(bad_zip) from error
+    return target
 
 
 def executable(name):
@@ -400,10 +503,19 @@ def terminal_worker(job):
         config = json.loads(job.read_text(encoding="utf-8"))
         configure_language(config.get("language", "automatic"))
         environment = session_environment(config["agent"], config["avoid_overlap"])
-        for command in config["commands"]:
-            status = subprocess.call(command, cwd=config["cwd"], env=environment)
-            if status != 0:
-                break
+        if shell_command := config.get("shell_command"):
+            if WINDOWS:
+                command = [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/s", "/c"]
+                line = subprocess.list2cmdline(command) + ' "' + shell_command + '"'
+                status = subprocess.call(line, cwd=config["cwd"], env=environment)
+            else:
+                status = subprocess.call([os.environ.get("SHELL", "/bin/sh"), "-lc", shell_command],
+                                         cwd=config["cwd"], env=environment)
+        else:
+            for command in config["commands"]:
+                status = subprocess.call(command, cwd=config["cwd"], env=environment)
+                if status != 0:
+                    break
         if status not in (0, 130, -2):
             print(text(f"Comando terminou com código {status}.", f"Command exited with code {status}.", f"El comando terminó con el código {status}."))
             input(text("Enter para voltar ao Assistente. ", "Press Enter to return to Assistente. ", "Pulsa Intro para volver a Assistente. "))
@@ -453,4 +565,9 @@ def check_release():
     with urllib.request.urlopen(request, timeout=10) as response:
         release = json.loads(response.read(1_000_000))
     tag = release.get("tag_name", "")
-    return tag if newer_version(tag) else ""
+    versions = [int(match[1]) for asset in release.get("assets", [])
+                if (match := re.fullmatch(r"Assistente-IA-Build-([1-9][0-9]{0,8})\.txt", asset.get("name", "")))]
+    build = max(versions, default=0)
+    if newer_version(tag) or (not newer_version(APP_VERSION, tag) and build > APP_BUILD):
+        return f"{tag} · build {build}" if build else tag
+    return ""

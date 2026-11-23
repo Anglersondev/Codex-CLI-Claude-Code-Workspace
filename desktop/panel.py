@@ -17,7 +17,7 @@ import uuid
 import workflows as wf
 
 from core import (
-    APP_VERSION, RELEASES, SUPPORTED_LANGUAGES, WINDOWS, State, attach_file, backup_project, check_release,
+    APP_BUILD, APP_VERSION, RELEASES, SUPPORTED_LANGUAGES, WINDOWS, State, attach_file, backup_entries, backup_project, check_release, restore_backup,
     configure_language, create_project, executable, instructions_are_long, managed_path,
     progress_available, project_layout, project_creation_root, save_prompt, scaffold, session_arguments, state_directory,
     terminal_process, terminal_worker, text as T,
@@ -49,11 +49,14 @@ class Panel:
         self.overlap = tk.BooleanVar(value=self.state.config.get("avoid_overlap", True))
         self.update_notice = tk.BooleanVar(value=self.state.config.get("update_notice", False))
         self.status = tk.StringVar()
+        self.search = tk.StringVar()
         self.prompt = None
         self.jobs = {}
+        self.verification_jobs = {}
         self.messages = queue.Queue()
         self.style()
         self.build()
+        self.search.trace_add("write", lambda *_: self.populate_projects())
         self.bind_shortcuts()
         self.render(select_agent=True)
         self.root.bind("<FocusIn>", self.refresh_context)
@@ -63,8 +66,8 @@ class Panel:
 
     def style(self):
         self.root.title(f"Assistente IA {APP_VERSION}")
-        self.root.geometry("920x570")
-        self.root.minsize(755, 510)
+        self.root.geometry("1010x630")
+        self.root.minsize(850, 575)
         self.root.configure(background=BACKGROUND)
         theme = ttk.Style(self.root)
         theme.theme_use("clam")
@@ -74,16 +77,22 @@ class Panel:
         theme.map("Accent.TButton", background=[("active", "#1056b2"), ("disabled", "#677d95")])
         theme.configure("TLabel", background="white")
         theme.configure("Sub.TLabel", foreground=MUTED)
-        theme.configure("Title.TLabel", font=("TkDefaultFont", 18, "bold"))
+        theme.configure("Title.TLabel", font=("TkDefaultFont", 22, "bold"))
+        theme.configure("Section.TLabel", foreground=BLUE)
+        theme.configure("Sidebar.TFrame", background=BACKGROUND)
         theme.configure("Section.TLabel", font=("TkDefaultFont", 11, "bold"))
         theme.configure("TLabelframe.Label", foreground=INK, background="white")
 
     def build(self):
         self.root.columnconfigure(1, weight=1)
         self.root.rowconfigure(0, weight=1)
-        sidebar = ttk.Frame(self.root, padding=(12, 15))
+        sidebar = ttk.Frame(self.root, padding=(12, 15), style="Sidebar.TFrame")
         sidebar.grid(row=0, column=0, sticky="ns", padx=(10, 6), pady=10)
-        ttk.Label(sidebar, text=T("Projetos recentes", "Recent projects", "Proyectos recientes"), style="Section.TLabel").pack(anchor="w")
+        ttk.Label(sidebar, text="Assistente IA", font=("TkDefaultFont", 15, "bold"), background=BACKGROUND).pack(anchor="w")
+        ttk.Label(sidebar, text=wf.label("search_projects"), background=BACKGROUND).pack(anchor="w", pady=(12, 4))
+        ttk.Entry(sidebar, textvariable=self.search, width=24).pack(fill="x")
+        self.pin_control = ttk.Button(sidebar, command=lambda: self.guard(self.toggle_favorite))
+        self.pin_control.pack(fill="x", pady=(0, 4))
         self.list = tk.Listbox(sidebar, width=23, borderwidth=0, highlightthickness=1, highlightcolor=BLUE,
                                selectbackground=BLUE, selectforeground="white", exportselection=False, activestyle="none")
         self.list.pack(fill="both", expand=True, pady=(8, 10))
@@ -115,9 +124,9 @@ class Panel:
         ttk.Label(agents, text=T("Agente desta sessão", "Agent for this session", "Agente de esta sesión")).pack(side="left", padx=(0, 10))
         for key, name in AGENT_NAMES.items():
             ttk.Radiobutton(agents, text=name, variable=self.agent, value=key, command=self.request_switch).pack(side="left", padx=(0, 15))
-        ttk.Label(session, text=T("Codex e Claude podem trabalhar nesta mesma pasta.", "Codex and Claude can work in this same folder.", "Codex y Claude pueden trabajar en esta misma carpeta."), style="Sub.TLabel").pack(anchor="w", pady=(4, 9))
+
         actions = ttk.Frame(session)
-        actions.pack(fill="x")
+        actions.pack(fill="x", pady=(7, 0))
         self.session_controls = [
             self.button(actions, T("Nova sessão", "New session", "Nueva sesión"), lambda: self.launch("new"), True),
             self.button(actions, T("Continuar", "Resume", "Continuar"), lambda: self.launch("resume")),
@@ -127,8 +136,8 @@ class Panel:
         secondary = ttk.Frame(session)
         secondary.pack(fill="x", pady=(6, 0))
         self.session_controls.append(self.button(secondary, wf.label("isolated"), self.worktree_dialog))
-        ttk.Label(secondary, text=T("Ao sair do agente, volte a este painel.", "Exit the agent to return to this panel.", "Sal del agente para volver a este panel."),
-                  style="Sub.TLabel", wraplength=245).pack(side="left", padx=4)
+        self.session_controls.append(self.button(secondary, wf.label("worktrees"), self.worktrees))
+        self.session_controls.append(self.button(secondary, wf.label("profile"), self.profile_dialog))
 
         context = ttk.LabelFrame(main, text=T("Contexto e arquivos", "Context and files", "Contexto y archivos"), padding=(12, 9))
         context.pack(fill="x", pady=(0, 10))
@@ -154,8 +163,18 @@ class Panel:
             self.button(quick, "Terminal", self.open_shell),
             self.button(quick, "Git", self.git_status),
             self.button(quick, T("Servidor npm…", "npm server…", "Servidor npm…"), self.dev_server),
-            self.button(quick, T("Cópia ZIP…", "ZIP backup…", "Copia ZIP…"), self.backup),
+            self.button(quick, wf.label("backup"), self.backup),
         ]
+        self.button(quick, wf.label("restore"), self.restore)
+        checks = ttk.LabelFrame(main, text=wf.label("checks"), padding=(12, 9))
+        checks.pack(fill="x", pady=(0, 10))
+        check_buttons = ttk.Frame(checks)
+        check_buttons.pack(fill="x")
+        for kind in ("test", "build"):
+            self.file_controls.append(self.button(check_buttons, wf.label("run_" + kind), lambda which=kind: self.run_check(which)))
+        self.file_controls.append(self.button(check_buttons, wf.label("edit_checks"), self.checks_dialog))
+        self.check_status = ttk.Label(checks, style="Sub.TLabel")
+        self.check_status.pack(anchor="w", pady=(4, 0))
         more = ttk.Frame(main)
         more.pack(fill="x")
         self.tools_menu = tk.Menu(more, tearoff=False)
@@ -222,13 +241,34 @@ class Panel:
         self.root.clipboard_append(command)
         self.status.set(T("Comando copiado. Cole no Terminal.", "Command copied. Paste it into your terminal.", "Comando copiado. Pégalo en el terminal."))
 
-    def render(self, select_agent=False):
-        self.paths = self.state.recent()
+    def populate_projects(self):
+        favorites = self.state.favorites()
+        recent = self.state.recent()
+        query = self.search.get().strip().casefold()
+        self.paths = [path for path in dict.fromkeys([*favorites, *recent])
+                      if query in path.name.casefold() or query in str(path).casefold()]
         self.list.delete(0, "end")
         for index, path in enumerate(self.paths):
-            self.list.insert("end", path.name)
+            self.list.insert("end", ("★  " if path in favorites else "") + path.name)
             if path == self.project:
                 self.list.selection_set(index)
+        self.pin_control.configure(text=wf.label("unpin" if self.project in favorites else "pin"),
+                                   state="normal" if self.project is not None else "disabled")
+
+    def toggle_favorite(self):
+        self.state.toggle_favorite(self.project)
+        self.populate_projects()
+
+    def load_profile(self):
+        self.model.set("")
+        self.plan.set(False)
+        if self.project:
+            model, plan = self.state.profile(self.project, self.agent.get())
+            self.model.set(model)
+            self.plan.set(plan)
+
+    def render(self, select_agent=False):
+        self.populate_projects()
         self.parent_button.configure(text=self.state.parent.name or str(self.state.parent))
         for control in [*self.session_controls, *self.file_controls, self.tools]:
             control.state(["!disabled"] if self.project is not None else ["disabled"])
@@ -243,7 +283,7 @@ class Panel:
         if select_agent:
             self.agent.set(self.state.agent_for(self.project))
             self.prompt = None
-            self.model.set("")
+            self.load_profile()
         self.current_agent = self.agent.get()
         self.refresh_context()
 
@@ -269,6 +309,7 @@ class Panel:
                 "Instrucciones extensas. Mueve a DOCS las referencias de uso ocasional.",
             ))
         self.context_hint.configure(text="\n".join(notes))
+        self.check_status.configure(text="  ·  ".join(self.check_results(self.project)))
 
     def selected(self, _event):
         choice = self.list.curselection()
@@ -459,6 +500,7 @@ class Panel:
                 raise ValueError(T("O pedido passa de 60 KB.", "The prompt exceeds 60 KB.", "La solicitud supera los 60 KB."))
             prompt = data.decode("utf-8-sig").strip()
         args = session_arguments(agent, mode, self.project, self.plan.get() and not force_work, self.model.get().strip(), prompt)
+        self.state.save_profile(self.project, agent, self.model.get().strip(), self.plan.get())
         self.run_terminal([executable(agent) + args])
 
     def request_switch(self):
@@ -484,13 +526,14 @@ class Panel:
         changes.insert("1.0", wf.label("checking"))
         changes.configure(state="disabled")
         tests = editor("tests", 2)
+        tests.insert("1.0", "\n".join("- " + line for line in self.check_results(project)))
         next_step = editor("next", 2)
 
         def select_target():
             self.state.remember_agent(project, target)
             self.agent.set(target)
             self.current_agent = target
-            self.model.set("")
+            self.load_profile()
             self.prompt = None
             self.refresh_context()
             if window.winfo_exists():
@@ -574,14 +617,14 @@ class Panel:
         shell = ["powershell.exe", "-NoLogo"] if WINDOWS else [os.environ.get("SHELL", "/bin/sh"), "-i"]
         self.run_terminal([shell])
 
-    def run_terminal(self, commands, folder=None):
+    def run_terminal(self, commands, folder=None, shell_command=None):
         working = (folder or self.project or self.state.parent).resolve()
         if working in self.jobs:
             raise ValueError(wf.label("busy_folder"))
         state = Path(tempfile.mkdtemp(prefix="assistente-"))
         job = state / "job.json"
         try:
-            job.write_text(json.dumps({"cwd": str(working), "commands": commands, "agent": self.agent.get(),
+            job.write_text(json.dumps({"cwd": str(working), "commands": commands, "shell_command": shell_command, "agent": self.agent.get(),
                                        "avoid_overlap": self.overlap.get(), "language": self.state.config.get("language", "automatic")}),
                            encoding="utf-8")
             process = terminal_process(job, working)
@@ -590,6 +633,7 @@ class Panel:
             raise
         self.jobs[working] = (state, process, time.monotonic())
         self.status.set(T("Sessão aberta no Terminal.", "Session open in Terminal.", "Sesión abierta en Terminal."))
+        return working
 
     def poll(self):
         for working, (folder, process, launched) in list(self.jobs.items()):
@@ -598,6 +642,17 @@ class Panel:
             ended = (folder / "status").exists() or (WINDOWS and started and result is not None)
             delayed = not started and (result not in (None, 0) or time.monotonic() - launched > 20)
             if ended or delayed:
+                check = self.verification_jobs.pop(working, None)
+                if check is not None:
+                    try:
+                        code = int((folder / "status").read_text())
+                    except (OSError, ValueError):
+                        code = None
+                    checks = self.state.checks(working)
+                    if check in checks:
+                        checks[check]["result"] = {"code": code if code not in (130, 143, -2, -15) else None,
+                                                    "date": datetime.now().isoformat(timespec="minutes")}
+                        self.guard(lambda: self.state.save_checks(working, checks))
                 shutil.rmtree(folder, ignore_errors=True)
                 del self.jobs[working]
                 if not self.jobs:
@@ -686,15 +741,217 @@ class Panel:
         ttk.Button(body, text=T("Iniciar", "Start", "Iniciar"), style="Accent.TButton",
                    command=lambda: self.guard(run)).pack(anchor="e")
 
+    def profile_dialog(self):
+        project = self.project
+        window, body = self.dialog(wf.label("profile"))
+        variable = tk.StringVar(value=self.agent.get())
+        model = tk.StringVar()
+        plan = tk.BooleanVar()
+
+        def preferences(*_):
+            saved_model, saved_plan = self.state.profile(project, variable.get())
+            model.set(saved_model)
+            plan.set(saved_plan)
+
+        row = ttk.Frame(body)
+        row.pack(fill="x", pady=(0, 6))
+        ttk.Label(row, text=wf.label("choose_agent")).pack(anchor="w")
+        for key, name in AGENT_NAMES.items():
+            ttk.Radiobutton(row, text=name, value=key, variable=variable, command=preferences).pack(side="left")
+        self.field(body, wf.label("model"), model)
+        ttk.Checkbutton(body, text=wf.label("planning"), variable=plan).pack(anchor="w")
+        preferences()
+
+        def save():
+            self.state.save_profile(project, variable.get(), model.get().strip(), plan.get())
+            window.destroy()
+            self.render(select_agent=True)
+            self.status.set(wf.label("profile_saved"))
+
+        buttons = ttk.Frame(body)
+        buttons.pack(anchor="e", pady=(10, 0))
+        self.button(buttons, wf.label("cancel"), window.destroy)
+        self.button(buttons, wf.label("save"), save, True)
+
+    def check_results(self, project):
+        entries = self.state.checks(project)
+        reports = []
+        for kind in ("test", "build"):
+            result = entries.get(kind, {}).get("result")
+            if result:
+                code = result.get("code")
+                key = "check_ok" if code == 0 else ("check_interrupted" if code is None else "check_error")
+                reports.append(f"{wf.label('run_' + kind)} · {wf.label(key).format(code=code)} · {result['date'].replace('T', ' ')}")
+        return reports
+
+    def run_check(self, kind):
+        command = self.state.checks(self.project).get(kind, {}).get("command", "")
+        if not command:
+            self.checks_dialog()
+            return
+        folder = self.run_terminal([], shell_command=command)
+        self.verification_jobs[folder] = kind
+        self.status.set(wf.label("check_in_progress"))
+
+    def checks_dialog(self):
+        project = self.project
+        window, body = self.dialog(wf.label("checks"))
+        ttk.Label(body, text=wf.label("checks_hint"), wraplength=420).pack(anchor="w", pady=(0, 10))
+        entries = self.state.checks(project)
+        fields = {}
+        for kind in ("test", "build"):
+            fields[kind] = tk.StringVar(value=entries.get(kind, {}).get("command", ""))
+            self.field(body, wf.label(kind + "_command"), fields[kind])
+
+        def save():
+            if project in self.verification_jobs:
+                raise ValueError(wf.label("busy_folder"))
+            for kind, field in fields.items():
+                command = field.get().strip()
+                if command != entries.get(kind, {}).get("command"):
+                    entries[kind] = {"command": command}
+            self.state.save_checks(project, entries)
+            self.refresh_context()
+            self.status.set(wf.label("saved_checks"))
+            window.destroy()
+
+        buttons = ttk.Frame(body)
+        buttons.pack(anchor="e")
+        self.button(buttons, wf.label("cancel"), window.destroy)
+        self.button(buttons, wf.label("save"), save, True)
+
+    def worktrees(self):
+        project = self.project
+        window, body = self.dialog(wf.label("worktrees"))
+        selector = ttk.Treeview(body, columns=("branch", "path"), show="headings", height=8, selectmode="browse")
+        selector.heading("branch", text=wf.label("branch"))
+        selector.heading("path", text=wf.label("folder"))
+        selector.column("branch", width=210)
+        selector.column("path", width=450)
+        selector.pack(fill="both", expand=True)
+        state = ttk.Label(body, text=wf.label("checking"))
+        state.pack(anchor="w", pady=(7, 3))
+        changes = tk.Text(body, width=76, height=5, wrap="none", state="disabled")
+        changes.pack(fill="both", expand=True)
+        entries = []
+
+        def selected():
+            keys = selector.selection()
+            return entries[int(keys[0])] if keys else None
+
+        def update(_event=None):
+            item = selected()
+            state.configure(text=wf.label({"clean": "worktree_clean", "dirty": "pending",
+                                           "unknown": "worktree_unknown"}[item.status]) if item else wf.label("no_worktrees"))
+            changes.configure(state="normal")
+            changes.delete("1.0", "end")
+            changes.insert("1.0", item.changes if item else "")
+            changes.configure(state="disabled")
+            can_open = item and item.status != "unknown" and item.path.resolve() not in self.jobs
+            for button, enabled in ((open_agent, can_open), (remove, can_open and item.status == "clean"),
+                                    (open_folder, item and item.path.is_dir())):
+                button.state(["!disabled"] if enabled else ["disabled"])
+
+        def populate(items):
+            if not window.winfo_exists():
+                return
+            entries[:] = items
+            selector.delete(*selector.get_children())
+            for index, item in enumerate(entries):
+                selector.insert("", "end", iid=str(index), values=(item.branch, str(item.path)))
+            if entries:
+                selector.selection_set("0")
+            update()
+
+        def reopen():
+            item = selected()
+            if item.path.resolve() in self.jobs:
+                raise ValueError(wf.label("busy_folder"))
+            window.destroy()
+            prefs = self.state.agent_preferences(item.path).directory / "tool"
+            if not prefs.is_file():
+                self.state.remember_agent(item.path, item.agent)
+            self.select(item.path)
+            self.launch("resume")
+
+        def delete():
+            item = selected()
+            if item.path.resolve() in self.jobs:
+                raise ValueError(wf.label("blocked_worktree"))
+            if not messagebox.askyesno("Assistente IA", wf.label("confirm_remove_worktree"), parent=window):
+                return
+
+            def finish(_result):
+                if self.project == item.path.resolve():
+                    self.project = next(iter(self.state.recent()), None)
+                self.render(select_agent=True)
+                refresh()
+
+            self.background(lambda: wf.remove_worktree(project, item.path), finish)
+
+        def refresh():
+            self.background(lambda: wf.list_worktrees(project), populate)
+
+        buttons = ttk.Frame(body)
+        buttons.pack(fill="x", pady=(10, 0))
+        open_agent = self.button(buttons, wf.label("open_session"), reopen, True)
+        open_folder = self.button(buttons, wf.label("open_folder"), lambda: self.open_file(selected().path))
+        remove = self.button(buttons, wf.label("remove_worktree"), delete)
+        self.button(buttons, T("Atualizar", "Refresh", "Actualizar"), refresh)
+        self.button(buttons, T("Fechar", "Close", "Cerrar"), window.destroy)
+        selector.bind("<<TreeviewSelect>>", update)
+        for button in (open_agent, open_folder, remove):
+            button.state(["disabled"])
+        refresh()
+
     def backup(self):
         folder = self.project
-        name = folder.name + datetime.now().strftime("-%Y%m%d-%H%M%S.zip")
-        selected = filedialog.asksaveasfilename(parent=self.root, initialdir=folder.parent, initialfile=name,
-                                               defaultextension=".zip", filetypes=[("ZIP", "*.zip")])
-        if selected:
-            self.status.set(T("Criando cópia ZIP…", "Creating ZIP backup…", "Creando copia ZIP…"))
-            self.background(lambda: backup_project(folder, Path(selected)),
-                            lambda _result: self.status.set(T("Cópia ZIP criada.", "ZIP backup created.", "Copia ZIP creada.")))
+        window, body = self.dialog(wf.label("backup_review"))
+        ttk.Label(body, text=wf.label("backup_excludes"), wraplength=490, style="Sub.TLabel").pack(anchor="w")
+        count = ttk.Label(body, text=wf.label("checking"))
+        count.pack(anchor="w", pady=(7, 4))
+        area = tk.Text(body, width=65, height=15, wrap="none", font="TkFixedFont", state="disabled")
+        area.pack(fill="both", expand=True)
+        entries = []
+
+        def save():
+            name = folder.name + datetime.now().strftime("-%Y%m%d-%H%M%S.zip")
+            selected = filedialog.asksaveasfilename(parent=window, initialdir=folder.parent, initialfile=name,
+                                                   defaultextension=".zip", filetypes=[("ZIP", "*.zip")])
+            if selected:
+                window.destroy()
+                self.status.set(T("Criando cópia ZIP…", "Creating ZIP backup…", "Creando copia ZIP…"))
+                self.background(lambda: backup_project(folder, Path(selected), entries),
+                                lambda _: self.status.set(T("Cópia ZIP criada.", "ZIP backup created.", "Copia ZIP creada.")))
+
+        buttons = ttk.Frame(body)
+        buttons.pack(anchor="e", pady=(10, 0))
+        self.button(buttons, wf.label("cancel"), window.destroy)
+        submit = self.button(buttons, wf.label("save_zip"), save, True)
+        submit.state(["disabled"])
+
+        def preview(paths):
+            if not window.winfo_exists():
+                return
+            entries[:] = paths
+            count.configure(text=wf.label("backup_count").format(count=len(entries)))
+            area.configure(state="normal")
+            area.insert("1.0", "\n".join(str(path.relative_to(folder.parent)) for path in entries))
+            area.configure(state="disabled")
+            submit.state(["!disabled"])
+
+        self.background(lambda: list(backup_entries(folder)), preview)
+
+    def restore(self):
+        source = filedialog.askopenfilename(parent=self.root, title=wf.label("restore"), filetypes=[("ZIP", "*.zip")])
+        if not source:
+            return
+        parent = filedialog.askdirectory(parent=self.root, initialdir=self.state.parent, title=wf.label("choose_restore"))
+        if parent:
+            def show(restored):
+                self.status.set(wf.label("restored"))
+                self.open_file(restored)
+            self.background(lambda: restore_backup(Path(source), Path(parent)), show)
 
     def settings(self):
         window, body = self.dialog(T("Ajustes", "Settings", "Ajustes"))
@@ -717,6 +974,7 @@ class Panel:
                 self.output(wf.label("diagnosis"), report)
             self.background(wf.diagnostics, show)
         ttk.Button(body, text=wf.label("diagnosis"), command=diagnose).pack(anchor="w", pady=(0, 7))
+        ttk.Label(body, text=f"Assistente IA {APP_VERSION} · build {APP_BUILD}").pack(anchor="w", pady=(0, 8))
         ttk.Label(body, text=T("Agentes e contas", "Agents and accounts", "Agentes y cuentas"), style="Section.TLabel").pack(anchor="w")
         for agent, name in AGENT_NAMES.items():
             row = ttk.Frame(body)

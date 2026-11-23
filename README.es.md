@@ -46,6 +46,16 @@ Para un proyecto llamado `tienda` y una tarea de Claude llamada `buscar`, la car
 
 También puedes guardar un checkpoint sin Git. Describe los cambios en el campo editable. El panel muestra hasta 80 archivos y registra los resultados de las pruebas que indiques.
 
+## Perfil, comprobaciones y copias de seguridad
+
+- En **Perfil del proyecto**, guarda el agente predeterminado, el modelo y el modo de trabajo. Fija proyectos con la estrella y búscalos por nombre o ruta.
+- En **Comprobaciones**, configura los comandos de pruebas y compilación. El panel registra el resultado del terminal y lo propone para el siguiente checkpoint.
+- En **Gestionar sesiones aisladas**, consulta la rama, la carpeta y los cambios pendientes. Puedes volver a abrir la sesión. Eliminar una carpeta limpia conserva la rama. Los archivos ignorados por Git también cuentan como cambios pendientes.
+- En **Copia del proyecto**, revisa los archivos antes de guardar el ZIP. La copia predeterminada omite credenciales comunes, dependencias, cachés y metadatos de Git. **Restaurar ZIP** extrae la copia en una carpeta nueva.
+- El aviso de actualización detecta nuevas compilaciones de la versión **1.0**. Linux y Windows abren las descargas. macOS puede instalar la actualización verificada si activas la opción.
+
+[Capturas de la aplicación en macOS](README.md#macos-app-screenshots)
+
 ## Contexto compartido y progreso
 
 ```text

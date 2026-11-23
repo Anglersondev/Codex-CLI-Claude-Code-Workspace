@@ -20,7 +20,7 @@ struct Assistente: App {
                 .frame(minWidth: 760, minHeight: 570)
                 .environment(\.locale, interfaceLocale)
         }
-        .defaultSize(width: 940, height: 650)
+        .defaultSize(width: 1020, height: 760)
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(replacing: .appInfo) {
@@ -63,6 +63,12 @@ struct Dashboard: View {
     @ObservedObject var workspace: Workspace
     @Environment(\.scenePhase) private var phase
     @AppStorage("projectParent") private var projectParent = ""
+    @AppStorage("pinnedProjects") private var pinnedProjectList = ""
+    @ViewState private var query = ""
+    @ViewState private var worktrees: ProjectAction?
+    @ViewState private var profile: ProjectAction?
+    @ViewState private var checks: ProjectAction?
+    @ViewState private var backup: ProjectAction?
     @ViewState private var showSettings = false
     @ViewState private var showCreate = false
     @ViewState private var prepare = false
@@ -76,12 +82,21 @@ struct Dashboard: View {
     var body: some View {
         NavigationSplitView {
             VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+                    TextField(wf("search_projects"), text: $query).textFieldStyle(.plain)
+                    if !query.isEmpty {
+                        Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+                            .buttonStyle(.plain).accessibilityLabel(Text(wf("clear_search")))
+                    }
+                }.padding(9).background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, 12).padding(.top, 12)
                 List(selection: $workspace.selected) {
+                    if !matching(pinned).isEmpty {
+                        Section(wf("favorites")) { projectRows(matching(pinned), favorite: true) }
+                    }
                     Section(tr("Projetos recentes")) {
-                        ForEach(workspace.projects, id: \.self) { path in
-                            Label(URL(fileURLWithPath: path).lastPathComponent, systemImage: "folder")
-                                .lineLimit(1).help(path).tag(path)
-                        }
+                        projectRows(matching(workspace.projects.filter { !pinned.contains($0) }), favorite: false)
                     }
                 }
                 .listStyle(.sidebar)
@@ -119,6 +134,7 @@ struct Dashboard: View {
                         HStack {
                             Button(tr("Novo projeto…")) { showCreate = true }.buttonStyle(.borderedProminent)
                             Button(tr("Abrir pasta…"), action: openFolder)
+                            Button(wf("restore"), action: restoreBackup)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -174,6 +190,10 @@ struct Dashboard: View {
         }
         .sheet(item: $handoff) { item in CheckpointPanel(project: item, workspace: workspace) }
         .sheet(item: $isolated) { item in WorktreePanel(project: item, workspace: workspace) }
+        .sheet(item: $worktrees) { item in WorktreesPanel(project: item.path, workspace: workspace) }
+        .sheet(item: $profile) { item in ProfilePanel(project: item.path, workspace: workspace) }
+        .sheet(item: $checks) { item in ChecksPanel(project: item.path, workspace: workspace) }
+        .sheet(item: $backup) { item in BackupPanel(project: item.path, workspace: workspace) }
         .sheet(item: $packages) { item in
             DevPanel(project: item, workspace: workspace)
         }
@@ -222,8 +242,6 @@ struct Dashboard: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .accessibilityLabel(Text(tr("Agente desta sessão")))
-                Text(tr("Codex e Claude podem trabalhar nesta mesma pasta."))
-                    .font(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 9) {
                     Button { Task { await workspace.start("novo") } } label: {
                         Label(tr("Nova sessão"), systemImage: "terminal")
@@ -232,11 +250,14 @@ struct Dashboard: View {
                     .keyboardShortcut(.return, modifiers: .command)
                     Button(tr("Continuar")) { Task { await workspace.start("recente") } }
                     Button(tr("Histórico…")) { Task { await workspace.start("escolher") } }
-                    Button(wf("isolated")) { isolated = WorkflowProject(path: path, agent: workspace.agent) }
+                    Menu {
+                        Button(wf("isolated")) { isolated = WorkflowProject(path: path, agent: workspace.agent) }
+                        Button(wf("worktrees")) { worktrees = ProjectAction(path: path) }
+                    } label: {
+                        Label(wf("isolated_menu"), systemImage: "arrow.triangle.branch")
+                    }.fixedSize()
                 }
                 .disabled(!workspace.sessionReady || workspace.busy || workspace.updatingIntegrations)
-                Text(tr("Ao sair da sessão no Terminal, você volta a esta janela."))
-                    .font(.caption).foregroundStyle(.secondary)
                 DisclosureGroup(tr("Opções da sessão")) {
                   Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
                     GridRow {
@@ -269,6 +290,8 @@ struct Dashboard: View {
                     }
                   }.padding(.top, 8)
                 }
+                Button(wf("profile")) { profile = ProjectAction(path: path) }
+                    .buttonStyle(.borderless).disabled(!workspace.sessionReady || workspace.busy)
                 if !workspace.jobs.isEmpty {
                     Label(tr("Sessões no Terminal pelo app: %d", workspace.jobs.count), systemImage: "terminal")
                         .font(.caption).foregroundStyle(.secondary)
@@ -329,6 +352,23 @@ struct Dashboard: View {
                     ProgressView().controlSize(.small)
                 }
             }
+            section(wf("checks")) {
+                HStack(spacing: 10) {
+                    ForEach(ProjectCheck.allCases) { check in
+                        Button {
+                            if ProjectChecks(path: path).command(check).isEmpty { checks = ProjectAction(path: path) }
+                            else { Task { await workspace.runCheck(check) } }
+                        } label: { Label(check.runLabel, systemImage: check.symbol) }
+                    }
+                    Spacer()
+                    Button(wf("edit_checks")) { checks = ProjectAction(path: path) }
+                }.disabled(workspace.busy || workspace.jobs.contains { $0.project == path })
+                ForEach(ProjectCheck.allCases) { check in
+                    if let result = ProjectChecks(path: path).result(check) {
+                        Text("\(check.runLabel) · \(result.report)").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
             section("Atalhos do projeto") {
                 HStack {
                     Button(tr("Novo pedido…")) { promptEditor = ProjectAction(path: path) }
@@ -355,10 +395,11 @@ struct Dashboard: View {
                         Task { await showDevPackages(path) }
                     } label: { Label(tr("Servidor npm…"), systemImage: "play.circle") }
                         .keyboardShortcut("r", modifiers: [.command, .shift])
-                    Button {
-                        pickBackupDestination(folder)
-                    } label: { Label(tr("Cópia ZIP…"), systemImage: "archivebox") }
-                        .keyboardShortcut("b", modifiers: [.command, .shift])
+                    Menu {
+                        Button(wf("backup")) { backup = ProjectAction(path: path) }
+                        Button(wf("restore"), action: restoreBackup)
+                    } label: { Label(wf("archive_menu"), systemImage: "archivebox") }.fixedSize()
+                    .keyboardShortcut("b", modifiers: [.command, .shift])
                 }
                 .disabled(workspace.busy)
             }
@@ -381,6 +422,11 @@ struct Dashboard: View {
             }
             Spacer(minLength: 8)
             HStack(spacing: 8) {
+                let favorite = pinned.contains(path)
+                Button { toggleFavorite(path) } label: {
+                    Image(systemName: favorite ? "star.fill" : "star").foregroundStyle(accent)
+                }.accessibilityLabel(Text(wf(favorite ? "unpin" : "pin")))
+                 .help(wf(favorite ? "unpin" : "pin"))
                 Button { NSWorkspace.shared.activateFileViewerSelecting([folder]) } label: {
                     Label("Finder", systemImage: "arrow.up.right")
                 }
@@ -399,6 +445,9 @@ struct Dashboard: View {
             }
             .fixedSize()
         }
+        .padding(15)
+        .background(accent.opacity(0.075), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(accent.opacity(0.16)))
     }
 
     private func pickAttachment(for folder: URL) {
@@ -410,9 +459,35 @@ struct Dashboard: View {
         }
     }
 
-    private func pickBackupDestination(_ folder: URL) {
-        if let target = chooseDirectory(startingAt: folder.deletingLastPathComponent(), prompt: tr("Salvar cópia ZIP neste local")) {
-            Task { await workspace.backup(folder.path, to: target) }
+    private func restoreBackup() {
+        let picker = NSOpenPanel()
+        picker.allowedContentTypes = [.zip]
+        guard picker.runModal() == .OK, let archive = picker.url,
+              let target = chooseDirectory(startingAt: defaultProjectFolder(projectParent), prompt: wf("choose_restore")) else { return }
+        Task { await workspace.restore(archive, to: target) }
+    }
+
+    private var pinned: [String] {
+        pinnedProjectList.split(separator: "\n").map(String.init).filter { FileManager.default.fileExists(atPath: $0) }
+    }
+
+    private func matching(_ paths: [String]) -> [String] {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return term.isEmpty ? paths : paths.filter { $0.localizedStandardContains(term) }
+    }
+
+    private func toggleFavorite(_ path: String) {
+        let paths = pinned.contains(path) ? pinned.filter { $0 != path } : pinned + [path]
+        pinnedProjectList = paths.joined(separator: "\n")
+    }
+
+    private func projectRows(_ paths: [String], favorite: Bool) -> some View {
+        ForEach(paths, id: \.self) { path in
+            Label(URL(fileURLWithPath: path).lastPathComponent, systemImage: favorite ? "star.fill" : "folder")
+                .lineLimit(1).help(path).tag(path)
+                .contextMenu {
+                    Button(wf(favorite ? "unpin" : "pin")) { toggleFavorite(path) }
+                }
         }
     }
 

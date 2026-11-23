@@ -1,14 +1,14 @@
 # Codex CLI & Claude Code Workspace
 
-![Assistente IA desktop workspace for Codex CLI and Claude Code on macOS, Linux and Windows](assets/workspace-banner.svg)
+**Assistente IA** is a lightweight project workspace for Codex CLI and Claude Code on macOS, Linux, and Windows. Open either coding agent in your system terminal, hand off progress through shared markdown files, or run both in parallel using Git worktrees. Pin project folders, save per-agent profiles, and run your test and build commands from the same panel.
 
-**Assistente IA** is a lightweight desktop launcher for Codex CLI and Claude Code on macOS, Linux, and Windows. Choose a project, pick an agent, and start or resume work in your system terminal. Both agents can use the same project folder, instructions, prompts, and progress notes.
+![Assistente IA macOS dashboard showing pinned projects and Codex CLI and Claude Code terminal controls](assets/screenshots/macos-workspace.png)
 
 [![GitHub Release](https://img.shields.io/github/v/release/Anglersondev/Codex-CLI-Claude-Code-Workspace?style=flat-square&label=release)](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest) [![MIT License](https://img.shields.io/badge/license-MIT-2877c7?style=flat-square)](LICENSE)
 
 **[Download the latest release](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest)** · [Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · [Changelog](CHANGELOG.md)
 
-[Install](#download-and-install) · [Quick start](#quick-start) · [Shared context](#share-project-context-between-codex-and-claude-code) · [Build from source](#build-and-verify-from-source)
+[Install](#download-and-install) · [Quick start](#quick-start) · [Shared context](#share-project-context-between-codex-and-claude-code) · [Screenshots](#macos-app-screenshots) · [Build from source](#build-and-verify-from-source)
 
 ## Download and install
 
@@ -53,6 +53,29 @@ flowchart LR
 For a project called `shop` and a Claude task called `search`, the folder is `shop-claude-search` and the branch is `assistente/claude-search`. The copy starts at the current commit. Commit any local changes you want to include, including instructions and notes. Both folders remain available in recent projects. Review the branch and merge through Git when ready.
 
 Checkpoints also work without Git. Describe your changes in the editable field. The panel lists up to 80 files and records the test results you enter.
+
+## Manage a coding project from the panel
+
+- **Project profiles and favorites.** Use **Project profile** to save the default agent and each agent’s model and permission mode. Click the star to pin a project, then search by name or path.
+- **Test and build commands.** In **Checks**, configure the commands you normally run from the project root. Run them in the terminal and review their exit status in the panel. The latest results prefill the next checkpoint for review.
+- **Manage Git worktrees.** Under **Isolated sessions**, open the manager to see the branch, path, and pending files. Reopen a session in its own folder. Removing an idle, clean worktree keeps its branch and commits. The manager also checks ignored files, such as local credentials.
+- **Preview and restore backups.** Review the project files before saving a ZIP. The desktop backup skips common credentials, Git metadata, dependencies, and caches. **Restore ZIP** extracts a copy into a new folder at the chosen destination.
+- **Version 1.0 build updates.** The update check compares build numbers when a new revision shares the visible version. macOS can stage a verified update when enabled. Linux and Windows open the release downloads.
+
+## macOS app screenshots
+
+The screenshots show the English interface with a demo web project. The same workflows are available in Brazilian Portuguese and Spanish.
+
+| Project setup | Project settings |
+| --- | --- |
+| [![Create a new AI coding project with Codex CLI or Claude Code in Assistente IA](assets/screenshots/macos-create-project.png)](assets/screenshots/macos-create-project.png) | [![Save a default Codex or Claude agent and model for a macOS project](assets/screenshots/macos-project-profile.png)](assets/screenshots/macos-project-profile.png) |
+| Create a project in your chosen folder. | Save the agent, model, and permission mode. |
+| [![Review changed files and the next step before handing work from Codex to Claude Code](assets/screenshots/macos-checkpoint.png)](assets/screenshots/macos-checkpoint.png) | [![Inspect an isolated Git worktree branch and its pending changes on macOS](assets/screenshots/macos-worktrees.png)](assets/screenshots/macos-worktrees.png) |
+| Review a checkpoint before switching agents. | Check each isolated worktree before reopening or removing it. |
+| [![Configure test and build commands for a project terminal on macOS](assets/screenshots/macos-checks.png)](assets/screenshots/macos-checks.png) | [![Preview files included in an Assistente IA project ZIP backup](assets/screenshots/macos-backup.png)](assets/screenshots/macos-backup.png) |
+| Run your own checks from the project root. | Review the ZIP contents before saving. |
+
+[Create an isolated session](assets/screenshots/macos-create-worktree.png) · [Environment diagnostics](assets/screenshots/macos-diagnostics.png) · [App settings](assets/screenshots/macos-settings.png) · [About Assistente IA](assets/screenshots/macos-about.png)
 
 ## Share project context between Codex and Claude Code
 
@@ -128,7 +151,7 @@ Test the menu with Tab and Escape at 390 px, then fix any focus issues.
 | **RTK and Token Optimizer** | Prevent double compression of terminal output when RTK is configured. The macOS panel also includes integration controls. |
 | **Release updates** | macOS can install verified app updates after you opt in. Linux and Windows can notify you about new releases. |
 
-Backups can include hidden files. The agent you choose handles authentication, model access, and its own permissions. The launcher uses the CLI's workspace or read-only planning mode and stores its own project preferences locally.
+The desktop backup includes ordinary hidden files unless they match an exclusion. The agent you choose handles authentication, model access, and its own permissions. The launcher uses the CLI's workspace or read-only planning mode and stores its own project preferences locally.
 
 To use the existing terminal menus, open `ASSISTENTE-IA-MAC.command`, `ASSISTENTE-IA-LINUX.sh`, or `ASSISTENTE-IA-WINDOWS.cmd`. See the [terminal workflow guide](GUIA-DE-USO.md), [Linux and Windows panel guide](desktop/LEIA-ME.md), and [RTK integration guide](RTK.md).
 

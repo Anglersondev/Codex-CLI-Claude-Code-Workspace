@@ -46,6 +46,16 @@ Por exemplo, com o projeto `loja` e a tarefa `busca` no Claude, a nova pasta se 
 
 O checkpoint funciona também em projetos sem Git. Nesse caso, descreva as mudanças no campo editável. O painel lista até 80 arquivos e registra somente os testes que você informar.
 
+## Perfil, verificações e backup
+
+- Em **Perfil do projeto**, salve o agente padrão, o modelo e o modo de trabalho. Use a estrela para fixar o projeto e a busca para encontrá-lo pelo nome ou caminho.
+- Em **Verificações**, configure os comandos de teste e build que roda na raiz do projeto. O painel registra o resultado do Terminal e sugere a inclusão no próximo checkpoint.
+- Em **Gerenciar sessões isoladas**, veja a branch, a pasta e as mudanças pendentes. A remoção de uma pasta limpa preserva a branch. Pastas com arquivos pendentes, inclusive ignorados pelo Git, ficam bloqueadas.
+- Em **Backup do projeto**, revise o conteúdo antes de salvar. A cópia padrão exclui credenciais comuns, dependências, caches e dados internos do Git. **Restaurar ZIP** extrai a cópia em uma pasta nova.
+- O botão de atualização detecta builds novos da **1.0**. Linux e Windows encaminham para os downloads. O macOS pode instalar o pacote verificado quando a opção estiver ligada.
+
+[Capturas do app no macOS](README.md#macos-app-screenshots)
+
 ## Contexto compartilhado e andamento
 
 Os nomes das pastas e dos modelos de projetos novos seguem o idioma do painel. Projetos existentes continuam sendo abertos pelos caminhos que já usam.
@@ -113,7 +123,7 @@ Testar Tab e Esc no menu com a tela em 390 px e corrigir o foco se necessário.
 
 ## Ferramentas e atualizações
 
-O painel tem atalhos para criar pedidos, adicionar anexos, abrir o Terminal, ver o status do Git, iniciar `npm run dev` e criar uma cópia ZIP. Use **Comandos do Terminal** para copiar os comandos dos agentes e das ferramentas. A cópia ZIP pode incluir arquivos ocultos.
+O painel tem atalhos para criar pedidos, adicionar anexos, abrir o Terminal, ver o status do Git, iniciar `npm run dev` e criar uma cópia ZIP. Use **Comandos do Terminal** para copiar os comandos dos agentes e das ferramentas.
 
 Quando o RTK está configurado, o Assistente pode evitar a compactação duplicada de saída com o Token Optimizer. O Mac oferece controles das integrações e instalação opcional de atualizações verificadas. Linux e Windows podem avisar quando houver novas versões publicadas.
 

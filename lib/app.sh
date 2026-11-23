@@ -205,6 +205,19 @@ app_command() {
     checkpoint-files:1) app_checkpoint_files "$1" ;;
     checkpoint-append:2) app_checkpoint_append "$1" "$2" ;;
     worktree-create:3) app_worktree_create "$@" ;;
+    worktree-list:1) mkdir -p "$STATE_DIR" && app_list_worktrees "$1" ;;
+    worktree-remove:2) mkdir -p "$STATE_DIR" && app_remove_worktree "$1" "$2" ;;
+    profile-save:5)
+      case "$2" in codex|claude) ;; *) return 2 ;; esac
+      case "$3" in trabalhar|planejar) ;; *) return 2 ;; esac
+      case "$5" in ''|low|medium|high|xhigh|max|ultra) ;; *) return 2 ;; esac
+      [ -z "$4" ] || valid_model "$4" || { printf '@invalid_model\n' >&2; return 1; }
+      set_project "$1" || return 1
+      TOOL="$2" WORKMODE="$3" MODEL="$4" EFFORT="$5"
+      save_preferences ;;
+    run-check:2)
+      PROJECT="$(normalize_path "$1")" || return 1
+      (cd -- "$PROJECT" && "${SHELL:-/bin/zsh}" -lc "$2") ;;
     select-agent:2)
       case "$2" in codex|claude) ;; *) return 2 ;; esac
       set_project "$1" && put "$PREF_DIR/tool" "$2" ;;

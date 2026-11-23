@@ -56,6 +56,22 @@ class WorkflowTests(unittest.TestCase):
                 wf.create_worktree(self.project, agent, "fix")
             self.assertEqual((folder / "tracked.txt").read_text(), "isolated")
 
+    def test_worktree_removal_preserves_pending_changes_and_branch(self):
+        folder = wf.create_worktree(self.project, "codex", "cleanup")
+        (folder / ".gitignore").write_text(".env\n")
+        (folder / ".env").write_text("keep")
+        entry = wf.list_worktrees(self.project)[0]
+        self.assertEqual(entry.path.resolve(), folder.resolve())
+        self.assertEqual(entry.status, "dirty")
+        self.assertIn(".env", entry.changes)
+        with self.assertRaises(ValueError):
+            wf.remove_worktree(self.project, entry.path)
+        (folder / ".env").unlink()
+        (folder / ".gitignore").unlink()
+        wf.remove_worktree(self.project, entry.path)
+        self.assertFalse(folder.exists())
+        self.assertIn("assistente/codex-cleanup", self.git("branch"))
+
     def test_worktree_rejects_unborn_nested_folder_and_invalid_names(self):
         sub = self.project / "sub"
         sub.mkdir()
