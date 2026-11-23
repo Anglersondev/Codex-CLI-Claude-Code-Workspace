@@ -51,6 +51,30 @@ A conta e o histórico ficam com o agente oficial. Em **Ajustes**, você pode tr
 
 **O que salva sozinho?** O agente grava na pasta as alterações que faz nos arquivos, e o Assistente guarda os projetos recentes e as preferências. Para manter um resumo do trabalho, use **Salvar andamento da sessão** e deixe o agente concluir a gravação, ou peça durante a conversa para atualizar `DOCS/ANDAMENTO.md`. O histórico da conversa fica com o agente.
 
+### Como salvar o andamento antes de fechar
+
+1. Para guardar o resumo, use **Mais ações → Salvar andamento da última sessão…** no macOS ou **Ferramentas do projeto → Salvar andamento da sessão** no Linux e Windows. Se estiver com a conversa aberta, também pode enviar esta frase:
+   > Atualize `DOCS/ANDAMENTO.md` com o que foi feito, o que foi testado e o próximo passo.
+2. Espere a IA confirmar que salvou o resumo e encerre a sessão. Se quiser apenas manter as alterações já gravadas nos arquivos, pode fechar direto.
+3. Para voltar ao mesmo chat, use **Continuar** ou execute o comando do seu agente no Terminal, dentro da pasta do projeto.
+
+| Agente | Retomar a última conversa |
+| --- | --- |
+| Codex CLI | `codex resume --last` |
+| Claude Code | `claude --continue` |
+
+O painel e os READMEs têm versões em português do Brasil, inglês e espanhol. Os menus de Terminal têm opções em português do Brasil e inglês. Os comandos do Codex e do Claude são iguais em qualquer idioma.
+
+| Nome na pasta | Para que serve |
+| --- | --- |
+| `CODEX/` e `CLAUDE/` | Pastas dos agentes dentro da pasta padrão. |
+| `INSTRUCOES/` | Regras e objetivos compartilhados do projeto. |
+| `DOCS/ANDAMENTO.md` | Resumo do que foi feito, testado e do próximo passo. |
+| `PROMPTS/` | Pedidos reutilizáveis. |
+| `ANEXOS/` | Arquivos de apoio. |
+
+Esses nomes são os mesmos no disco até com o painel em inglês ou espanhol. Assim, os agentes encontram os arquivos pelos mesmos caminhos.
+
 ### Exemplo: começar no Codex e passar para Claude Code
 
 1. Abra a pasta do site no Assistente. Se faltarem arquivos de contexto, clique em **Preparar contexto compartilhado**.

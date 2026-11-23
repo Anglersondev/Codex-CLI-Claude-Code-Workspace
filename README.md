@@ -68,6 +68,20 @@ Use **Save session progress** before switching agents or accounts. Once you have
 
 **What gets saved automatically?** File edits go to the project when the agent makes them. The launcher saves preferences and recent folders. To keep a reusable progress summary, ask the agent to update `DOCS/ANDAMENTO.md` or choose **Save session progress** and let the agent finish writing. Each agent keeps its own chat history.
 
+### Save and close a session
+
+1. To keep a progress summary, use **More actions → Save progress from the latest session…** on macOS or **Project tools → Save session progress** on Linux and Windows. You can also send this message while the conversation is open:
+   > Update `DOCS/ANDAMENTO.md` with what was done, what was tested, and the next step.
+2. Wait for the agent to confirm it saved the summary, then exit the session. If you only want to keep the changes already written to files, you can exit directly.
+3. To reopen the latest chat with the same agent, use **Resume** or run the corresponding command from the project folder.
+
+| Agent | Resume the latest chat |
+| --- | --- |
+| Codex CLI | `codex resume --last` |
+| Claude Code | `claude --continue` |
+
+The desktop panel and this guide are available in English, Brazilian Portuguese, and Spanish. The terminal-only menus are available in English and Brazilian Portuguese. The commands and on-disk paths are the same in every language. In English, `INSTRUCOES/` means instructions, `ANEXOS/` means attachments, and `DOCS/ANDAMENTO.md` is the progress summary. `CODEX/` and `CLAUDE/` are the agent folders under the default project location.
+
 ### Example: start with Codex and hand off to Claude Code
 
 1. Open your website repository in Assistente IA. Choose **Set up shared context** if the folders are missing.

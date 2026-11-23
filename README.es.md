@@ -42,6 +42,20 @@ El panel reúne solicitudes guardadas, archivos adjuntos, estado de Git, servido
 
 Los cambios de archivos quedan en la carpeta del proyecto cuando el agente los realiza. Para conservar un resumen reutilizable, usa **Guardar progreso de la sesión** o pide al agente que actualice `DOCS/ANDAMENTO.md`. Cada agente conserva su propio historial.
 
+### Guardar el progreso y cerrar
+
+1. Usa **Más acciones → Guardar el progreso de la última sesión…** en macOS o **Herramientas del proyecto → Guardar progreso de la sesión** en Linux y Windows. Si el chat sigue abierto, también puedes enviar este mensaje:
+   > Actualiza `DOCS/ANDAMENTO.md` con lo que se hizo, lo que se probó y el próximo paso.
+2. Espera que el agente confirme que guardó el resumen antes de cerrar. Los cambios que ya se escribieron en los archivos del proyecto quedan guardados al cerrar.
+3. Para abrir el último chat del mismo agente, usa **Continuar** o ejecuta su comando desde la carpeta del proyecto.
+
+| Agente | Reanudar la última conversación |
+| --- | --- |
+| Codex CLI | `codex resume --last` |
+| Claude Code | `claude --continue` |
+
+El panel y los README están disponibles en español, inglés y portugués de Brasil. Los menús exclusivos del terminal están disponibles en portugués de Brasil e inglés. Los comandos y las rutas de archivos son iguales en todos los idiomas. `CODEX/` y `CLAUDE/` son las carpetas de los agentes. `INSTRUCOES/` contiene las instrucciones, `PROMPTS/` las solicitudes reutilizables, `ANEXOS/` los archivos adjuntos y `DOCS/ANDAMENTO.md` el resumen de progreso.
+
 **Ejemplo:** modifica un menú con Codex y pide que anote el archivo modificado, la compilación ejecutada y el siguiente paso. Después, selecciona Claude Code y pulsa **Continuar desde las notas del proyecto** para que compruebe lo que falta.
 
 Si el botón para continuar desde las notas está deshabilitado, anota el siguiente paso en `DOCS/ANDAMENTO.md` y comprueba que exista `PROMPTS/CONTINUAR.md`. Si el agente no se abre, ejecuta `codex --version` o `claude --version` en el terminal y comprueba el inicio de sesión.
