@@ -1,0 +1,76 @@
+name: Build Assistente IA apps
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  portable-tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xterm python3-tk
+          ASSISTENTE_TEST_NATIVE_TERMINAL=1 xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -p 'test_desktop.py'
+          xvfb-run -a /usr/bin/python3 desktop/panel.py --smoke-test
+      - if: runner.os == 'Windows'
+        env:
+          ASSISTENTE_TEST_NATIVE_TERMINAL: '1'
+        run: |
+          python -m unittest discover -s tests -p 'test_desktop.py'
+          python desktop/panel.py --smoke-test
+
+  macos:
+    needs: portable-tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Build and verify
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          /bin/bash ASSISTENTE-IA-MAC.command --check
+          python3 -I -m unittest discover -s tests -p 'test_*.py'
+          /bin/bash tests/test_rtk.sh
+          export ASSISTENTE_VERSION="${RELEASE_TAG#v}"
+          /bin/bash macOS/build.sh "$RUNNER_TEMP/Assistente IA.app"
+          /usr/bin/ditto -c -k --keepParent "$RUNNER_TEMP/Assistente IA.app" "$RUNNER_TEMP/Assistente-IA-App-macOS.zip"
+          /bin/bash desktop/package.sh "$RUNNER_TEMP"
+          git archive --format=zip --prefix=Codex-CLI-Claude-Code-Workspace/ \
+            --output="$RUNNER_TEMP/Assistente-IA-Source.zip" HEAD
+          (
+            cd "$RUNNER_TEMP"
+            shasum -a 256 Assistente-IA-App-*.zip Assistente-IA-Source.zip > SHA256SUMS.txt
+          )
+      - name: Attach bundle to the release draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          archives=("$RUNNER_TEMP"/Assistente-IA-App-*.zip "$RUNNER_TEMP/Assistente-IA-Source.zip" "$RUNNER_TEMP/SHA256SUMS.txt")
+          if gh release view "$RELEASE_TAG" --json isDraft >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${archives[@]}"
+          else
+            gh release create "$RELEASE_TAG" "${archives[@]}" --verify-tag --draft --generate-notes
+          fi

@@ -69,7 +69,8 @@ name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 with open(os.environ["TEST_CLI_LOG"], "a") as log:
     log.write(json.dumps({"name": name, "args": args, "cwd": os.getcwd(),
-                          "stdin_tty": os.isatty(0), "stdout_tty": os.isatty(1)}) + "\n")
+                          "stdin_tty": os.isatty(0), "stdout_tty": os.isatty(1),
+                          "optimizer_compress": os.environ.get("TOKEN_OPTIMIZER_BASH_COMPRESS")}) + "\n")
 if "--version" in args:
     print(name + " test-version")
     sys.exit(0)
@@ -166,7 +167,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         inputs = f"2\n{self.parent}\n{name}\n1\n1\n\n"
         result = self.run_shell("create_project", inputs)
         self.assert_ok(result)
-        project = self.parent / "CODEX" / name
+        project = self.parent / name
         self.assertTrue(project.is_dir(), result.stdout + result.stderr)
         self.assertFalse((self.parent / "Projetos-IA").exists())
         self.assertEqual([p.name for p in project.iterdir()], [".assistente-ia"])
@@ -176,10 +177,10 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         name = "Organizado"
         result = self.run_shell("create_project", f"2\n{self.parent}\n{name}\n1\n2\n\n")
         self.assert_ok(result)
-        project = self.parent / "CODEX" / name
+        project = self.parent / name
         for item in ("README.md", "AGENTS.md", "INSTRUCOES/PROJETO.md", "DOCS", "ANEXOS", "PROMPTS"):
             self.assertTrue((project / item).exists(), item + result.stdout + result.stderr)
-        self.assertFalse((project / "CLAUDE.md").exists())
+        self.assertTrue((project / "CLAUDE.md").is_file())
         self.assertIn("INSTRUCOES/PROJETO.md", (project / "AGENTS.md").read_text())
 
     def test_09_cancel_folder_does_not_create_project(self):
@@ -193,7 +194,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         self.assertFalse(self.calls())
 
     def test_11_existing_project_is_not_overwritten(self):
-        project = self.parent / "CODEX" / "Existente"
+        project = self.parent / "Existente"
         project.mkdir(parents=True)
         content = project / "README.md"
         content.write_text("PRESERVAR")
@@ -215,7 +216,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         name = "Teste $(touch INJETADO) `touch INJETADO2` & ação"
         result = self.run_shell("create_project", f"2\n{self.parent}\n{name}\n1\n1\n\n")
         self.assert_ok(result)
-        self.assertTrue((self.parent / "CODEX" / name).is_dir(), result.stdout + result.stderr)
+        self.assertTrue((self.parent / name).is_dir(), result.stdout + result.stderr)
         self.assertFalse((self.root / "INJETADO").exists())
         self.assertFalse((self.root / "INJETADO2").exists())
 
@@ -321,16 +322,14 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         target = self.parent / "Destino"
         target.mkdir()
         (target / "preservar").write_text("original")
-        (self.parent / "CODEX").mkdir()
-        (self.parent / "CODEX/Atalho").symlink_to(target, target_is_directory=True)
+        (self.parent / "Atalho").symlink_to(target, target_is_directory=True)
         result = self.run_shell("create_project", f"2\n{self.parent}\nAtalho\n1\n2\n\n")
         self.assertNotEqual(result.returncode, 0)
-        self.assertTrue((self.parent / "CODEX/Atalho").is_symlink())
+        self.assertTrue((self.parent / "Atalho").is_symlink())
         self.assertEqual([x.name for x in target.iterdir()], ["preservar"])
 
     def test_34_broken_symlink_is_not_replaced(self):
-        (self.parent / "CODEX").mkdir()
-        link = self.parent / "CODEX/Atalho quebrado"
+        link = self.parent / "Atalho quebrado"
         link.symlink_to(self.parent / "Ausente")
         result = self.run_shell("create_project", f"2\n{self.parent}\nAtalho quebrado\n1\n2\n\n")
         self.assertNotEqual(result.returncode, 0)
@@ -648,16 +647,16 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
     def project_shell(self, project, body, inputs="", timeout=5):
         return self.run_shell(f"set_project {shlex.quote(str(project))} || exit $?; " + body, inputs, timeout=timeout)
 
-    def test_67_claude_structure_has_native_import_and_no_codex_entry(self):
-        result = self.run_shell("create_project", f"2\n{self.parent}\nClaude isolado\n2\n2\n\n")
+    def test_67_claude_preference_uses_both_native_entries(self):
+        result = self.run_shell("create_project", f"2\n{self.parent}\nClaude compartilhado\n2\n2\n\n")
         self.assert_ok(result)
-        project = self.parent / "CLAUDE/Claude isolado"
+        project = self.parent / "Claude compartilhado"
         self.assertEqual((project / ".assistente-ia/tool").read_text().strip(), "claude")
         self.assertIn("@INSTRUCOES/PROJETO.md", (project / "CLAUDE.md").read_text())
-        self.assertFalse((project / "AGENTS.md").exists())
-        self.assertFalse((self.parent / "CODEX").exists())
+        self.assertIn("INSTRUCOES/PROJETO.md", (project / "AGENTS.md").read_text())
+        self.assertFalse((self.parent / "CLAUDE").exists())
 
-    def test_68_selected_group_is_not_nested_again(self):
+    def test_68_selected_legacy_group_is_used_as_parent(self):
         for tool, choice in (("CODEX", "1"), ("CLAUDE", "2")):
             group = self.parent / tool
             group.mkdir()
@@ -795,12 +794,13 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(list(outside.iterdir()), [])
 
-    def test_81_group_symlink_does_not_create_project_outside_parent(self):
+    def test_81_old_group_symlink_is_ignored_when_creating_shared_project(self):
         outside = self.parent / "Externo"
         outside.mkdir()
         (self.parent / "CODEX").symlink_to(outside, target_is_directory=True)
         result = self.run_shell("create_project", f"2\n{self.parent}\nNovo\n1\n2\n\n")
-        self.assertNotEqual(result.returncode, 0)
+        self.assert_ok(result)
+        self.assertTrue((self.parent / "Novo" / "AGENTS.md").is_file())
         self.assertEqual(list(outside.iterdir()), [])
 
     def test_82_invalid_profile_does_not_launch(self):
@@ -881,6 +881,96 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('não suporta', result.stderr)
         self.assertFalse(self.calls())
+
+    def test_90_app_creates_and_launches_both_agents_in_same_project(self):
+        name = "Loja da Ana's site"
+        project = self.parent / name
+        created = self.run_main("--app", "create", str(self.parent), name, "codex", "Publicar a loja")
+        self.assert_ok(created)
+        self.assertEqual(created.stdout.splitlines(), [str(project)])
+        self.assertTrue((project / "CLAUDE.md").is_file())
+        self.assertIn("Publicar a loja", (project / "INSTRUCOES/PROJETO.md").read_text())
+        for tool, verb, extra in (("codex", "recente", ["resume", "--last"]), ("claude", "escolher", ["--resume"])):
+            result = self.run_main("--app", "launch", str(project), tool, verb, "planejar", "", "", "")
+            self.assert_ok(result)
+            call = self.calls()[-1]
+            self.assertEqual(call["name"], tool)
+            self.assertEqual(call["args"][:len(extra)], extra)
+            self.assertEqual(call["cwd"], str(project))
+        self.assertEqual(self.run_main("--app", "list").stdout.splitlines(), [str(project)])
+        self.assertEqual(self.run_main("--app", "info", str(project)).stdout.splitlines(),
+                         ["claude", "shared", "shared", "ready"])
+
+    def test_91_app_prepares_old_project_without_rewriting_instructions(self):
+        project = self.managed_project("codex")
+        custom = "# Regras próprias\nManter os arquivos.\n"
+        (project / "AGENTS.md").write_text(custom)
+        result = self.run_main("--app", "prepare", str(project))
+        self.assert_ok(result)
+        self.assertEqual((project / "AGENTS.md").read_text(), custom)
+        self.assertIn("@INSTRUCOES/PROJETO.md", (project / "CLAUDE.md").read_text())
+        self.assertFalse((project / "DOCS/LEGADO").exists())
+
+    def test_92_app_avoids_double_compression_without_editing_hook(self):
+        project = self.managed_project("codex")
+        hook = self.home / ".codex/hooks.json"
+        hook.parent.mkdir()
+        hook.write_text('{"hooks": [{"command": "rtk hook codex"}]}')
+        invocation = ("--app", "launch", str(project), "codex", "novo", "trabalhar", "", "", "")
+        self.assert_ok(self.run_main(*invocation))
+        self.assertEqual(self.calls()[-1]["optimizer_compress"], "0")
+        self.assertIn("rtk hook codex", hook.read_text())
+        self.env["ASSISTENTE_BASH_COMPRESSION"] = "inherit"
+        self.env["TOKEN_OPTIMIZER_BASH_COMPRESS"] = "1"
+        self.assert_ok(self.run_main(*invocation))
+        self.assertEqual(self.calls()[-1]["optimizer_compress"], "1")
+
+    def test_93_app_switches_account_without_changing_current_project(self):
+        project = self.managed_project("codex")
+        self.assert_ok(self.run_main("--app", "select", str(project)))
+        for tool, prefix in (("codex", []), ("claude", ["auth"])):
+            self.assert_ok(self.run_main("--app", "login", tool, "switch"))
+            self.assertEqual([call["args"] for call in self.calls()[-2:]],
+                             [prefix + ["logout"], prefix + ["login"]])
+            self.assertEqual((self.state / "current").read_text().strip(), str(project))
+
+    def test_94_app_can_save_prompt_and_attach_without_overwriting(self):
+        project = self.managed_project("codex")
+        name = "Review da Ana's page"
+        self.assert_ok(self.run_main("--app", "save-prompt", str(project), name, "Confira os testes.\n"))
+        self.assertNotEqual(self.run_main("--app", "save-prompt", str(project), name, "Outro").returncode, 0)
+        self.assertEqual((project / "PROMPTS" / f"{name}.md").read_text(), "Confira os testes.\n")
+        source = self.parent / "captura.png"
+        source.write_bytes(b"\x00\xff")
+        self.assert_ok(self.run_main("--app", "attach", str(project), str(source)))
+        self.assertNotEqual(self.run_main("--app", "attach", str(project), str(source)).returncode, 0)
+        self.assertEqual((project / "ANEXOS/captura.png").read_bytes(), b"\x00\xff")
+
+    def test_95_app_backup_stays_outside_project(self):
+        project = self.managed_project("codex")
+        self.assertNotEqual(self.run_main("--app", "backup", str(project), str(project)).returncode, 0)
+        result = self.run_main("--app", "backup", str(project), str(self.parent), timeout=15)
+        self.assert_ok(result)
+        self.assertTrue(self.parent.joinpath(result.stdout.strip()).is_file())
+
+    def test_96_app_lists_project_dev_packages_and_refuses_escape(self):
+        project = self.managed_project("codex")
+        site = project / "CODIGO" / "página web"
+        site.mkdir(parents=True)
+        (site / "package.json").write_text("{}")
+        listed = self.run_main("--app", "dev-packages", str(project))
+        self.assert_ok(listed)
+        self.assertEqual(listed.stdout.splitlines(), ["CODIGO/página web"])
+        self.assertNotEqual(self.run_main("--app", "dev", str(project), "../fora").returncode, 0)
+
+    def test_97_app_context_report_distinguishes_template_and_saved_progress(self):
+        project = self.managed_project("codex")
+        self.assertNotIn("progress", self.run_main("--app", "info", str(project)).stdout.splitlines())
+        (project / "DOCS" / "ANDAMENTO.md").write_text("# Andamento\n\n- Revisar os testes.\n")
+        (project / "AGENTS.override.md").write_text("x" * 12001)
+        info = self.run_main("--app", "info", str(project))
+        self.assert_ok(info)
+        self.assertTrue({"override", "progress", "large-context"}.issubset(info.stdout.splitlines()))
 
 
 if __name__ == "__main__":

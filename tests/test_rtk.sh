@@ -27,7 +27,7 @@ rtk() {
     'gain --history') printf 'Ultimos comandos simulados\n'; return 0 ;;
     'gain --help') printf '%s\n' '--watch --history'; return 0 ;;
     'gain --watch') printf 'Monitor simulado\n'; return 0 ;;
-    'rewrite git status') printf 'rtk git status\n'; return 0 ;;
+    'rewrite git status') printf 'rtk git status\n'; return "${TEST_REWRITE_STATUS:-0}" ;;
     'init --help') printf '%s\n' "$TEST_HELP"; return 0 ;;
     'init --show') log_call show-context "$(pwd -P)"; printf 'Hooks: exemplo simulado\n'; return "$TEST_SHOW_FAIL" ;;
     'init --codex --show') log_call codex-show-context "$(pwd -P)"; printf 'Hooks Codex: exemplo simulado\n'; return "$TEST_CODEX_SHOW_FAIL" ;;
@@ -223,6 +223,11 @@ check 'History never changes hook configuration' log_no_prefix 'rtk|init|'
 : > "$TEST_LOG"
 rtk_command verificar
 check 'Rewrite verification queries only the parser' log_has 'rtk|rewrite|git status|'
+TEST_REWRITE_STATUS=3
+check 'RTK rewrite status 3 is a valid rewrite with agent approval' rtk_verify
+TEST_REWRITE_STATUS=2
+check 'An RTK deny is never reported as a successful rewrite' test_not rtk_verify
+unset TEST_REWRITE_STATUS
 check 'Rewrite verification does not execute git' log_no_prefix 'git|'
 check 'Rewrite verification does not change hooks' log_no_prefix 'rtk|init|'
 : > "$TEST_LOG"

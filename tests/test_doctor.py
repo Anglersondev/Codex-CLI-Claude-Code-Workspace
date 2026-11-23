@@ -123,12 +123,12 @@ class DoctorTests(base.AssistantTests):
         self.assertNotIn("link.md", result.stdout)
         self.assertTrue(target.exists())
 
-    def test_d13_doctor_flags_both_entries(self):
+    def test_d13_doctor_flags_an_independent_entry(self):
         project = self.managed_project("codex")
         (project / "CLAUDE.md").write_text("x\n")
         result = self.project_shell(project, "project_doctor")
         self.assert_ok(result)
-        self.assertIn("6 → 11", result.stdout)
+        self.assertIn("CLAUDE.md usa instruções próprias", result.stdout)
 
     def test_d14_objective_written_details_pending_is_not_a_problem(self):
         for tool in ("codex", "claude"):

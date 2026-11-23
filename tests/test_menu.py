@@ -135,7 +135,7 @@ class MenuTests(base.AssistantTests):
         self.assert_ok(self.run_shell("opt_flip atalho"))
         result = self.run_main(input_text="\n0\n")
         self.assertEqual(self.session_calls(), [], self.calls())
-        self.assertIn("Escolha uma opção de 0 a 8", result.stdout + result.stderr)
+        self.assertIn("Escolha uma opção de 0 a 9", result.stdout + result.stderr)
 
     def test_m20_new_conversation_default_continues_the_work(self):
         project = self.managed_project("codex")
@@ -160,7 +160,7 @@ class MenuTests(base.AssistantTests):
         project = self.with_project("codex")
         out = self.project_shell(project, "project_tools", "0\n").stdout
         for text in ("INSTRUÇÕES E PEDIDOS PRONTOS", "ARQUIVOS", "OUTROS", " 9) Editar as instruções permanentes",
-                     "12) Verificar se a pasta está organizada", "11) Organizar um projeto antigo"):
+                     "12) Verificar se a pasta está organizada", "11) Preparar para Codex e Claude juntos"):
             self.assertIn(text, out)
 
     def test_m23_menu_five_is_projects_and_six_is_care(self):
@@ -220,7 +220,7 @@ class MenuTests(base.AssistantTests):
         name = "English project"
         result = self.run_shell("create_project", f"2\n{self.parent}\n{name}\n1\n2\n\n\n")
         self.assert_ok(result)
-        project = self.parent / "CODEX" / name
+        project = self.parent / name
         self.assertIn("Create project · 4 of 4", result.stdout)
         self.assertIn("Respond in English", (project / "INSTRUCOES/PROJETO.md").read_text())
         self.assertIn("Describe the purpose", (project / "README.md").read_text())
@@ -321,7 +321,7 @@ class MenuTests(base.AssistantTests):
     def test_m35_care_menu_numbers_are_ascending_inside_groups(self):
         project = self.with_project("codex")
         out = self.project_shell(project, "project_tools", "0\n").stdout
-        for group in (("3) Criar", "9) Editar", "10) Abrir", "11) Organizar", "12) Verificar"),
+        for group in (("3) Criar", "9) Editar", "10) Abrir", "11) Preparar", "12) Verificar", "13) Migrar"),
                       ("1) Abrir a pasta", "2) Copiar", "4) Capturar"),
                       ("5) Ver", "6) Criar uma cópia", "7) Abrir o site", "8) Iniciar")):
             positions = [out.index(item) for item in group]
@@ -364,7 +364,7 @@ class MenuTests(base.AssistantTests):
 
     def test_m40_no_pause_after_back_or_invalid_choices(self):
         self.with_project("codex")
-        for text in ("6\n0\n0\n", "7\n0\n0\n", "5\n0\n0\n", "9\n0\n"):
+        for text in ("6\n0\n0\n", "7\n0\n0\n", "5\n0\n0\n", "10\n0\n"):
             with self.subTest(entry=text):
                 result = self.run_main(input_text=text)
                 self.assertNotIn("Enter para voltar", result.stderr)

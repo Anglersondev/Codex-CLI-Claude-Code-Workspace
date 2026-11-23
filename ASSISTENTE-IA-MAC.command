@@ -9,7 +9,7 @@ if [ "${ASSISTENTE_TEST_MODE:-}" != 1 ]; then
   export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/.npm-global/bin:${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}"
 fi
 STATE_DIR="${ASSISTENTE_STATE_DIR:-$DEFAULT_STATE_DIR}"
-PROJECT='' PREF_DIR='' TOOL='' MODEL='' EFFORT='' WORKMODE='trabalhar' INITIAL_PROMPT='' IMAGE=''
+PROJECT='' PREF_DIR='' TOOL='' SESSION_TOOL='' MODEL='' EFFORT='' WORKMODE='trabalhar' INITIAL_PROMPT='' IMAGE=''
 REPLY='' CAPTURE='' SESSIONMODE='novo'
 APP_LANG='pt-BR'
 COMMAND=()
@@ -200,13 +200,17 @@ choose_folder() {
   done
   return 1
 }
+project_preference_dir() {
+  local key
+  if command -v shasum >/dev/null 2>&1; then key="$(printf '%s' "$1" | shasum -a 256)" || return 1
+  else key="$(printf '%s' "$1" | sha256sum)" || return 1; fi
+  printf '%s/projects/%s\n' "$STATE_DIR" "${key%% *}"
+}
 set_project() {
-  local canonical key old line temporary count=0
+  local canonical line temporary count=0
   canonical="$(normalize_path "$1")" || return 1
-  if command -v shasum >/dev/null 2>&1; then key="$(printf '%s' "$canonical" | shasum -a 256)" || return 1
-  else key="$(printf '%s' "$canonical" | sha256sum)" || return 1; fi
-  key="${key%% *}"
-  PREF_DIR="$STATE_DIR/projects/$key"
+  single_line "$canonical" || return 1
+  PREF_DIR="$(project_preference_dir "$canonical")" || return 1
   mkdir -p "$PREF_DIR" || return 1
   put "$STATE_DIR/current" "$canonical" || return 1
   put "$PREF_DIR/path" "$canonical" || return 1
@@ -220,6 +224,7 @@ set_project() {
     done < "$STATE_DIR/recents"
   fi
   mv -f "$temporary" "$STATE_DIR/recents" || return 1
+  [ "$PROJECT" = "$canonical" ] || SESSION_TOOL=''
   PROJECT="$canonical"
 }
 select_project() {
@@ -1005,16 +1010,34 @@ copy_attachment() {
   local file name dest
   choose_local_file || return 1
   file="$CHOSEN_FILE"; name="$(basename "$file")"; dest="$PROJECT/ANEXOS/$name"
-  safe_project_path "ANEXOS/$name" || return 1
-  if [ -e "$PROJECT/ANEXOS" ] && [ ! -d "$PROJECT/ANEXOS" ]; then warn "$(ui 'ANEXOS existe mas não é uma pasta.' 'ANEXOS exists but is not a folder.')"; return 1; fi
-  [ ! -e "$dest" ] && [ ! -L "$dest" ] || { warn "$(ui 'Já existe um arquivo com esse nome. Nada foi sobrescrito.' 'A file with that name already exists. Nothing was overwritten.')"; return 1; }
   say "$(ui 'Copiar' 'Copy'): $file"
   say "$(ui 'Para' 'To'): $dest"
   ask_ui 'Enter para copiar; 0 para cancelar: ' 'Press Enter to copy; 0 to cancel: ' || return 1
   [ -z "$REPLY" ] || return 1
-  mkdir -p "$PROJECT/ANEXOS" || return 1
-  cp -pn "$file" "$dest" || return 1
+  copy_attachment_file "$file" || return 1
   say "$(ui 'Copiado. Na conversa, peça para analisar' 'Copied. In the conversation, ask the agent to analyze'): ANEXOS/$name"
+}
+copy_attachment_file() {
+  local file="$1" name dest
+  [ -f "$file" ] && [ -r "$file" ] || { warn "$(ui 'Anexo indisponível.' 'Attachment is unavailable.')"; return 1; }
+  name="$(basename "$file")"
+  single_line "$name" || return 1
+  dest="$PROJECT/ANEXOS/$name"
+  safe_project_path "ANEXOS/$name" || return 1
+  [ ! -e "$dest" ] || { warn "$(ui 'Já existe um anexo com esse nome.' 'An attachment with that name already exists.')"; return 1; }
+  mkdir -p "$PROJECT/ANEXOS" || return 1
+  write_new_file_atomic "ANEXOS/$name" < "$file"
+}
+write_project_prompt() {
+  local name="$1" content="$2" bytes
+  valid_name "$name" || { warn "$(ui 'Nome de pedido inválido.' 'Invalid prompt name.')"; return 1; }
+  text_has_content "$content" || { warn "$(ui 'O pedido está vazio; nada foi salvo.' 'The prompt is empty; nothing was saved.')"; return 1; }
+  bytes="$(printf '%s' "$content" | wc -c | tr -d ' ')"
+  [ "$bytes" -le 60000 ] || { warn 'Limite de 60 KB atingido.'; return 1; }
+  safe_project_path "PROMPTS/$name.md" || return 1
+  [ ! -e "$PROJECT/PROMPTS/$name.md" ] || { warn "$(ui 'Esse pedido já existe.' 'This prompt already exists.')"; return 1; }
+  mkdir -p "$PROJECT/PROMPTS" || return 1
+  printf '%s' "$content" | write_new_file_atomic "PROMPTS/$name.md"
 }
 save_prompt() {
   local name dest line content=''
@@ -1031,10 +1054,7 @@ save_prompt() {
     line="$REPLY"
     case "$line" in
       FIM|DONE)
-        text_has_content "$content" || { warn "$(ui 'O pedido está vazio; nada foi salvo.' 'The prompt is empty; nothing was saved.')"; return 1; }
-        [ "$(printf '%s' "$content" | wc -c | tr -d ' ')" -le 60000 ] || { warn 'Limite de 60 KB atingido.'; return 1; }
-        mkdir -p "$PROJECT/PROMPTS" || return 1
-        (set -o noclobber; printf '%s' "$content" > "$dest") || return 1
+        write_project_prompt "$name" "$content" || return 1
         say "$(ui 'Pedido salvo' 'Prompt saved'): $dest"; return 0 ;;
       CANCELAR|CANCEL) return 1 ;;
     esac
@@ -1045,23 +1065,33 @@ save_prompt() {
   return 1
 }
 backup_project() {
-  local parent name dest status
+  local dest
   say_ui 'Escolha onde salvar uma cópia ZIP do projeto inteiro.' 'Choose where to save a ZIP backup of the entire project.'
   say_ui 'O ZIP inclui arquivos ocultos e pode conter .env e outros dados privados.' 'The ZIP includes hidden files and may contain .env and other private data.'
   choose_folder 'Escolha a pasta onde salvar a cópia ZIP' || return 1
-  parent="$CHOSEN_FOLDER"
-  case "$parent/" in "$PROJECT/"*) warn "$(ui 'Escolha um destino fora do projeto para não incluir o ZIP em si mesmo.' 'Choose a destination outside the project so the ZIP does not include itself.')"; return 1 ;; esac
-  name="$(basename "$PROJECT")-$(date '+%Y%m%d-%H%M%S').zip"
-  dest="$parent/$name"
-  [ ! -e "$dest" ] || { warn "$(ui 'Já existe uma cópia com esse nome.' 'A backup with that name already exists.')"; return 1; }
+  dest="$(project_backup_destination "$CHOSEN_FOLDER")" || return 1
   say "$(ui 'Destino' 'Destination'): $dest"
   ask_ui 'Enter para criar a cópia; 0 para cancelar: ' 'Press Enter to create the backup; 0 to cancel: ' || return 1
   [ -z "$REPLY" ] || return 1
+  write_project_backup "$dest" && say "$(ui 'Cópia criada' 'Backup created'): $dest"
+}
+project_backup_destination() {
+  local parent="$1" name
+  case "$parent/" in "${PROJECT%/}/"*) warn "$(ui 'Escolha um destino fora do projeto para não incluir o ZIP em si mesmo.' 'Choose a destination outside the project so the ZIP does not include itself.')"; return 1 ;; esac
+  name="$(basename "$PROJECT")-$(date '+%Y%m%d-%H%M%S').zip"
+  printf '%s/%s\n' "${parent%/}" "$name"
+}
+write_project_backup() {
+  local dest="$1" directory status=0
+  [ ! -e "$dest" ] && [ ! -L "$dest" ] || { warn "$(ui 'Já existe uma cópia com esse nome.' 'A backup with that name already exists.')"; return 1; }
+  directory="$(mktemp -d "${dest%/*}/.assistente-zip.XXXXXXXX")" || return 1
   if [ "$PLATFORM" = Linux ]; then
-    command -v zip >/dev/null 2>&1 || { warn "$(ui 'Instale zip para criar a cópia.' 'Install zip to create the backup.')"; return 1; }
-    (cd "$(dirname "$PROJECT")" && run_foreground zip -qr "$dest" "$(basename "$PROJECT")"); status=$?
-  else run_foreground /usr/bin/ditto -c -k --keepParent "$PROJECT" "$dest"; status=$?; fi
-  [ "$status" -eq 0 ] && say "$(ui 'Cópia criada' 'Backup created'): $dest" || warn "$(ui 'Cópia não concluída. Confira a mensagem acima e o arquivo de destino.' 'Backup failed. Check the message above and the destination file.')"
+    (cd "$(dirname "$PROJECT")" && run_foreground zip -qry "$directory/project.zip" "./$(basename "$PROJECT")") || status=$?
+  else run_foreground /usr/bin/ditto -c -k --keepParent "$PROJECT" "$directory/project.zip" || status=$?; fi
+  if [ "$status" -eq 0 ]; then publish_new_file "$directory/project.zip" "$dest" || status=$?; fi
+  rm -f -- "$directory/project.zip"
+  rmdir -- "$directory"
+  [ "$status" -eq 0 ] || warn "$(ui 'Cópia não concluída. Confira a mensagem acima.' 'Backup failed. Check the message above.')"
   return "$status"
 }
 open_site() {
@@ -1132,11 +1162,16 @@ start_dev_server() {
     fi
     say "$(ui 'Pasta' 'Folder'): ${target#"$PROJECT"/}"
   fi
-  command -v npm >/dev/null 2>&1 || { warn "$(ui 'npm não encontrado. Instale Node.js para executar este projeto.' 'npm not found. Install Node.js to run this project.')"; return 1; }
   say_ui 'Executar: npm run dev' 'Run: npm run dev'
   say_ui 'Esse comando executa o script dev definido pelo projeto. Ctrl+C encerra o servidor.' 'This runs the dev script defined by the project. Ctrl+C stops the server.'
   ask_ui 'Enter para executar; 0 para cancelar: ' 'Press Enter to run; 0 to cancel: ' || return 1
   [ -z "$REPLY" ] || return 1
+  run_project_dev_server "$target"
+}
+run_project_dev_server() {
+  local target="$1" relative
+  command -v npm >/dev/null 2>&1 || { warn "$(ui 'npm não encontrado. Instale Node.js para executar este projeto.' 'npm not found. Install Node.js to run this project.')"; return 1; }
+  case "$target" in "$PROJECT"|"$PROJECT"/*) ;; *) return 1 ;; esac
   relative="${target#"$PROJECT"/}"
   [ "$target" != "$PROJECT" ] || relative='.'
   [ ! -L "$PROJECT" ] && safe_project_path "$relative/package.json" || return 1
@@ -1178,8 +1213,9 @@ project_tools() {
     say_ui ' 3) Criar um pedido pronto novo' ' 3) Create a new saved prompt'
     say_ui ' 9) Editar as instruções permanentes (e atalhos de Claude/Codex)' ' 9) Edit permanent instructions (and Claude/Codex shortcuts)'
     say_ui '10) Abrir a pasta de pedidos prontos (para colar arquivos .md)' '10) Open saved prompts folder (to add .md files)'
-    say_ui '11) Organizar um projeto antigo (com backup)' '11) Organize an existing project (with backup)'
+    say_ui '11) Preparar para Codex e Claude juntos' '11) Prepare for both Codex and Claude'
     say_ui '12) Verificar se a pasta está organizada' '12) Check project organization'
+    say_ui '13) Migrar para um só agente (com backup)' '13) Migrate to a single agent (with backup)'
     say ''
     say_ui 'ARQUIVOS' 'FILES'
     say_ui ' 1) Abrir a pasta' ' 1) Open folder'
@@ -1212,8 +1248,13 @@ project_tools() {
       8) start_dev_server ;;
       9) instructions_menu ;;
       10) safe_project_path PROMPTS && mkdir -p "$PROJECT/PROMPTS" && open_path "$PROJECT/PROMPTS"; skip=1 ;;
-      11) organize_project ;;
+      11)
+        say_ui 'Serão criados os arquivos compartilhados e as entradas que estiverem faltando.' 'Missing shared files and agent entry files will be created.'
+        if ask_ui 'Digite PREPARAR para aplicar; Enter cancela: ' 'Type PREPARE to apply; Enter cancels: '; then
+          case "$REPLY" in PREPARAR|PREPARE) prepare_shared_project ;; esac
+        fi ;;
       12) if type project_doctor >/dev/null 2>&1; then project_doctor; else warn 'Biblioteca de projetos ausente.'; fi ;;
+      13) organize_project ;;
       0) return 0 ;;
       *) say_ui 'Opção inválida.' 'Invalid option.'; skip=1 ;;
     esac
@@ -1394,6 +1435,7 @@ main() {
     say_ui ' 6) Cuidar do projeto: instruções, pedidos prontos, anexos, verificar' ' 6) Project care: instructions, prompts, files, checks'
     say_ui ' 7) Ajuda e ajustes: contas, RTK, dicas, preferências' ' 7) Help and settings: accounts, RTK, tips, preferences'
     say_ui ' 8) Escolher uma conversa antiga (lista oficial da ferramenta)' ' 8) Choose an older conversation (official agent list)'
+    say_ui ' 9) Trocar agente nesta pasta' ' 9) Switch agent in this folder'
     say_ui ' 0) Sair' ' 0) Exit'
     prompt_text="$(ui $'\nEscolha: ' $'\nChoose: ')"
     if [ -n "$PROJECT" ] && opt_enabled atalho; then prompt_text="$(ui $'\nEscolha (Enter = continuar): ' $'\nChoose (Enter = resume): ')"; fi
@@ -1414,8 +1456,13 @@ main() {
       6) need_project && project_tools; pause_after='' ;;
       7) settings_menu; pause_after='' ;;
       8) need_project && resume_menu ;;
+      9)
+        if need_project && choose_tool; then
+          SESSION_TOOL="$TOOL"
+          say "$(ui 'Agente selecionado' 'Selected agent'): $TOOL"
+        fi ;;
       0) say_ui 'Até a próxima!' 'See you next time!'; return 0 ;;
-      *) say_ui 'Escolha uma opção de 0 a 8.' 'Choose an option from 0 to 8.'; pause_after='' ;;
+      *) say_ui 'Escolha uma opção de 0 a 9.' 'Choose an option from 0 to 9.'; pause_after='' ;;
     esac
     if [ -n "$pause_after" ]; then pause || return 0; fi
   done
@@ -1425,6 +1472,7 @@ if [ -f "$BASE_DIR/lib/rtk.sh" ]; then . "$BASE_DIR/lib/rtk.sh"; fi
 if [ -f "$BASE_DIR/lib/dicas.sh" ]; then . "$BASE_DIR/lib/dicas.sh"; fi
 if [ -f "$BASE_DIR/lib/painel.sh" ]; then . "$BASE_DIR/lib/painel.sh"; fi
 if [ -f "$BASE_DIR/lib/statusline.sh" ]; then . "$BASE_DIR/lib/statusline.sh"; fi
+if [ -f "$BASE_DIR/lib/app.sh" ]; then . "$BASE_DIR/lib/app.sh"; fi
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   load_language
   case "${1:-}" in
@@ -1438,19 +1486,20 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     --check)
       result=0
       /bin/bash -n "$BASE_DIR/ASSISTENTE-IA-MAC.command" || result=1
-      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
+      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
         [ -s "$BASE_DIR/$required" ] || { warn "Arquivo ausente: $required"; result=1; }
       done
       [ ! -f "$BASE_DIR/lib/rtk.sh" ] || /bin/bash -n "$BASE_DIR/lib/rtk.sh" || result=1
       [ ! -f "$BASE_DIR/lib/projects.sh" ] || /bin/bash -n "$BASE_DIR/lib/projects.sh" || result=1
       [ ! -f "$BASE_DIR/lib/dicas.sh" ] || /bin/bash -n "$BASE_DIR/lib/dicas.sh" || result=1
-      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh; do
+      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh; do
         [ ! -f "$BASE_DIR/$extra" ] || /bin/bash -n "$BASE_DIR/$extra" || result=1
       done
       [ "$result" -ne 0 ] || say_ui 'Kit completo. Sintaxe Bash verificada.' 'Kit complete. Bash syntax verified.'
       exit "$result" ;;
     --diagnostico|--diagnostics) diagnostics; exit 0 ;;
     --rtk) shift; rtk_command "$@"; exit $? ;;
+    --app) shift; app_command "$@"; exit $? ;;
     '') main ;;
     *) warn "$(ui 'Argumento desconhecido. Use --help.' 'Unknown argument. Use --help.')"; exit 2 ;;
   esac

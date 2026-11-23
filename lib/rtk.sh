@@ -121,14 +121,20 @@ rtk_history() {
 # Passar no teste significa que o binário reconhece um comando de exemplo;
 # NÃO confirma que o hook foi acionado durante uma conversa real.
 rtk_verify() {
+  local rewrite_status=0
   header_ui 'RTK · testar se ele entende um comando (sem executar git)' 'RTK · test command rewriting (without running git)'
   rtk_identity || return 1
-  if ! bounded_capture 10 rtk rewrite 'git status'; then
+  bounded_capture 10 rtk rewrite 'git status' || rewrite_status=$?
+  # Newer RTK returns 3 for a valid rewrite when the agent still decides approval.
+  if [ "$rewrite_status" -ne 0 ] && [ "$rewrite_status" -ne 3 ]; then
     say "$CAPTURE"
     warn "$(ui 'rtk rewrite falhou; atualize o RTK ou examine rtk --help.' 'rtk rewrite failed; update RTK or check rtk --help.')"
     return 1
   fi
   say "$(ui 'Reescrita retornada' 'Rewritten command'): $CAPTURE"
+  if [ "$rewrite_status" -eq 3 ]; then
+    say_ui 'A autorização do comando continua a cargo do agente.' 'The agent still decides whether to allow the command.'
+  fi
   case "$CAPTURE" in
     *rtk*git*status*)
       say_ui 'O RTK entendeu o comando. Isso não prova que a ligação com o Codex' 'RTK understood the command. This does not prove that its integration'
@@ -367,14 +373,18 @@ rtk_update() {
   rtk_bin="$(rtk_bin_path)"
   if command -v brew >/dev/null 2>&1 && bounded_capture 20 brew list --versions rtk-oss; then
     say_ui 'Instalado pelo Homebrew. Comando: brew upgrade rtk-ai/tap/rtk-oss' 'Installed with Homebrew. Command: brew upgrade rtk-ai/tap/rtk-oss'
-    ask "$(ui "Digite $rtk_token para continuar: " "Type $rtk_token to continue: ")" || return 1
-    [ "$REPLY" = "$rtk_token" ] || { say_ui 'Atualização cancelada.' 'Update canceled.'; return 0; }
+    if [ "${1:-}" != confirmed ]; then
+      ask "$(ui "Digite $rtk_token para continuar: " "Type $rtk_token to continue: ")" || return 1
+      [ "$REPLY" = "$rtk_token" ] || { say_ui 'Atualização cancelada.' 'Update canceled.'; return 0; }
+    fi
     run_foreground brew upgrade rtk-ai/tap/rtk-oss || return $?
   elif [ "$rtk_bin" = "$HOME/.local/bin/rtk" ]; then
     say "$(ui "Instalado pelo instalador oficial. Vou usar o instalador da versão $RTK_LATEST." "Installed with the official installer. I will use the installer for $RTK_LATEST.")"
     say_ui 'O instalador confere o SHA-256 do programa antes de substituir.' 'The installer checks the program SHA-256 before replacing it.'
-    ask "$(ui "Digite $rtk_token para continuar: " "Type $rtk_token to continue: ")" || return 1
-    [ "$REPLY" = "$rtk_token" ] || { say_ui 'Atualização cancelada.' 'Update canceled.'; return 0; }
+    if [ "${1:-}" != confirmed ]; then
+      ask "$(ui "Digite $rtk_token para continuar: " "Type $rtk_token to continue: ")" || return 1
+      [ "$REPLY" = "$rtk_token" ] || { say_ui 'Atualização cancelada.' 'Update canceled.'; return 0; }
+    fi
     rtk_run_installer "$RTK_LATEST" || return $?
   else
     warn "$(ui "O rtk em $rtk_bin foi instalado de outro jeito. Atualize pelo mesmo método." "rtk at $rtk_bin was installed another way. Update it with the same method.")"

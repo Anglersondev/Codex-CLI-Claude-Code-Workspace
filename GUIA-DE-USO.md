@@ -49,10 +49,10 @@ O kit organiza os projetos em uma pasta da ferramenta:
 Pasta escolhida: /Users/seu-usuario/Documents/Projetos-IA
 Nome informado: Loja da Ana
 Ferramenta:      Codex
-Resultado:       /Users/seu-usuario/Documents/Projetos-IA/CODEX/Loja da Ana
+Resultado:       /Users/seu-usuario/Documents/Projetos-IA/Loja da Ana
 ```
 
-Para Claude, o resultado fica em `Projetos-IA/CLAUDE/Loja da Ana`. Se você selecionar diretamente a pasta `CODEX` para criar um projeto Codex, ou `CLAUDE` para um projeto Claude, o nome da ferramenta não será duplicado.
+Codex e Claude usam esse mesmo caminho. O agente escolhido fica como preferência inicial. Para alternar no menu de Terminal, use a opção `9`.
 
 Você pode selecionar o destino pelo Finder ou informar o caminho manualmente. A pasta pode estar em Documentos, em um disco externo ou em um local sincronizado disponível no Mac. Se o Finder for cancelado, siga a orientação do menu para voltar ou usar o caminho manual. A criação exige um nome novo; se o projeto já existe, abra-o por **`5` → `2`**.
 
@@ -63,35 +63,23 @@ Você pode selecionar o destino pelo Finder ou informar o caminho manualmente. A
 
 ```text
 Projetos-IA/
-  CODEX/
-    Loja da Ana/
-      AGENTS.md
-      README.md
-      INSTRUCOES/
-        PROJETO.md
-      PROMPTS/
-        COMECE-AQUI.md  PLANEJAR.md  CONTINUAR.md
-        ENCERRAR-SESSAO.md  RESUMO-RAPIDO.md
-      DOCS/
-        ANDAMENTO.md
-      ANEXOS/
-      .assistente-ia/
-        tool
-  CLAUDE/
-    Outro projeto/
-      CLAUDE.md
-      README.md
-      INSTRUCOES/
-        PROJETO.md
-      PROMPTS/
-      DOCS/
-        ANDAMENTO.md
-      ANEXOS/
-      .assistente-ia/
-        tool
+  Loja da Ana/
+    AGENTS.md
+    CLAUDE.md
+    README.md
+    INSTRUCOES/
+      PROJETO.md
+    PROMPTS/
+      COMECE-AQUI.md  PLANEJAR.md  CONTINUAR.md
+      ENCERRAR-SESSAO.md  RESUMO-RAPIDO.md
+    DOCS/
+      ANDAMENTO.md
+    ANEXOS/
+    .assistente-ia/
+      tool
 ```
 
-Na estrutura organizada, um projeto Codex novo recebe `AGENTS.md`; um projeto Claude novo recebe `CLAUDE.md`. O arquivo da outra ferramenta não é criado. A pasta `.assistente-ia` é oculta no Finder e contém o perfil portátil da ferramenta, inclusive na estrutura mínima. Ela não guarda sua senha nem transfere o login para outro Mac.
+A estrutura organizada inclui as entradas dos dois agentes. A pasta oculta `.assistente-ia` registra a preferência inicial. Cada agente usa seu próprio login.
 
 ### Onde escrever as instruções de cada projeto
 
@@ -390,13 +378,9 @@ Resumo honesto dessa tela:
 
 ## Organizar um projeto da versão anterior
 
-Se sua pasta antiga tem `AGENTS.md` e `CLAUDE.md` juntos, abra essa pasta por **Projetos (`5`) → `2`**. Depois use **`6 → 11`**, escolha a ferramenta que vai usar e leia a prévia.
+Abra a pasta como está e use **Preparar contexto compartilhado** no app ou **`6 → 11`** no menu de Terminal. A ferramenta cria os arquivos que faltarem e preserva os arquivos existentes. Uma entrada personalizada que já existia pode precisar de uma referência a `INSTRUCOES/PROJETO.md`. No Codex, confira também se existe `AGENTS.override.md`.
 
-Digite **`ORGANIZAR`** apenas quando o caminho e a ferramenta estiverem corretos. A organização registra o perfil, prepara as pastas e preserva o conteúdo das instruções da ferramenta escolhida. O arquivo de entrada da ferramenta oposta é arquivado em **`DOCS/LEGADO/`**, preservando seu conteúdo para consulta. Confira o resumo final para localizar os arquivos e eventuais cópias preservadas.
-
-Esse procedimento é uma ação explícita do menu. Ele não acontece quando você apenas abre, retoma ou consulta o projeto. Não é necessário recriar seus arquivos de trabalho. Depois, revise `INSTRUCOES/PROJETO.md` para manter somente as orientações que você quer usar nas próximas tarefas.
-
-Ao organizar para **Claude**, uma pasta `.claude/` real é permitida e preservada, incluindo configurações, skills e comandos existentes. Se `.claude` for link simbólico ou não for diretório, a organização é bloqueada. Ao organizar para **Codex**, a presença de `.claude/` continua bloqueando a migração automática para evitar uma conversão parcial das regras do Claude. `AGENTS.override.md` e `CLAUDE.local.md` continuam exigindo revisão manual.
+A opção **`6 → 13`** migra para uma configuração de agente único. Ela arquiva a entrada do outro agente em `DOCS/LEGADO/` com backup após a confirmação.
 
 ## RTK: instalar e usar
 

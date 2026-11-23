@@ -20,21 +20,16 @@ project_profile() {
 
 choose_project_tool() {
   local profile
+  if [ -n "$SESSION_TOOL" ]; then TOOL="$SESSION_TOOL"; return 0; fi
   profile="$(project_profile)"
   if [ -n "$profile" ]; then
     TOOL="$profile"
     say "$(ui 'Ferramenta deste projeto' 'Agent for this project'): $TOOL"
-    if [ -f "$PROJECT/AGENTS.md" ] && [ -f "$PROJECT/CLAUDE.md" ]; then
-      warn "$(ui 'Também há instruções da outra ferramenta na raiz. Use menu 6 → 11 para organizar com backup.' 'The other agent also has instructions in the root. Use menu 6 → 11 to organize with a backup.')"
-    fi
     return 0
   fi
   if [ -e "$PROJECT/.assistente-ia/tool" ] || [ -L "$PROJECT/.assistente-ia/tool" ] || [ -L "$PROJECT/.assistente-ia" ]; then
     warn "$(ui 'Perfil do projeto inválido. Confira .assistente-ia/tool antes de continuar.' 'Invalid project profile. Check .assistente-ia/tool before continuing.')"
     return 1
-  fi
-  if [ -f "$PROJECT/AGENTS.md" ] && [ -f "$PROJECT/CLAUDE.md" ]; then
-    warn "$(ui 'Este projeto antigo tem instruções das duas ferramentas. Use menu 6 → 11 para organizar com backup.' 'This older project has instructions for both agents. Use menu 6 → 11 to organize with a backup.')"
   fi
   choose_tool
 }
@@ -65,7 +60,7 @@ write_new_file() {
 
 instruction_entry() {
   printf '\n<!-- assistente-ia: instrucoes-do-projeto -->\n'
-  if [ "$TOOL" = claude ]; then
+  if [ "${1:-$TOOL}" = claude ]; then
     printf '@INSTRUCOES/PROJETO.md\n'
   else
     printf '%s\n' "$(ui 'Antes de trabalhar, leia e siga INSTRUCOES/PROJETO.md, relativo à raiz deste projeto.' 'Before working, read and follow INSTRUCOES/PROJETO.md relative to this project root.')"
@@ -167,8 +162,17 @@ EOF
 }
 
 prepare_project_files() {
-  local folder native
+  local folder native agent entries
   case "$TOOL" in codex) native=AGENTS.md ;; claude) native=CLAUDE.md ;; *) return 1 ;; esac
+  entries=("$native")
+  if [ "${1:-}" = shared ]; then entries=(AGENTS.md CLAUDE.md); fi
+  for native in "${entries[@]}" INSTRUCOES/PROJETO.md DOCS/ANDAMENTO.md PROMPTS/COMECE-AQUI.md PROMPTS/PLANEJAR.md PROMPTS/CONTINUAR.md PROMPTS/ENCERRAR-SESSAO.md PROMPTS/RESUMO-RAPIDO.md .assistente-ia/tool; do
+    safe_project_path "$native" || return 1
+    if [ -e "$PROJECT/$native" ] && [ ! -f "$PROJECT/$native" ]; then
+      warn "$native $(ui 'existe mas não é arquivo.' 'exists but is not a file.')"
+      return 1
+    fi
+  done
   for folder in .assistente-ia INSTRUCOES PROMPTS DOCS ANEXOS; do
     safe_project_path "$folder" || return 1
     mkdir -p "$PROJECT/$folder" || return 1
@@ -243,12 +247,16 @@ EOF
   fi
   prompt_encerrar_text | write_new_file PROMPTS/ENCERRAR-SESSAO.md || return 1
   prompt_resumo_text | write_new_file PROMPTS/RESUMO-RAPIDO.md || return 1
-  safe_project_path "$native" || return 1
-  if [ ! -e "$PROJECT/$native" ]; then
-    { printf '# %s — %s\n' "$(ui 'Orientações do projeto' 'Project instructions')" "$TOOL"; instruction_entry; } | write_new_file "$native" || return 1
+  for native in "${entries[@]}"; do
+    case "$native" in CLAUDE.md) agent=claude ;; *) agent=codex ;; esac
+    { printf '# %s — %s\n' "$(ui 'Orientações do projeto' 'Project instructions')" "$agent"; instruction_entry "$agent"; } |
+      write_new_file "$native" || return 1
+  done
+  if [ "${1:-}" = shared ]; then
+    printf '%s\n' "$TOOL" | write_new_file .assistente-ia/tool
+  else
+    put "$PROJECT/.assistente-ia/tool" "$TOOL"
   fi
-  safe_project_path .assistente-ia/tool || return 1
-  put "$PROJECT/.assistente-ia/tool" "$TOOL"
 }
 
 scaffold_project() {
@@ -256,12 +264,12 @@ scaffold_project() {
   case "$TOOL" in codex|claude) ;; *) warn 'Escolha a ferramenta antes de criar o projeto.'; return 1 ;; esac
   PROJECT="$target"
   if [ "$kind" = 2 ]; then
-    prepare_project_files || status=1
+    prepare_project_files shared || status=1
     if [ "$status" -eq 0 ]; then
       if [ "$APP_LANG" = en ]; then
-        printf '# %s\n\n## Goal\n\nDescribe the purpose of the project.\n\n## Layout\n\n- Agent: %s\n- INSTRUCOES/PROJETO.md: permanent rules you can edit.\n- PROMPTS/: reusable requests; select one when starting a conversation.\n- DOCS/: decisions and progress.\n- ANEXOS/: images, PDFs, and references.\n- Code: in this root or any folders the project needs.\n\nUse Assistant menu 6 to edit instructions and create prompts.\nStart a new conversation after changing permanent instructions.\n' "$name" "$TOOL" | write_new_file README.md || status=1
+        printf '# %s\n\n## Goal\n\nDescribe the purpose of the project.\n\n## Layout\n\n- AGENTS.md and CLAUDE.md: entry files for Codex and Claude.\n- INSTRUCOES/PROJETO.md: shared permanent instructions.\n- PROMPTS/: reusable requests.\n- DOCS/: decisions and progress.\n- ANEXOS/: images, PDFs, and references.\n- Code: in this root or any folders the project needs.\n' "$name" | write_new_file README.md || status=1
       else
-        printf '# %s\n\n## Objetivo\n\nDescreva a finalidade do projeto.\n\n## Organização\n\n- Ferramenta: %s\n- INSTRUCOES/PROJETO.md: regras permanentes que você pode editar.\n- PROMPTS/: pedidos reutilizáveis; selecione um ao iniciar a conversa.\n- DOCS/: decisões e andamento.\n- ANEXOS/: imagens, PDFs e referências.\n- Código: nesta raiz ou nas pastas que o projeto precisar.\n\nUse o menu 6 do Assistente para editar instruções e criar prompts.\nDepois de mudar instruções permanentes, inicie uma nova conversa.\n' "$name" "$TOOL" | write_new_file README.md || status=1
+        printf '# %s\n\n## Objetivo\n\nDescreva a finalidade do projeto.\n\n## Organização\n\n- AGENTS.md e CLAUDE.md: entradas para Codex e Claude.\n- INSTRUCOES/PROJETO.md: instruções permanentes compartilhadas.\n- PROMPTS/: pedidos reutilizáveis.\n- DOCS/: decisões e andamento.\n- ANEXOS/: imagens, PDFs e referências.\n- Código: nesta raiz ou nas pastas que o projeto precisar.\n' "$name" | write_new_file README.md || status=1
       fi
       write_new_file .gitignore <<'EOF' || status=1
 .DS_Store
@@ -287,10 +295,27 @@ EOF
   return "$status"
 }
 
+create_project_at() {
+  local parent="$1" name="$2" kind="$3" target
+  valid_name "$name" || { warn "$(ui 'Nome de projeto inválido.' 'Invalid project name.')"; return 1; }
+  case "$kind" in 1|2) ;; *) return 1 ;; esac
+  parent="$(normalize_path "$parent")" || return 1
+  target="${parent%/}/$name"
+  if ! mkdir -- "$target"; then
+    warn "$(ui 'Não foi possível criar a pasta. Se ela já existe, abra o projeto existente.' 'Could not create the folder. If it already exists, open the existing project.')"
+    return 1
+  fi
+  if ! scaffold_project "$target" "$name" "$kind"; then
+    warn "$(ui 'Preparação incompleta em' 'Incomplete setup at') $target"
+    return 1
+  fi
+  set_project "$target"
+}
+
 create_project() {
-  local parent name target kind group
+  local parent name target kind
   header_ui 'Criar projeto · 1 de 4: local' 'Create project · 1 of 4: location'
-  say_ui 'Escolha onde guardar seus projetos. Vou separá-los em CODEX/ ou CLAUDE/.' 'Choose where to store your projects. They will be grouped in CODEX/ or CLAUDE/.'
+  say_ui 'Escolha a pasta que receberá o projeto compartilhado.' 'Choose the parent folder for the shared project.'
   choose_folder || return 1
   parent="$CHOSEN_FOLDER"
   header_ui 'Criar projeto · 2 de 4: nome' 'Create project · 2 of 4: name'
@@ -302,11 +327,9 @@ create_project() {
   done
   [ -n "$name" ] && valid_name "$name" || return 1
   header_ui 'Criar projeto · 3 de 4: ferramenta e estrutura' 'Create project · 3 of 4: agent and layout'
+  say_ui 'Escolha o agente preferido. A mesma pasta funciona com os dois.' 'Choose the preferred agent. Both can use the same folder.'
   choose_tool || return 1
-  case "$TOOL" in codex) group=CODEX ;; claude) group=CLAUDE ;; esac
-  if [ "$(basename "$parent")" != "$group" ]; then parent="$parent/$group"; fi
-  [ ! -L "$parent" ] || { warn 'O agrupador é um link simbólico. Escolha sua pasta de destino diretamente.'; return 1; }
-  target="$parent/$name"
+  target="${parent%/}/$name"
   [ ! -e "$target" ] && [ ! -L "$target" ] || { warn 'Essa pasta já existe. Abra o projeto existente; nada foi sobrescrito.'; return 1; }
   say_ui '1) Mínimo — pasta do projeto e identificação da ferramenta' '1) Minimal — project folder and agent profile'
   say_ui '2) Organizado — instruções, prompts, documentos e anexos (recomendado)' '2) Organized — instructions, prompts, documents, and attachments (recommended)'
@@ -322,11 +345,15 @@ create_project() {
   say "$(ui 'Estrutura' 'Layout'): $([ "$kind" = 2 ] && ui organizada organized || ui mínima minimal)"
   ask_ui 'Enter para criar; 0 para cancelar: ' 'Press Enter to create; 0 to cancel: ' || return 1
   case "$REPLY" in ''|s|S) ;; *) say_ui 'Criação cancelada.' 'Creation canceled.'; return 1 ;; esac
-  mkdir -p "$parent" && mkdir "$target" || return 1
-  if ! scaffold_project "$target" "$name" "$kind"; then warn "Estrutura incompleta em $target. Confira permissões e espaço."; return 1; fi
-  set_project "$target" || return 1
+  create_project_at "$parent" "$name" "$kind" || return 1
   say "$(ui 'Projeto pronto' 'Project ready'): $PROJECT"
   if [ "$kind" = 2 ]; then ask_project_objective || true; fi
+}
+
+prepare_shared_project() {
+  local TOOL
+  TOOL="$(project_profile)" || TOOL=codex
+  prepare_project_files shared
 }
 
 organize_project_files() {
@@ -468,12 +495,27 @@ write_new_file_atomic() {
     rm -f "$temporary"; rmdir "$temporary_dir"; return 1
   fi
   # -n impede seguir um destino que virou symlink de diretório (BSD/macOS e GNU).
-  if ! ln -n "$temporary" "$PROJECT/$relative"; then
+  if ! publish_new_file "$temporary" "$PROJECT/$relative"; then
     rm -f "$temporary"; rmdir "$temporary_dir"; return 1
   fi
   rm -f "$temporary"
   rmdir "$temporary_dir" || return 1
   safe_project_path "$relative" && [ -f "$PROJECT/$relative" ]
+}
+
+publish_new_file() {
+  local staged="$1" destination="$2"
+  if ln -n "$staged" "$destination" 2>/dev/null; then return 0; fi
+  # Disks without hard links still allow exclusive creation.
+  [ ! -e "$destination" ] && [ ! -L "$destination" ] || return 1
+  (
+    set -o noclobber
+    exec 3> "$destination" || exit 1
+    if ! cat "$staged" >&3; then
+      rm -f -- "$destination"
+      exit 1
+    fi
+  )
 }
 
 create_project_shortcuts() {
@@ -576,7 +618,8 @@ large_prompt_files() {
 
 project_native_entry() {
   local tool
-  tool="$(project_profile)" || return 1
+  tool="$SESSION_TOOL"
+  if [ -z "$tool" ]; then tool="$(project_profile)" || return 1; fi
   case "$tool" in codex) printf AGENTS.md ;; claude) printf CLAUDE.md ;; *) return 1 ;; esac
 }
 
@@ -628,8 +671,8 @@ ANDAMENTO_WARN_BYTES=8000
 
 # Bytes lidos em toda conversa: arquivo de entrada + INSTRUCOES/PROJETO.md.
 fixed_weight_bytes() {
-  local total=0 file native bytes
-  native="$(project_native_entry)" || native=''
+  local total=0 file native="${1:-}" bytes
+  if [ -z "$native" ]; then native="$(project_native_entry)" || native=''; fi
   for file in "$native" INSTRUCOES/PROJETO.md; do
     [ -n "$file" ] && [ -f "$PROJECT/$file" ] && [ ! -L "$PROJECT/$file" ] || continue
     bytes="$(file_bytes "$PROJECT/$file")" || continue
@@ -838,9 +881,15 @@ project_doctor() {
     doctor_line ok "$(ui 'INSTRUCOES/PROJETO.md com objetivo escrito' 'INSTRUCOES/PROJETO.md has a written goal')"
     say_ui '  → Faltam detalhes em INSTRUCOES/PROJETO.md (contexto e requisitos). Não é obrigatório para começar.' '  → INSTRUCOES/PROJETO.md lacks context and requirements. You can start without them.'
   else doctor_line ok "$(ui 'INSTRUCOES/PROJETO.md preenchido' 'INSTRUCOES/PROJETO.md filled in')"; fi
-  if [ -e "$PROJECT/AGENTS.md" ] && [ -e "$PROJECT/CLAUDE.md" ]; then
-    doctor_line warn "$(ui 'AGENTS.md e CLAUDE.md juntos na raiz; use menu 6 → 11 para organizar' 'AGENTS.md and CLAUDE.md are both in the root; use menu 6 → 11 to organize')"; issues=$((issues+1))
-  fi
+  for file in AGENTS.md CLAUDE.md; do
+    [ "$file" != "$native" ] && [ -e "$PROJECT/$file" ] || continue
+    if entry_connected "$file"; then
+      doctor_line ok "$file $(ui 'aponta para' 'points to') INSTRUCOES/PROJETO.md"
+    else
+      doctor_line warn "$file $(ui 'usa instruções próprias; revise a referência para compartilhar contexto' 'uses independent instructions; review its link to share context')"
+      issues=$((issues+1))
+    fi
+  done
   while IFS= read -r file; do
     [ -n "$file" ] && large[${#large[@]}]="$file"
   done <<EOF
