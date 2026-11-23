@@ -10,7 +10,7 @@ Descompacte o ZIP inteiro. Em **Ajustes → Idioma**, selecione português do Br
 Instale o Codex CLI ou Claude Code usando o instalador oficial. Em **Ajustes**, use **Entrar** para autenticar o agente escolhido.
 
 1. Clique em **Pasta padrão** e escolha onde guardar novos projetos.
-2. Clique em **Novo** e escolha o agente. O painel cria as pastas `CODEX/` e `CLAUDE/` quando necessário e abre o projeto na pasta do agente escolhido. Use **Abrir** para selecionar uma pasta existente.
+2. Clique em **Novo** e escolha o agente. Marque **Separar por agente** para usar `CODEX/` e `CLAUDE/` ou desmarque para criar o projeto direto no local escolhido. Você pode alternar o agente depois. Use **Abrir** para selecionar uma pasta existente.
 3. Selecione Codex ou Claude e clique em **Nova sessão**. O agente abre na pasta do projeto.
 4. Ao sair, o painel fica disponível para escolher o próximo projeto. A janela pode permanecer em segundo plano em ambientes Linux que restringem a mudança automática de foco.
 

@@ -26,9 +26,11 @@ O app distribuído para Mac usa assinatura ad hoc. Se o macOS bloquear a abertur
 ## Primeiro projeto
 
 1. Clique em **Pasta padrão** na barra lateral para escolher onde guardar projetos novos.
-2. Clique em **Novo** e selecione o agente. O Assistente cria `CODEX/` e `CLAUDE/` dentro da pasta padrão se estiverem faltando. O projeto entra na pasta do agente escolhido. Use **Abrir** para projetos existentes.
+2. Clique em **Novo**, escolha o primeiro agente e a organização das pastas. **Separar por agente** usa `CODEX/` ou `CLAUDE/`. **Criar direto na pasta escolhida** cria só a pasta do projeto. Use **Abrir** para projetos existentes.
 3. Selecione **Codex** ou **Claude Code** e clique em **Nova sessão**, **Continuar** ou **Histórico**.
 4. Use o Terminal para conversar e trabalhar. Ao encerrar a sessão, o painel volta a ficar disponível.
+
+Em **Agente desta sessão**, escolha Codex ou Claude para trabalhar no mesmo projeto. A organização só define onde o projeto novo será criado. Para levar o contexto ao outro agente, use **Salvar andamento**, troque o agente e clique em **Retomar pelo andamento**.
 
 Em **Ajustes → Idioma**, escolha português do Brasil, inglês, espanhol ou o idioma do sistema. **Opções da sessão** reúne modelo, permissões e pedido inicial.
 
@@ -102,6 +104,23 @@ O painel tem atalhos para criar pedidos, adicionar anexos, abrir o Terminal, ver
 Quando o RTK está configurado, o Assistente pode evitar a compactação duplicada de saída com o Token Optimizer. O Mac oferece controles das integrações e instalação opcional de atualizações verificadas. Linux e Windows podem avisar quando houver novas versões publicadas.
 
 Os menus completos de Terminal estão nos arquivos `ASSISTENTE-IA-MAC.command`, `ASSISTENTE-IA-LINUX.sh` e `ASSISTENTE-IA-WINDOWS.cmd`. Consulte o [guia de Terminal](GUIA-DE-USO.md), o [guia para Linux e Windows](desktop/LEIA-ME.md), a [documentação do RTK](RTK.md) e o [histórico de versões](CHANGELOG.md).
+
+## Atalhos do teclado
+
+Abra o ícone de teclado no macOS ou **Atalhos** no Linux e Windows para ver este guia no painel.
+
+| Ação | macOS | Linux / Windows |
+| --- | --- | --- |
+| Novo projeto | `⌘ N` | `Ctrl+N` |
+| Abrir projeto | `⌘ O` | `Ctrl+O` |
+| Definir pasta padrão | `⇧ ⌘ D` | `Ctrl+Shift+D` |
+| Nova sessão | `⌘ ↵` | `Ctrl+Enter` |
+| Novo pedido | `⇧ ⌘ P` | `Ctrl+Shift+P` |
+| Adicionar anexo | `⇧ ⌘ A` | `Ctrl+Shift+A` |
+| Terminal no projeto | `⇧ ⌘ T` | `Ctrl+Shift+T` |
+| Status do Git | `⇧ ⌘ G` | `Ctrl+Shift+G` |
+| Iniciar servidor npm | `⇧ ⌘ R` | `Ctrl+Shift+R` |
+| Cópia ZIP | `⇧ ⌘ B` | `Ctrl+Shift+B` |
 
 ## Se algo não abrir
 

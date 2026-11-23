@@ -974,6 +974,15 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         self.assert_ok(info)
         self.assertTrue({"override", "progress", "large-context"}.issubset(info.stdout.splitlines()))
 
+    def test_98_app_can_create_a_shared_project_without_agent_subfolders(self):
+        project = self.parent / "Pasta única"
+        result = self.run_main("--app", "create", str(self.parent), project.name, "claude", "", "direct")
+        self.assert_ok(result)
+        self.assertEqual(result.stdout.splitlines(), [str(project)])
+        self.assertTrue((project / "AGENTS.md").is_file())
+        self.assertTrue((project / "CLAUDE.md").is_file())
+        self.assertEqual(list(self.parent.iterdir()), [project])
+
 
 if __name__ == "__main__":
     unittest.main(argv=[sys.argv[0], *remaining], verbosity=2)

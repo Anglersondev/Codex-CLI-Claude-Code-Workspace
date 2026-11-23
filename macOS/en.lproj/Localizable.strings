@@ -165,3 +165,9 @@
 "Idioma" = "Language";
 "Instruções extensas. Mova referências que usa só às vezes para DOCS." = "Long instructions. Move occasional references to DOCS.";
 "Registre o próximo passo em Andamento para retomar depois." = "Record the next step in Progress to continue later.";
+"Agente desta sessão" = "Agent for this session";
+"Codex e Claude podem trabalhar nesta mesma pasta." = "Codex and Claude can work in this same folder.";
+"Salvar andamento…" = "Save progress…";
+"Organização" = "Folder layout";
+"Separar por agente" = "Group by agent";
+"Criar direto na pasta escolhida" = "Create directly in the selected folder";

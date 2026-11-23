@@ -48,6 +48,13 @@ class PortablePanelTests(unittest.TestCase):
         self.assertEqual(custom.read_text(encoding="utf-8"), "Regra personalizada.")
         self.assertTrue((self.root / "DOCS" / "ANDAMENTO.md").is_file())
 
+    def test_direct_projects_do_not_create_agent_folders(self):
+        project = core.create_project(self.root, "Meu projeto", "claude", "", grouped=False)
+        self.assertEqual(project, self.root.resolve() / "Meu projeto")
+        self.assertEqual(list(self.root.resolve().iterdir()), [project])
+        self.assertTrue((project / "AGENTS.md").is_file())
+        self.assertTrue((project / "CLAUDE.md").is_file())
+
     def test_prompts_attachments_and_backup_do_not_overwrite(self):
         project = self.root / "projeto"
         project.mkdir()

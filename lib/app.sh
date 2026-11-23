@@ -181,11 +181,11 @@ app_command() {
       load_preferences
       printf '%s\n' "$MODEL" "$EFFORT" "$WORKMODE" ;;
     select:1) set_project "$1" && printf '%s\n' "$PROJECT" ;;
-    create:4)
+    create:4|create:5)
       case "$3" in codex|claude) TOOL="$3" ;; *) return 2 ;; esac
       goal="$4"
       single_line "$goal" && [ "${#goal}" -le 300 ] || { warn "$(ui 'Use um objetivo de até 300 caracteres em uma linha.' 'Use a one-line goal of up to 300 characters.')"; return 1; }
-      create_project_at "$1" "$2" 2 || return 1
+      create_project_at "$1" "$2" 2 "${5:-grouped}" || return 1
       if text_has_content "$goal"; then fill_project_objective "$goal" >/dev/null || return 1; fi
       printf '%s\n' "$PROJECT" ;;
     prepare:1)

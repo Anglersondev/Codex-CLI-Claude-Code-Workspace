@@ -309,21 +309,26 @@ project_creation_group() {
 }
 
 create_project_at() {
-  local parent="$1" name="$2" kind="$3" target root group folder
+  local parent="$1" name="$2" kind="$3" layout="${4:-grouped}" target root group folder
   valid_name "$name" || { warn "$(ui 'Nome de projeto inválido.' 'Invalid project name.')"; return 1; }
   case "$kind" in 1|2) ;; *) return 1 ;; esac
   parent="$(normalize_path "$parent")" || return 1
-  root="$(project_creation_root "$parent")" || return 1
-  group="$(project_creation_group)" || return 1
-  for folder in "${root%/}/CODEX" "${root%/}/CLAUDE"; do
-    if [ -L "$folder" ] || { [ -e "$folder" ] && [ ! -d "$folder" ]; }; then
-      warn "$(ui 'O destino precisa ser uma pasta comum:' 'The destination must be a regular directory:') $folder"
-      return 1
-    fi
-  done
-  target="${root%/}/$group/$name"
+  case "$layout" in
+    direct) target="${parent%/}/$name" ;;
+    grouped)
+      root="$(project_creation_root "$parent")" || return 1
+      group="$(project_creation_group)" || return 1
+      for folder in "${root%/}/CODEX" "${root%/}/CLAUDE"; do
+        if [ -L "$folder" ] || { [ -e "$folder" ] && [ ! -d "$folder" ]; }; then
+          warn "$(ui 'O destino precisa ser uma pasta comum:' 'The destination must be a regular directory:') $folder"
+          return 1
+        fi
+      done
+      target="${root%/}/$group/$name" ;;
+    *) return 2 ;;
+  esac
   [ ! -e "$target" ] && [ ! -L "$target" ] || { warn "$(ui 'Essa pasta já existe.' 'That folder already exists.')"; return 1; }
-  mkdir -p -- "${root%/}/CODEX" "${root%/}/CLAUDE" || return 1
+  if [ "$layout" = grouped ]; then mkdir -p -- "${root%/}/CODEX" "${root%/}/CLAUDE" || return 1; fi
   if ! mkdir -- "$target"; then
     warn "$(ui 'Não foi possível criar a pasta. Se ela já existe, abra o projeto existente.' 'Could not create the folder. If it already exists, open the existing project.')"
     return 1

@@ -24,9 +24,11 @@ Instala [Codex CLI](https://learn.chatgpt.com/docs/cli) o [Claude Code](https://
 ## Trabajar con un proyecto
 
 1. Usa **Carpeta predeterminada** para elegir dónde guardar los proyectos nuevos.
-2. Pulsa **Nuevo** y elige el agente. El panel crea `CODEX/` y `CLAUDE/` si faltan y guarda el proyecto en la carpeta del agente elegido. Usa **Abrir** para proyectos existentes.
+2. Pulsa **Nuevo**, elige el primer agente y decide la organización. **Separar por agente** usa `CODEX/` o `CLAUDE/`. **Crear directamente en la carpeta elegida** crea solo la carpeta del proyecto. Usa **Abrir** para proyectos existentes.
 3. Selecciona **Nueva sesión**, **Continuar** o **Historial**. Trabaja en el terminal y vuelve al panel al terminar.
 4. En **Ajustes → Idioma**, elige español, inglés, portugués de Brasil o **Automático**.
+
+Usa **Agente de esta sesión** para alternar entre Codex y Claude en el mismo proyecto. La organización solo define dónde se crea el proyecto. Para trasladar el contexto, usa **Guardar progreso**, cambia de agente y pulsa **Continuar desde las notas del proyecto**.
 
 `AGENTS.md` y `CLAUDE.md` apuntan a `INSTRUCOES/PROJETO.md` en los proyectos organizados. Usa ese archivo para compartir reglas y objetivos. Guarda decisiones y el próximo paso en `DOCS/ANDAMENTO.md`. Al cambiar de agente o cuenta, **Continuar desde las notas del proyecto** abre una sesión nueva con ese resumen. Cada agente conserva su propio historial.
 
@@ -59,6 +61,23 @@ El panel y los README están disponibles en español, inglés y portugués de Br
 **Ejemplo:** modifica un menú con Codex y pide que anote el archivo modificado, la compilación ejecutada y el siguiente paso. Después, selecciona Claude Code y pulsa **Continuar desde las notas del proyecto** para que compruebe lo que falta.
 
 Si el botón para continuar desde las notas está deshabilitado, anota el siguiente paso en `DOCS/ANDAMENTO.md` y comprueba que exista `PROMPTS/CONTINUAR.md`. Si el agente no se abre, ejecuta `codex --version` o `claude --version` en el terminal y comprueba el inicio de sesión.
+
+## Atajos de teclado
+
+Abre el icono del teclado en macOS o pulsa **Atajos** en Linux y Windows para ver la guía en el panel.
+
+| Acción | macOS | Linux / Windows |
+| --- | --- | --- |
+| Nuevo proyecto | `⌘ N` | `Ctrl+N` |
+| Abrir proyecto | `⌘ O` | `Ctrl+O` |
+| Carpeta predeterminada | `⇧ ⌘ D` | `Ctrl+Shift+D` |
+| Nueva sesión | `⌘ ↵` | `Ctrl+Enter` |
+| Nueva solicitud | `⇧ ⌘ P` | `Ctrl+Shift+P` |
+| Añadir archivo adjunto | `⇧ ⌘ A` | `Ctrl+Shift+A` |
+| Terminal del proyecto | `⇧ ⌘ T` | `Ctrl+Shift+T` |
+| Estado de Git | `⇧ ⌘ G` | `Ctrl+Shift+G` |
+| Iniciar servidor npm | `⇧ ⌘ R` | `Ctrl+Shift+R` |
+| Copia ZIP | `⇧ ⌘ B` | `Ctrl+Shift+B` |
 
 ## Autor y apoyo
 

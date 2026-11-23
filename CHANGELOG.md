@@ -7,7 +7,8 @@ First release of **Assistente IA** in the Codex CLI & Claude Code Workspace repo
 - Native macOS app with a default project folder, recent projects, and quick actions.
 - Graphical launchers for Linux and Windows using Python and Tkinter.
 - English, Brazilian Portuguese, and Spanish, plus automatic language selection.
-- Create projects in separate `CODEX/` and `CLAUDE/` folders under the selected root.
+- Choose between agent folders or creating directly in the selected folder. Either layout lets you choose Codex or Claude for each session.
+- Open the keyboard shortcut guide directly from the panel.
 - One workspace with `AGENTS.md`, `CLAUDE.md`, shared instructions, reusable prompts, and project progress notes.
 - New, resume, and history actions for the official Codex and Claude Code terminal sessions.
 - Agent account controls, Git status, local npm server, ZIP backups, and keyboard shortcuts.

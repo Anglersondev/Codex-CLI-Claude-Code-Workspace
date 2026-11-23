@@ -59,9 +59,9 @@ final class Workspace: ObservableObject {
         }
     }
 
-    func create(parent: URL, name: String, goal: String, agent: Agent, open: Bool) async {
+    func create(parent: URL, name: String, goal: String, agent: Agent, grouped: Bool, open: Bool) async {
         await perform {
-            let result = try await Backend.run(["create", parent.path, name, agent.rawValue, goal])
+            let result = try await Backend.run(["create", parent.path, name, agent.rawValue, goal, grouped ? "grouped" : "direct"])
             guard let path = Backend.lines(result).first else { throw AppFailure(tr("A pasta criada não foi retornada.")) }
             selected = path
             await reloadProjects()

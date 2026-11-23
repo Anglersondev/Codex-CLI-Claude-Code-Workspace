@@ -172,13 +172,16 @@ def project_creation_root(parent):
     return parent.parent if parent.name.upper() in ("CODEX", "CLAUDE") else parent
 
 
-def create_project(parent, name, agent, goal):
+def create_project(parent, name, agent, goal, grouped=True):
     validate_name(name)
     if agent not in ("codex", "claude"):
         raise ValueError("Unknown agent")
-    root = project_creation_root(parent.resolve(strict=True))
-    groups = {agent: managed_path(root, agent.upper()) for agent in ("codex", "claude")}
-    project = groups[agent] / name
+    root = parent.resolve(strict=True)
+    groups = {}
+    if grouped:
+        root = project_creation_root(root)
+        groups = {agent: managed_path(root, agent.upper()) for agent in ("codex", "claude")}
+    project = groups.get(agent, root) / name
     if project.exists() or is_link(project):
         raise FileExistsError(project)
     for directory in groups.values():

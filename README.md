@@ -26,9 +26,11 @@ The downloadable Mac app uses an ad hoc code signature. If macOS blocks that bui
 ## Quick start
 
 1. Click **Default folder** in the sidebar and pick where to keep new projects.
-2. Click **New** and choose an agent. Assistente IA creates the `CODEX/` and `CLAUDE/` folders under the default folder if needed, then creates your project under the selected agent. Use **Open** for existing folders.
+2. Click **New**, choose the first agent, and pick a folder layout. **Group by agent** uses `CODEX/` or `CLAUDE/`. **Create directly in the selected folder** creates only the project folder. Use **Open** for existing projects.
 3. Choose **Codex** or **Claude Code**. Click **New session**, **Resume**, or **History**.
 4. Work in the agent's official terminal interface. End the session to return to the project panel.
+
+Select **Agent for this session** whenever you want to switch between Codex and Claude in the same project. The folder layout only controls where new projects are created. Before switching, use **Save progress**, then open the other agent with **Continue from project notes**.
 
 Use **Settings → Language** to choose English, Brazilian Portuguese, Spanish, or **Automatic** to follow your system. Use **Session options** to pick a model, select a starting prompt, or open a read-only planning session.
 
@@ -127,6 +129,23 @@ To use the existing terminal menus, open `ASSISTENTE-IA-MAC.command`, `ASSISTENT
 | A project already has its own instructions | Review its `AGENTS.md`, `AGENTS.override.md`, or `CLAUDE.md` and link the shared instructions where appropriate. |
 | Linux opens no terminal | Install a supported graphical terminal and launch the panel from your desktop session. |
 | Windows displays a Python or Tkinter error | Check that Python 3.9+ with Tcl/Tk is installed. |
+
+## Keyboard shortcuts
+
+Open the keyboard icon on macOS or **Shortcuts** on Linux and Windows to see the guide in the app.
+
+| Action | macOS | Linux / Windows |
+| --- | --- | --- |
+| New project | `⌘ N` | `Ctrl+N` |
+| Open project | `⌘ O` | `Ctrl+O` |
+| Default folder | `⇧ ⌘ D` | `Ctrl+Shift+D` |
+| New session | `⌘ ↵` | `Ctrl+Enter` |
+| New prompt | `⇧ ⌘ P` | `Ctrl+Shift+P` |
+| Add attachment | `⇧ ⌘ A` | `Ctrl+Shift+A` |
+| Terminal in project | `⇧ ⌘ T` | `Ctrl+Shift+T` |
+| Git status | `⇧ ⌘ G` | `Ctrl+Shift+G` |
+| Start npm server | `⇧ ⌘ R` | `Ctrl+Shift+R` |
+| ZIP backup | `⇧ ⌘ B` | `Ctrl+Shift+B` |
 
 ## Build and verify from source
 

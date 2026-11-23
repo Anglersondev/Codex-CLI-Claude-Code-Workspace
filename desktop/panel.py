@@ -103,13 +103,16 @@ class Panel:
         ttk.Button(header, text=T("Ajustes", "Settings", "Ajustes"), command=self.settings).pack(side="right")
         self.location = ttk.Label(main, style="Sub.TLabel")
         self.location.pack(anchor="w", pady=(2, 14))
+        ttk.Button(header, text=T("Atalhos", "Shortcuts", "Atajos"), command=self.show_shortcuts).pack(side="right", padx=(0, 6))
 
         session = ttk.LabelFrame(main, text=T("Sessão no Terminal", "Terminal session", "Sesión en Terminal"), padding=(12, 9))
         session.pack(fill="x", pady=(0, 10))
         agents = ttk.Frame(session)
-        agents.pack(fill="x", pady=(0, 9))
+        agents.pack(fill="x")
+        ttk.Label(agents, text=T("Agente desta sessão", "Agent for this session", "Agente de esta sesión")).pack(side="left", padx=(0, 10))
         for key, name in AGENT_NAMES.items():
             ttk.Radiobutton(agents, text=name, variable=self.agent, value=key, command=self.refresh_context).pack(side="left", padx=(0, 15))
+        ttk.Label(session, text=T("Codex e Claude podem trabalhar nesta mesma pasta.", "Codex and Claude can work in this same folder.", "Codex y Claude pueden trabajar en esta misma carpeta."), style="Sub.TLabel").pack(anchor="w", pady=(4, 9))
         actions = ttk.Frame(session)
         actions.pack(fill="x")
         self.session_controls = [
@@ -134,10 +137,11 @@ class Panel:
             self.button(files, T("Novo pedido…", "New prompt…", "Nueva solicitud…"), self.prompt_window),
             self.button(files, T("Adicionar anexo…", "Add attachment…", "Añadir archivo adjunto…"), self.attach),
         ]
-        self.continue_control = self.button(
-            files, T("Retomar pelo andamento", "Continue from notes", "Continuar desde las notas"), self.continue_notes
-        )
-        self.file_controls.append(self.continue_control)
+        handoff = ttk.Frame(context)
+        handoff.pack(fill="x", pady=(6, 0))
+        self.save_control = self.button(handoff, T("Salvar andamento", "Save progress", "Guardar progreso"), self.wrap_up)
+        self.continue_control = self.button(handoff, T("Retomar pelo andamento", "Continue from notes", "Continuar desde las notas"), self.continue_notes)
+        self.file_controls += [self.save_control, self.continue_control]
         quick = ttk.Frame(context)
         quick.pack(fill="x", pady=(6, 0))
         self.file_controls += [
@@ -223,6 +227,8 @@ class Panel:
             return
         ready = progress_available(self.project) and (self.project / "PROMPTS" / "CONTINUAR.md").is_file()
         self.continue_control.state(["!disabled"] if ready else ["disabled"])
+        summary_prompt = self.project / "PROMPTS" / "ENCERRAR-SESSAO.md"
+        self.save_control.state(["!disabled"] if summary_prompt.is_file() else ["disabled"])
         notes = []
         if not ready:
             notes.append(T(
@@ -282,21 +288,31 @@ class Panel:
         parent = tk.StringVar(value=str(self.state.parent))
         remember = tk.BooleanVar()
         agent = tk.StringVar(value=self.agent.get())
-        name = self.field(body, T("Nome", "Name", "Nombre"))
+        grouped = tk.BooleanVar(value=self.state.config.get("group_by_agent", True))
+        name = tk.StringVar()
+        name_field = self.field(body, T("Nome", "Name", "Nombre"), name)
         goal = self.field(body, T("Objetivo (opcional)", "Goal (optional)", "Objetivo (opcional)"))
         row = ttk.Frame(body)
         row.pack(anchor="w")
         for key, label in AGENT_NAMES.items():
             ttk.Radiobutton(row, text=label, variable=agent, value=key).pack(side="left", padx=(0, 12))
+        ttk.Checkbutton(body, text=T("Separar por agente", "Group by agent", "Separar por agente"),
+                        variable=grouped).pack(anchor="w", pady=(5, 0))
+        ttk.Label(body, text=T("Desmarque para criar direto na pasta escolhida.", "Clear to create directly in the selected folder.", "Desmarca para crear directamente en la carpeta elegida."),
+                  style="Sub.TLabel").pack(anchor="w")
         preview = ttk.Label(body, wraplength=380, style="Sub.TLabel")
         preview.pack(anchor="w", pady=4)
 
         def show_destination(*_args):
-            root = project_creation_root(Path(parent.get()))
-            preview.configure(text=str(root / agent.get().upper()))
+            root = Path(parent.get())
+            if grouped.get():
+                root = project_creation_root(root) / agent.get().upper()
+            preview.configure(text=str(root / name.get().strip()))
 
         parent.trace_add("write", show_destination)
         agent.trace_add("write", show_destination)
+        grouped.trace_add("write", show_destination)
+        name.trace_add("write", show_destination)
         show_destination()
 
         def change():
@@ -310,9 +326,10 @@ class Panel:
         def create(start):
             try:
                 destination = Path(parent.get())
-                folder = create_project(destination, name.get().strip(), agent.get(), goal.get().strip())
+                folder = create_project(destination, name.get().strip(), agent.get(), goal.get().strip(), grouped=grouped.get())
+                self.state.set_value("group_by_agent", grouped.get())
                 if remember.get():
-                    self.state.set_parent(project_creation_root(destination))
+                    self.state.set_parent(project_creation_root(destination) if grouped.get() else destination)
                 self.select(folder)
             except (OSError, ValueError) as error:
                 messagebox.showerror("Assistente IA", str(error), parent=window)
@@ -326,7 +343,7 @@ class Panel:
         ttk.Button(controls, text=T("Só criar", "Create only", "Solo crear"), command=lambda: create(False)).pack(side="left", padx=5)
         ttk.Button(controls, text=T("Criar e abrir Terminal", "Create and open Terminal", "Crear y abrir Terminal"),
                    style="Accent.TButton", command=lambda: create(True)).pack(side="left")
-        name.focus_set()
+        name_field.focus_set()
 
     def field(self, parent, title, variable=None):
         ttk.Label(parent, text=title).pack(anchor="w")

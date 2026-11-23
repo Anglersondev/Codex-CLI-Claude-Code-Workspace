@@ -124,6 +124,11 @@ struct Dashboard: View {
             }
             .toolbar {
                 ToolbarItem {
+                    Button {
+                        workspace.detail = .init(title: tr("Atalhos do teclado"), text: projectShortcuts())
+                    } label: { Label(tr("Atalhos do teclado"), systemImage: "keyboard") }
+                }
+                ToolbarItem {
                     Button { showSettings = true } label: { Label(tr("Ajustes"), systemImage: "gearshape") }
                         .help(tr("Contas, integrações e atualizações"))
                         .keyboardShortcut(",", modifiers: .command)
@@ -201,12 +206,15 @@ struct Dashboard: View {
         return VStack(alignment: .leading, spacing: 16) {
             projectHeader(folder)
             section("Sessão no Terminal") {
-                Picker(tr("Agente"), selection: $workspace.agent) {
+                Text(tr("Agente desta sessão")).font(.subheadline.weight(.semibold))
+                Picker(tr("Agente desta sessão"), selection: $workspace.agent) {
                     ForEach(Agent.allCases) { agent in Text(agent.name).tag(agent) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .accessibilityLabel(Text(tr("Agente")))
+                .accessibilityLabel(Text(tr("Agente desta sessão")))
+                Text(tr("Codex e Claude podem trabalhar nesta mesma pasta."))
+                    .font(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 9) {
                     Button { Task { await workspace.start("novo") } } label: {
                         Label(tr("Nova sessão"), systemImage: "terminal")
@@ -278,9 +286,15 @@ struct Dashboard: View {
                         openIfPresent("Prompts", "PROMPTS", in: folder)
                     }
                     let continuePrompt = folder.appendingPathComponent("PROMPTS/CONTINUAR.md")
-                    if FileManager.default.fileExists(atPath: continuePrompt.path) {
-                        Button(tr("Retomar pelo andamento")) { Task { await workspace.start("novo", using: continuePrompt) } }
-                            .disabled(!workspace.context.contains("progress") || !workspace.sessionReady || workspace.busy || workspace.updatingIntegrations)
+                    if workspace.context[2] != "missing" {
+                        HStack {
+                            Button(tr("Salvar andamento…")) { wrap = true }
+                            if FileManager.default.fileExists(atPath: continuePrompt.path) {
+                                Button(tr("Retomar pelo andamento")) { Task { await workspace.start("novo", using: continuePrompt) } }
+                                    .disabled(!workspace.context.contains("progress"))
+                            }
+                        }
+                        .disabled(!workspace.sessionReady || workspace.busy || workspace.updatingIntegrations)
                         if workspace.context.contains("progress") {
                             Text(tr("Abre uma conversa nova com o agente selecionado e usa o resumo do projeto."))
                                 .font(.caption).foregroundStyle(.secondary)
@@ -460,6 +474,7 @@ struct CreateProject: View {
     @ViewState private var name = ""
     @ViewState private var goal = ""
     @ViewState private var agent: Agent = .codex
+    @AppStorage("groupNewProjectsByAgent") private var grouped = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 17) {
@@ -469,6 +484,10 @@ struct CreateProject: View {
                 TextField(tr("Objetivo (opcional)"), text: $goal)
                 Picker(tr("Primeiro agente"), selection: $agent) {
                     ForEach(Agent.allCases) { Text($0.name).tag($0) }
+                }
+                Picker(tr("Organização"), selection: $grouped) {
+                    Text(tr("Separar por agente")).tag(true)
+                    Text(tr("Criar direto na pasta escolhida")).tag(false)
                 }
                 LabeledContent(tr("Criar em")) {
                     HStack {
@@ -493,17 +512,21 @@ struct CreateProject: View {
 
     private var cleanName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var projectRoot: URL? {
-        guard let parent else { return nil }
+        guard let parent, grouped else { return parent }
         return ["CODEX", "CLAUDE"].contains(parent.lastPathComponent.uppercased())
             ? parent.deletingLastPathComponent() : parent
     }
-    private var destination: URL? { projectRoot?.appendingPathComponent(agent.rawValue.uppercased()) }
+    private var destination: URL? {
+        guard let root = projectRoot else { return nil }
+        let folder = grouped ? root.appendingPathComponent(agent.rawValue.uppercased()) : root
+        return cleanName.isEmpty ? folder : folder.appendingPathComponent(cleanName)
+    }
 
     private func create(_ open: Bool) {
         guard let parent else { return }
         dismiss()
         if rememberParent { UserDefaults.standard.set(projectRoot?.path ?? parent.path, forKey: "projectParent") }
-        Task { await workspace.create(parent: parent, name: cleanName, goal: goal, agent: agent, open: open) }
+        Task { await workspace.create(parent: parent, name: cleanName, goal: goal, agent: agent, grouped: grouped, open: open) }
     }
 }
 
