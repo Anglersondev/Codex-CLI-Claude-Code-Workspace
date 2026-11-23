@@ -197,7 +197,7 @@ struct Dashboard: View {
         .confirmationDialog(tr("Salvar andamento da sessão?"), isPresented: $wrap, titleVisibility: .visible) {
             Button(tr("Retomar e pedir resumo")) { Task { await workspace.start("resumo") } }
         } message: {
-            Text(tr("O agente retomará sua conversa mais recente e atualizará DOCS/ANDAMENTO.md."))
+            Text(tr("O agente retomará sua conversa mais recente e atualizará o arquivo de progresso."))
         }
     }
 
@@ -278,24 +278,24 @@ struct Dashboard: View {
                 Label(notice, systemImage: "checkmark.circle").font(.callout).foregroundStyle(.secondary)
             }
             section("Contexto do projeto") {
-                if workspace.context.count >= 3 {
+                if workspace.context.count >= 3, let layout = workspace.layout {
                     HStack(spacing: 9) {
                         contextLabel("AGENTS.md", workspace.context.contains("override") ? tr("Sobrescrito") : entryLabel(workspace.context[0]), workspace.context[0] == "shared" && !workspace.context.contains("override"))
                         contextLabel("CLAUDE.md", entryLabel(workspace.context[1]), workspace.context[1] == "shared")
                     }
                     if workspace.context[2] == "template" {
-                        Label(tr("Escreva o objetivo em PROJETO.md antes de começar."), systemImage: "info.circle")
+                        Label(tr("Escreva o objetivo nas instruções antes de começar."), systemImage: "info.circle")
                             .font(.callout).foregroundStyle(.secondary)
                     }
                     HStack {
                         if workspace.context[2] == "missing" || workspace.context.prefix(2).contains("missing") {
                             Button(tr("Preparar contexto…")) { prepare = true }
                         }
-                        openIfPresent("Instruções", "INSTRUCOES/PROJETO.md", in: folder)
-                        openIfPresent("Andamento", "DOCS/ANDAMENTO.md", in: folder)
-                        openIfPresent("Prompts", "PROMPTS", in: folder)
+                        openIfPresent("Instruções", layout.instructions, in: folder)
+                        openIfPresent("Andamento", layout.progress, in: folder)
+                        openIfPresent("Prompts", layout.prompts, in: folder)
                     }
-                    let continuePrompt = folder.appendingPathComponent("PROMPTS/CONTINUAR.md")
+                    let continuePrompt = folder.appendingPathComponent(layout.continuing)
                     if workspace.context[2] != "missing" {
                         HStack {
                             Button(tr("Salvar andamento…")) { wrap = true }
@@ -318,7 +318,7 @@ struct Dashboard: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     if workspace.context.prefix(2).contains("custom") {
-                        Text(tr("Uma entrada usa regras próprias. Confira a referência a PROJETO.md se quiser compartilhar essas regras."))
+                        Text(tr("Uma entrada usa regras próprias. Confira o caminho das instruções compartilhadas para usar as mesmas regras."))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     if workspace.context.contains("override") {
@@ -335,8 +335,10 @@ struct Dashboard: View {
                         .keyboardShortcut("p", modifiers: [.command, .shift])
                     Button(tr("Adicionar anexo…")) { pickAttachment(for: folder) }
                         .keyboardShortcut("a", modifiers: [.command, .shift])
-                    openIfPresent("Documentos", "DOCS", in: folder)
-                    openIfPresent("Anexos", "ANEXOS", in: folder)
+                    if let layout = workspace.layout {
+                        openIfPresent("Documentos", layout.docs, in: folder)
+                        openIfPresent("Anexos", layout.attachments, in: folder)
+                    }
                 }
                 .disabled(workspace.busy)
                 Divider()
@@ -455,7 +457,7 @@ struct Dashboard: View {
 
     private func choosePrompt(_ folder: URL) {
         let panel = NSOpenPanel()
-        panel.directoryURL = folder.appendingPathComponent("PROMPTS", isDirectory: true)
+        panel.directoryURL = workspace.layout.map { folder.appendingPathComponent($0.prompts, isDirectory: true) } ?? folder
         panel.allowedContentTypes = [.plainText] + [UTType(filenameExtension: "md")].compactMap { $0 }
         panel.prompt = tr("Usar pedido")
         if panel.runModal() == .OK { workspace.prompt = panel.url }

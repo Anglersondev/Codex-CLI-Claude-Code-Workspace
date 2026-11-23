@@ -20,6 +20,9 @@ import core
 
 class PortablePanelTests(unittest.TestCase):
     def setUp(self):
+        language = mock.patch.object(core, "PANEL_LANGUAGE", "pt-BR")
+        language.start()
+        self.addCleanup(language.stop)
         scratch = tempfile.TemporaryDirectory(prefix="assistente-desktop-")
         self.addCleanup(scratch.cleanup)
         self.root = Path(scratch.name)
@@ -168,13 +171,32 @@ class PortablePanelTests(unittest.TestCase):
     def test_spanish_project_templates_and_context_health(self):
         with mock.patch.object(core, "PANEL_LANGUAGE", "es"):
             project = core.create_project(self.root, "Sitio nuevo", "codex", "Publicar el sitio")
-        instructions = project / "INSTRUCOES" / "PROJETO.md"
+        instructions = project / "INSTRUCCIONES" / "PROYECTO.md"
         self.assertIn("# Instrucciones", instructions.read_text(encoding="utf-8"))
         self.assertFalse(core.progress_available(project))
-        summary = project / "DOCS" / "ANDAMENTO.md"
+        summary = project / "DOCUMENTOS" / "PROGRESO.md"
         summary.write_text("# Progreso\n\n- Revisar la navegación.\n", encoding="utf-8")
         self.assertTrue(core.progress_available(project))
         self.assertFalse(core.instructions_are_long(project, "codex"))
         (project / "AGENTS.override.md").write_text("x" * 12001, encoding="utf-8")
         self.assertTrue(core.instructions_are_long(project, "codex"))
         self.assertFalse(core.instructions_are_long(project, "claude"))
+
+    def test_localized_layout_survives_panel_language_changes(self):
+        for language, relative, progress, attachments in (
+            ("en", "INSTRUCTIONS/PROJECT.md", "DOCS/PROGRESS.md", "ATTACHMENTS"),
+            ("es", "INSTRUCCIONES/PROYECTO.md", "DOCUMENTOS/PROGRESO.md", "ADJUNTOS"),
+        ):
+            with mock.patch.object(core, "PANEL_LANGUAGE", language):
+                project = core.create_project(self.root, language, "codex", "Fixture", grouped=False)
+            with mock.patch.object(core, "PANEL_LANGUAGE", "pt-BR"):
+                self.assertEqual(core.project_layout(project)["progress"], progress)
+                self.assertIn("@" + relative, (project / "CLAUDE.md").read_text(encoding="utf-8"))
+                self.assertIn(relative, (project / "AGENTS.md").read_text(encoding="utf-8"))
+                self.assertIn(progress, (project / core.project_layout(project)["continue"]).read_text(encoding="utf-8"))
+                source = self.root / "reference.txt"
+                source.write_text("test")
+                core.attach_file(project, source)
+                core.scaffold(project, "codex")
+                self.assertTrue((project / attachments / source.name).is_file())
+                self.assertFalse((project / "INSTRUCOES").exists())

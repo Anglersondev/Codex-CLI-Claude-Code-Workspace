@@ -16,6 +16,8 @@ package() {
   stage="$scratch/$name"
   mkdir -p "$stage/desktop"
   for file in "$@"; do cp -R "$root/$file" "$stage/"; done
+  mkdir -p "$stage/lib"
+  cp "$root/lib/project-layouts.tsv" "$stage/lib/"
   cp "$root/desktop/core.py" "$root/desktop/panel.py" "$root/desktop/workflows.py" "$root/desktop/workflows.json" "$stage/desktop/"
   cp "$root/desktop/LEIA-ME.md" "$root/LICENSE" "$stage/"
   (cd "$scratch" && zip -qr "$name.zip" "$name")

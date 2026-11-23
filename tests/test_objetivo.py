@@ -21,7 +21,7 @@ class ObjectiveTests(base.AssistantTests):
                 self.assertIn(FRASE, (project / "README.md").read_text())
                 # Arquivo ainda igual ao modelo: nada do usuário a proteger, sem backup.
                 self.assertFalse((project / "DOCS/BACKUPS-INSTRUCOES").exists())
-                self.assertNotIn("Backup do PROJETO.md", result.stdout)
+                self.assertNotIn("Backup de INSTRUCOES/PROJETO.md", result.stdout)
 
     def test_o02_enter_skips_without_changes(self):
         project = self.managed_project("codex")
@@ -91,7 +91,7 @@ class ObjectiveTests(base.AssistantTests):
                 path.write_text(path.read_text() + "\n- Regra minha: sempre responder curto.\n")
                 result = self.project_shell(project, "fill_project_objective 'Meu hotel'")
                 self.assert_ok(result)
-                self.assertIn("Backup do PROJETO.md", result.stdout)
+                self.assertIn("Backup de INSTRUCOES/PROJETO.md", result.stdout)
                 self.assertEqual(len(list((project / "DOCS/BACKUPS-INSTRUCOES").iterdir())), 1)
                 self.assertIn("- Regra minha: sempre responder curto.", path.read_text())
 

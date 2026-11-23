@@ -50,7 +50,6 @@
 "Escolher arquivo…" = "Escolher arquivo…";
 "Escolher pasta" = "Escolher pasta";
 "Escolher…" = "Escolher…";
-"Escreva o objetivo em PROJETO.md antes de começar." = "Escreva o objetivo em PROJETO.md antes de começar.";
 "Esforço" = "Esforço";
 "Evitar dupla compactação do Terminal" = "Evitar dupla compactação do Terminal";
 "Falha ao aplicar a atualização. %@" = "Falha ao aplicar a atualização. %@";
@@ -78,7 +77,6 @@
 "O SHA-256 do ZIP diverge do publicado." = "O SHA-256 do ZIP diverge do publicado.";
 "O Terminal do macOS não foi encontrado." = "O Terminal do macOS não foi encontrado.";
 "O Terminal não iniciou a sessão. Abra o Terminal uma vez e tente novamente." = "O Terminal não iniciou a sessão. Abra o Terminal uma vez e tente novamente.";
-"O agente retomará sua conversa mais recente e atualizará DOCS/ANDAMENTO.md." = "O agente retomará sua conversa mais recente e atualizará DOCS/ANDAMENTO.md.";
 "O app consulta no máximo uma vez por dia quando estiver em uso. Atualizações do Assistente são aplicadas ao sair." = "O app consulta no máximo uma vez por dia quando estiver em uso. Atualizações do Assistente são aplicadas ao sair.";
 "O bundle baixado tem versão ou identificação diferente da esperada." = "O bundle baixado tem versão ou identificação diferente da esperada.";
 "O download da versão publicada falhou." = "O download da versão publicada falhou.";
@@ -118,7 +116,6 @@
 "Trabalhar" = "Trabalhar";
 "Trocar conta…" = "Trocar conta…";
 "Trocar de conta?" = "Trocar de conta?";
-"Uma entrada usa regras próprias. Confira a referência a PROJETO.md se quiser compartilhar essas regras." = "Uma entrada usa regras próprias. Confira a referência a PROJETO.md se quiser compartilhar essas regras.";
 "Usar esta pasta nos próximos projetos" = "Usar esta pasta nos próximos projetos";
 "Usar pedido" = "Usar pedido";
 "Verificando…" = "Verificando…";
@@ -146,7 +143,6 @@
 "Salvar cópia ZIP neste local" = "Salvar cópia ZIP neste local";
 "Nenhum package.json encontrado neste projeto." = "Nenhum package.json encontrado neste projeto.";
 "Pedido salvo e selecionado para a próxima sessão." = "Pedido salvo e selecionado para a próxima sessão.";
-"Arquivo copiado para ANEXOS." = "Arquivo copiado para ANEXOS.";
 "Cópia ZIP criada." = "Cópia ZIP criada.";
 "Novo pedido" = "Novo pedido";
 "Nome do pedido" = "Nome do pedido";
@@ -173,3 +169,7 @@
 "Comandos do Terminal" = "Comandos do Terminal";
 "Escolha um comando para copiar." = "Escolha um comando para copiar.";
 "Comando copiado. Cole no Terminal." = "Comando copiado. Cole no Terminal.";
+"Escreva o objetivo nas instruções antes de começar." = "Escreva o objetivo nas instruções antes de começar.";
+"O agente retomará sua conversa mais recente e atualizará o arquivo de progresso." = "O agente retomará sua conversa mais recente e atualizará o arquivo de progresso.";
+"Uma entrada usa regras próprias. Confira o caminho das instruções compartilhadas para usar as mesmas regras." = "Uma entrada usa regras próprias. Confira o caminho das instruções compartilhadas para usar as mesmas regras.";
+"Anexo copiado." = "Anexo copiado.";

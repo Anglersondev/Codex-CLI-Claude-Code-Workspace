@@ -48,6 +48,8 @@ O checkpoint funciona também em projetos sem Git. Nesse caso, descreva as mudan
 
 ## Contexto compartilhado e andamento
 
+Os nomes das pastas e dos modelos de projetos novos seguem o idioma do painel. Projetos existentes continuam sendo abertos pelos caminhos que já usam.
+
 - **`AGENTS.md` e `CLAUDE.md`** são as entradas de cada agente. Aponte as duas para `INSTRUCOES/PROJETO.md` para compartilhar regras e objetivos.
 - **`DOCS/ANDAMENTO.md`** guarda decisões, testes e o próximo passo. Use **Salvar andamento da sessão** antes de trocar de agente ou conta. Depois selecione **Retomar pelo andamento** para começar outro chat com o resumo.
 - **`PROMPTS/`** é a pasta dos pedidos que você escolhe reutilizar. **`ANEXOS/`** guarda os arquivos de apoio.
@@ -87,7 +89,7 @@ O painel e os READMEs têm versões em português do Brasil, inglês e espanhol.
 | `PROMPTS/` | Pedidos reutilizáveis. |
 | `ANEXOS/` | Arquivos de apoio. |
 
-Esses nomes são os mesmos no disco até com o painel em inglês ou espanhol. Assim, os agentes encontram os arquivos pelos mesmos caminhos.
+A tabela mostra os nomes gerados em português. Para os outros idiomas, consulte as estruturas nos guias em [inglês](README.md#share-project-context-between-codex-and-claude-code) e [espanhol](README.es.md#contexto-compartido-y-progreso).
 
 ### Exemplo: começar no Codex e passar para Claude Code
 

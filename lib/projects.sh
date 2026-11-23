@@ -69,65 +69,123 @@ write_new_file() {
 }
 
 instruction_entry() {
+  project_context || return 1
+  if [ "$CTX_LANGUAGE" = es ]; then
+    printf '\n<!-- assistente-ia: instrucoes-do-projeto -->\n'
+    if [ "${1:-$TOOL}" = claude ]; then printf '@%s\n' "$CTX_INSTRUCTIONS"
+    else printf 'Lee %s antes de trabajar en este proyecto.\n' "$CTX_INSTRUCTIONS"; fi
+    printf 'Consulta las solicitudes y los documentos cuando sean pertinentes.\n'
+    return
+  fi
+  local APP_LANG="$CTX_LANGUAGE"
   printf '\n<!-- assistente-ia: instrucoes-do-projeto -->\n'
   if [ "${1:-$TOOL}" = claude ]; then
-    printf '@INSTRUCOES/PROJETO.md\n'
+    printf '@%s\n' "$CTX_INSTRUCTIONS"
   else
-    printf '%s\n' "$(ui 'Antes de trabalhar, leia e siga INSTRUCOES/PROJETO.md, relativo à raiz deste projeto.' 'Before working, read and follow INSTRUCOES/PROJETO.md relative to this project root.')"
+    printf '%s\n' "$(ui "Antes de trabalhar, leia e siga $CTX_INSTRUCTIONS, relativo à raiz deste projeto." "Before working, read and follow $CTX_INSTRUCTIONS relative to this project root.")"
   fi
-  printf '%s\n' "$(ui 'Consulte outros arquivos de INSTRUCOES/, DOCS/ e ANEXOS/ quando forem relevantes ou citados.' 'Read other files in INSTRUCOES/, DOCS/, and ANEXOS/ when relevant or referenced.')"
-  printf '%s\n' "$(ui 'PROMPTS/ contém pedidos reutilizáveis: execute apenas o prompt escolhido pelo usuário.' 'PROMPTS/ contains reusable requests: run only the prompt selected by the user.')"
+  printf '%s\n' "$(ui "Consulte $CTX_RULES/, $CTX_DOCS/ e $CTX_ATTACHMENTS/ quando forem relevantes." "Consult $CTX_RULES/, $CTX_DOCS/, and $CTX_ATTACHMENTS/ when relevant.")"
+  printf '%s\n' "$(ui "$CTX_PROMPTS/ contém pedidos reutilizáveis. Execute o pedido escolhido pelo usuário." "$CTX_PROMPTS/ contains reusable requests. Run the request selected by the user.")"
 }
 
 efficiency_section() {
-  if [ "$APP_LANG" = en ]; then cat <<'EOF'
+  project_context || return 1
+  if [ "$CTX_LANGUAGE" = es ]; then cat <<EOF
+## Eficiencia (ahorro de tokens)
+- Lee los archivos pertinentes y mantén breves los resúmenes.
+- Planifica los cambios grandes y divídelos en pasos.
+- Guarda el progreso en $CTX_PROGRESS después de cada etapa importante.
+EOF
+    return
+  fi
+  local APP_LANG="$CTX_LANGUAGE"
+  if [ "$APP_LANG" = en ]; then cat <<EOF
 ## Efficiency (token savings)
 - Read only what is needed: search or list before opening entire files, and do not reread content already seen in the conversation.
 - Reply briefly and directly: avoid repeating the request or dumping entire code files when a snippet or diff is enough.
 - Plan large tasks first and divide them into steps.
-- Record progress in DOCS/ANDAMENTO.md (about 40 lines maximum; condense instead of accumulating).
+- Record progress in $CTX_PROGRESS (about 40 lines maximum; condense instead of accumulating).
 EOF
     return
   fi
-  cat <<'EOF'
+  cat <<EOF
 ## Eficiência (economia de tokens)
 - Leia só o necessário: busque (grep/lista) antes de abrir arquivos inteiros e não releia o que já viu na conversa.
 - Responda curto e direto: sem repetir o pedido e sem despejar código inteiro quando um trecho ou diff basta.
 - Em tarefas grandes, planeje primeiro e divida em etapas.
-- Registre o andamento em DOCS/ANDAMENTO.md (máx. ~40 linhas; condense, não acumule).
+- Registre o andamento em $CTX_PROGRESS (máx. ~40 linhas; condense, não acumule).
 EOF
 }
 
 prompt_encerrar_text() {
-  if [ "$APP_LANG" = en ]; then cat <<'EOF'
+  project_context || return 1
+  if [ "$CTX_LANGUAGE" = es ]; then cat <<EOF
+Para cerrar la sesión, resume los cambios confirmados, las decisiones, las pruebas y la tarea siguiente.
+Actualiza $CTX_PROGRESS con un máximo aproximado de 40 líneas y conserva los hechos relevantes.
+EOF
+    return
+  fi
+  local APP_LANG="$CTX_LANGUAGE"
+  if [ "$APP_LANG" = en ]; then cat <<EOF
 Let's wrap up this session. In a few lines, report what was completed, decisions, useful commands, outstanding work, and the next task.
-Then update DOCS/ANDAMENTO.md, condensing older content: about 40 lines maximum, confirmed facts only.
+Then update $CTX_PROGRESS, condensing older content: about 40 lines maximum, confirmed facts only.
 Do not repeat code or long excerpts.
 EOF
     return
   fi
-  cat <<'EOF'
+  cat <<EOF
 Vamos encerrar esta sessão. Responda em poucas linhas: o que foi concluído, decisões, comandos úteis, pendências e a próxima tarefa.
-Depois atualize DOCS/ANDAMENTO.md condensando o conteúdo antigo: no máximo ~40 linhas, só fatos confirmados.
+Depois atualize $CTX_PROGRESS condensando o conteúdo antigo: no máximo ~40 linhas, só fatos confirmados.
 Não repita código nem trechos longos.
 EOF
 }
 
 prompt_resumo_text() {
-  if [ "$APP_LANG" = en ]; then cat <<'EOF'
+  project_context || return 1
+  if [ "$CTX_LANGUAGE" = es ]; then cat <<EOF
+Resume la conversación en hasta 15 líneas para retomarla en una sesión nueva.
+Incluye el objetivo, el estado actual, las decisiones, la próxima tarea y los archivos que conviene leer.
+EOF
+    return
+  fi
+  local APP_LANG="$CTX_LANGUAGE"
+  if [ "$APP_LANG" = en ]; then cat <<EOF
 This conversation has grown long. Create a context summary of up to 15 lines that I can paste into a new conversation: goal, current state, decisions, and next task.
 List the key files the new conversation should read. Do not include code.
 EOF
     return
   fi
-  cat <<'EOF'
+  cat <<EOF
 Esta conversa ficou longa. Gere um resumo de contexto de até 15 linhas para eu colar numa conversa nova: objetivo, estado atual, decisões e próxima tarefa.
 Liste também os arquivos-chave que a nova conversa deve ler. Não inclua código.
 EOF
 }
 
 instructions_template_text() {
-  if [ "$APP_LANG" = en ]; then cat <<'EOF'
+  project_context || return 1
+  if [ "$CTX_LANGUAGE" = es ]; then cat <<EOF
+# Instrucciones permanentes del proyecto
+
+## Objetivo y contexto
+- Objetivo: describe qué quieres crear y para quién.
+- Contexto: describe el público, el negocio y las referencias principales.
+
+## Preferencias de trabajo
+- Responde en español con explicaciones claras.
+- Lee los archivos pertinentes y conserva el trabajo existente.
+- Presenta un plan breve antes de cambios grandes.
+- Protege las credenciales y los archivos .env.
+- Informa de los cambios, las comprobaciones realizadas y las tareas pendientes.
+- Actualiza $CTX_PROGRESS al completar una etapa importante.
+
+## Requisitos del proyecto
+- Completa las tecnologías, el estilo, las restricciones y los criterios de éxito.
+
+EOF
+    return
+  fi
+  local APP_LANG="$CTX_LANGUAGE"
+  if [ "$APP_LANG" = en ]; then cat <<EOF
 # Permanent instructions for this project
 
 ## Goal and context
@@ -140,7 +198,7 @@ instructions_template_text() {
 - Before large changes, present a short plan.
 - Do not expose passwords, keys, tokens, or .env files.
 - When done, report changes, checks actually performed, and remaining work.
-- Update DOCS/ANDAMENTO.md after meaningful milestones.
+- Update $CTX_PROGRESS after meaningful milestones.
 
 ## Project-specific requirements
 - Fill in the technologies, style, constraints, and success criteria for this project.
@@ -149,7 +207,7 @@ instructions_template_text() {
 EOF
     return
   fi
-  cat <<'EOF'
+  cat <<EOF
 # Instruções permanentes deste projeto
 
 ## Objetivo e contexto
@@ -162,7 +220,7 @@ EOF
 - Antes de mudanças extensas, apresente um plano curto.
 - Não exponha senhas, chaves, tokens ou arquivos .env.
 - Ao concluir, informe mudanças, verificações realmente feitas e pendências.
-- Atualize DOCS/ANDAMENTO.md ao concluir etapas relevantes.
+- Atualize $CTX_PROGRESS ao concluir etapas relevantes.
 
 ## Requisitos específicos
 - Preencha tecnologias, estilo, limites e critérios de sucesso deste projeto.
@@ -172,24 +230,46 @@ EOF
 }
 
 prepare_project_files() {
-  local folder native agent entries
+  project_context || return 1
+  local folder native agent entries APP_LANG="$CTX_LANGUAGE"
   case "$TOOL" in codex) native=AGENTS.md ;; claude) native=CLAUDE.md ;; *) return 1 ;; esac
   entries=("$native")
   if [ "${1:-}" = shared ]; then entries=(AGENTS.md CLAUDE.md); fi
-  for native in "${entries[@]}" INSTRUCOES/PROJETO.md DOCS/ANDAMENTO.md PROMPTS/COMECE-AQUI.md PROMPTS/PLANEJAR.md PROMPTS/CONTINUAR.md PROMPTS/ENCERRAR-SESSAO.md PROMPTS/RESUMO-RAPIDO.md .assistente-ia/tool; do
+  for native in "${entries[@]}" "${CTX_INSTRUCTIONS}" "${CTX_PROGRESS}" "${CTX_START}" "${CTX_PLAN}" "${CTX_CONTINUE}" "${CTX_CLOSE}" "${CTX_SUMMARY}" .assistente-ia/tool; do
     safe_project_path "$native" || return 1
     if [ -e "$PROJECT/$native" ] && [ ! -f "$PROJECT/$native" ]; then
       warn "$native $(ui 'existe mas não é arquivo.' 'exists but is not a file.')"
       return 1
     fi
   done
-  for folder in .assistente-ia INSTRUCOES PROMPTS DOCS ANEXOS; do
+  for folder in .assistente-ia "${CTX_RULES}" "${CTX_PROMPTS}" "${CTX_DOCS}" "${CTX_ATTACHMENTS}"; do
     safe_project_path "$folder" || return 1
     mkdir -p "$PROJECT/$folder" || return 1
   done
-  { instructions_template_text; efficiency_section; } | write_new_file INSTRUCOES/PROJETO.md || return 1
-  if [ "$APP_LANG" = en ]; then
-    write_new_file DOCS/ANDAMENTO.md <<'EOF' || return 1
+  { instructions_template_text; efficiency_section; } | write_new_file "${CTX_INSTRUCTIONS}" || return 1
+  if [ "$CTX_LANGUAGE" = es ]; then
+    write_new_file "$CTX_PROGRESS" <<EOF || return 1
+# Progreso del proyecto
+
+## Cambios realizados
+
+## Decisiones importantes
+
+## Próximo paso
+
+Registra hechos confirmados y tareas pendientes.
+EOF
+    write_new_file "$CTX_START" <<EOF || return 1
+Lee $CTX_INSTRUCTIONS y los archivos pertinentes. Define el resultado esperado, ejecuta las comprobaciones y explica el resultado en español.
+EOF
+    write_new_file "$CTX_PLAN" <<EOF || return 1
+Lee $CTX_INSTRUCTIONS y propón un plan breve. Espera confirmación antes de implementar.
+EOF
+    write_new_file "$CTX_CONTINUE" <<EOF || return 1
+Lee $CTX_INSTRUCTIONS y $CTX_PROGRESS. Comprueba el estado de los archivos y continúa con el próximo paso registrado.
+EOF
+  elif [ "$APP_LANG" = en ]; then
+    write_new_file "${CTX_PROGRESS}" <<EOF || return 1
 # Project progress
 
 ## What works
@@ -202,27 +282,27 @@ prepare_project_files() {
 
 Record confirmed facts and outstanding work. This file does not replace conversation history.
 EOF
-    write_new_file PROMPTS/COMECE-AQUI.md <<'EOF' || return 1
-Read INSTRUCOES/PROJETO.md and the files relevant to the request below.
+    write_new_file "${CTX_START}" <<EOF || return 1
+Read ${CTX_INSTRUCTIONS} and the files relevant to the request below.
 Goal of this task: [replace with the desired result].
 Done when: [describe what must work].
-Use ANEXOS/ and DOCS/ when referenced. Preserve existing files.
+Use ${CTX_ATTACHMENTS}/ and ${CTX_DOCS}/ when referenced. Preserve existing files.
 Implement the task, run the necessary checks, and explain the result in English.
 EOF
-    write_new_file PROMPTS/PLANEJAR.md <<'EOF' || return 1
-Read INSTRUCOES/PROJETO.md and analyze relevant files.
+    write_new_file "${CTX_PLAN}" <<EOF || return 1
+Read ${CTX_INSTRUCTIONS} and analyze relevant files.
 I want to plan: [describe the change].
 Present a short proposal with steps, decisions, and questions that block execution.
 Wait for my request before implementing.
 EOF
-    write_new_file PROMPTS/CONTINUAR.md <<'EOF' || return 1
-Read INSTRUCOES/PROJETO.md and DOCS/ANDAMENTO.md.
+    write_new_file "${CTX_CONTINUE}" <<EOF || return 1
+Read ${CTX_INSTRUCTIONS} and ${CTX_PROGRESS}.
 Check the actual file state and identify the recorded next task.
 Continue it if the scope is clear; otherwise, ask what is missing.
 When finished, update progress with what was actually completed.
 EOF
   else
-  write_new_file DOCS/ANDAMENTO.md <<'EOF' || return 1
+  write_new_file "${CTX_PROGRESS}" <<EOF || return 1
 # Andamento do projeto
 
 ## O que funciona
@@ -235,31 +315,31 @@ EOF
 
 Registre fatos confirmados e pendências. Este arquivo não substitui o histórico da conversa.
 EOF
-  write_new_file PROMPTS/COMECE-AQUI.md <<'EOF' || return 1
-Leia INSTRUCOES/PROJETO.md e os arquivos relevantes para o pedido abaixo.
+  write_new_file "${CTX_START}" <<EOF || return 1
+Leia ${CTX_INSTRUCTIONS} e os arquivos relevantes para o pedido abaixo.
 Objetivo desta tarefa: [substitua pelo resultado desejado].
 Critérios para considerar pronto: [descreva o que precisa funcionar].
-Use ANEXOS/ e DOCS/ quando forem citados. Preserve arquivos existentes.
+Use ${CTX_ATTACHMENTS}/ e ${CTX_DOCS}/ quando forem citados. Preserve arquivos existentes.
 Implemente a tarefa, faça as verificações necessárias e explique o resultado em português.
 EOF
-  write_new_file PROMPTS/PLANEJAR.md <<'EOF' || return 1
-Leia INSTRUCOES/PROJETO.md e analise os arquivos relevantes.
+  write_new_file "${CTX_PLAN}" <<EOF || return 1
+Leia ${CTX_INSTRUCTIONS} e analise os arquivos relevantes.
 Quero planejar: [descreva a mudança].
 Apresente uma proposta curta com etapas, decisões e dúvidas que impedem a execução.
 Aguarde meu pedido para implementar.
 EOF
-  write_new_file PROMPTS/CONTINUAR.md <<'EOF' || return 1
-Leia INSTRUCOES/PROJETO.md e DOCS/ANDAMENTO.md.
+  write_new_file "${CTX_CONTINUE}" <<EOF || return 1
+Leia ${CTX_INSTRUCTIONS} e ${CTX_PROGRESS}.
 Confira o estado real dos arquivos e identifique a próxima tarefa registrada.
 Continue essa tarefa se o escopo estiver definido; caso contrário, esclareça o que falta.
 Ao terminar, atualize o andamento com o que foi realmente concluído.
 EOF
   fi
-  prompt_encerrar_text | write_new_file PROMPTS/ENCERRAR-SESSAO.md || return 1
-  prompt_resumo_text | write_new_file PROMPTS/RESUMO-RAPIDO.md || return 1
+  prompt_encerrar_text | write_new_file "${CTX_CLOSE}" || return 1
+  prompt_resumo_text | write_new_file "${CTX_SUMMARY}" || return 1
   for native in "${entries[@]}"; do
     case "$native" in CLAUDE.md) agent=claude ;; *) agent=codex ;; esac
-    { printf '# %s — %s\n' "$(ui 'Orientações do projeto' 'Project instructions')" "$agent"; instruction_entry "$agent"; } |
+    { printf '# %s — %s\n' "$([ "$CTX_LANGUAGE" = es ] && printf "Instrucciones del proyecto" || ui "Orientações do projeto" "Project instructions")" "$agent"; instruction_entry "$agent"; } |
       write_new_file "$native" || return 1
   done
   if [ "${1:-}" = shared ]; then
@@ -273,15 +353,18 @@ scaffold_project() {
   local target="$1" name="$2" kind="$3" previous="$PROJECT" status=0
   case "$TOOL" in codex|claude) ;; *) warn 'Escolha a ferramenta antes de criar o projeto.'; return 1 ;; esac
   PROJECT="$target"
+  project_context || return 1
   if [ "$kind" = 2 ]; then
     prepare_project_files shared || status=1
     if [ "$status" -eq 0 ]; then
-      if [ "$APP_LANG" = en ]; then
-        printf '# %s\n\n## Goal\n\nDescribe the purpose of the project.\n\n## Layout\n\n- AGENTS.md and CLAUDE.md: entry files for Codex and Claude.\n- INSTRUCOES/PROJETO.md: shared permanent instructions.\n- PROMPTS/: reusable requests.\n- DOCS/: decisions and progress.\n- ANEXOS/: images, PDFs, and references.\n- Code: in this root or any folders the project needs.\n' "$name" | write_new_file README.md || status=1
+      if [ "$CTX_LANGUAGE" = es ]; then
+        printf '# %s\n\n## Objetivo\n\nDescribe el propósito del proyecto.\n\n## Organización\n\n- %s: reglas compartidas.\n- %s: progreso y próximo paso.\n- %s/: solicitudes reutilizables.\n- %s/: archivos adjuntos.\n' "$name" "$CTX_INSTRUCTIONS" "$CTX_PROGRESS" "$CTX_PROMPTS" "$CTX_ATTACHMENTS" | write_new_file README.md || status=1
+      elif [ "$CTX_LANGUAGE" = en ]; then
+        printf "# %s\n\n## Goal\n\nDescribe the purpose of the project.\n\n## Layout\n\n- AGENTS.md and CLAUDE.md: entry files for Codex and Claude.\n- ${CTX_INSTRUCTIONS}: shared permanent instructions.\n- ${CTX_PROMPTS}/: reusable requests.\n- ${CTX_DOCS}/: decisions and progress.\n- ${CTX_ATTACHMENTS}/: images, PDFs, and references.\n- Code: in this root or any folders the project needs.\n" "$name" | write_new_file README.md || status=1
       else
-        printf '# %s\n\n## Objetivo\n\nDescreva a finalidade do projeto.\n\n## Organização\n\n- AGENTS.md e CLAUDE.md: entradas para Codex e Claude.\n- INSTRUCOES/PROJETO.md: instruções permanentes compartilhadas.\n- PROMPTS/: pedidos reutilizáveis.\n- DOCS/: decisões e andamento.\n- ANEXOS/: imagens, PDFs e referências.\n- Código: nesta raiz ou nas pastas que o projeto precisar.\n' "$name" | write_new_file README.md || status=1
+        printf "# %s\n\n## Objetivo\n\nDescreva a finalidade do projeto.\n\n## Organização\n\n- AGENTS.md e CLAUDE.md: entradas para Codex e Claude.\n- ${CTX_INSTRUCTIONS}: instruções permanentes compartilhadas.\n- ${CTX_PROMPTS}/: pedidos reutilizáveis.\n- ${CTX_DOCS}/: decisões e andamento.\n- ${CTX_ATTACHMENTS}/: imagens, PDFs e referências.\n- Código: nesta raiz ou nas pastas que o projeto precisar.\n" "$name" | write_new_file README.md || status=1
       fi
-      write_new_file .gitignore <<'EOF' || status=1
+      write_new_file .gitignore <<EOF || status=1
 .DS_Store
 .env
 .env.*
@@ -294,8 +377,8 @@ build/
 __pycache__/
 *.pem
 *.key
-DOCS/LEGADO/
-DOCS/BACKUPS-INSTRUCOES/
+${CTX_ARCHIVE}/
+${CTX_BACKUPS}/
 EOF
     fi
   else
@@ -397,9 +480,10 @@ prepare_shared_project() {
 }
 
 organize_project_files() {
+  project_context || return 1
   local native opposite path archive content
   case "$TOOL" in codex) native=AGENTS.md; opposite=CLAUDE.md ;; claude) native=CLAUDE.md; opposite=AGENTS.md ;; *) return 1 ;; esac
-  for path in AGENTS.md CLAUDE.md .assistente-ia/tool INSTRUCOES/PROJETO.md DOCS/LEGADO PROMPTS ANEXOS; do
+  for path in AGENTS.md CLAUDE.md .assistente-ia/tool "${CTX_INSTRUCTIONS}" "${CTX_ARCHIVE}" "${CTX_PROMPTS}" "${CTX_ATTACHMENTS}"; do
     safe_project_path "$path" || return 1
     if [ -e "$PROJECT/$path" ]; then
       case "$path" in *.md|*/tool) [ -f "$PROJECT/$path" ] || return 1 ;; *) [ -d "$PROJECT/$path" ] || return 1 ;; esac
@@ -417,14 +501,14 @@ organize_project_files() {
     warn 'Projeto tem .claude. A organização automática exige revisão desse arquivo/pasta; nada foi alterado.'
     return 1
   fi
-  for path in "$native" INSTRUCOES/PROJETO.md; do
+  for path in "$native" "${CTX_INSTRUCTIONS}"; do
     if [ -f "$PROJECT/$path" ] && /usr/bin/grep -Fq "$opposite" "$PROJECT/$path"; then
       warn "$path referencia $opposite. Revise essa dependência antes de arquivar a entrada; nada foi alterado."
       return 1
     fi
   done
-  mkdir -p "$PROJECT/DOCS/LEGADO" || return 1
-  archive="$(mktemp -d "$PROJECT/DOCS/LEGADO/organizacao-XXXXXXXX")" || return 1
+  mkdir -p "$PROJECT/${CTX_ARCHIVE}" || return 1
+  archive="$(mktemp -d "$PROJECT/${CTX_ARCHIVE}/organizacao-XXXXXXXX")" || return 1
   for path in "$native" "$opposite" .assistente-ia/tool; do
     [ ! -f "$PROJECT/$path" ] || cp -p "$PROJECT/$path" "$archive/$(basename "$path").original" || return 1
   done
@@ -442,13 +526,14 @@ organize_project_files() {
 }
 
 organize_project() {
+  project_context || return 1
   header_ui 'Organizar projeto existente · com backup' 'Organize existing project · with backup'
   say_ui 'Escolha a ferramenta que será usada neste projeto.' 'Choose the agent to use in this project.'
   choose_tool || return 1
   say "$(ui 'Projeto' 'Project'): $PROJECT"
   say "$(ui 'Ferramenta' 'Agent'): $TOOL"
-  say_ui 'Vou criar INSTRUCOES/ e o perfil; manter prompts e documentos existentes.' 'I will create INSTRUCOES/ and the agent profile, preserving existing prompts and documents.'
-  say_ui 'O arquivo de entrada da ferramenta oposta será arquivado em DOCS/LEGADO/.' 'The other agent entry file will be archived in DOCS/LEGADO/.'
+  say_ui "Vou criar ${CTX_RULES}/ e o perfil; manter prompts e documentos existentes." "I will create ${CTX_RULES}/ and the agent profile, preserving existing prompts and documents."
+  say_ui "O arquivo de entrada da ferramenta oposta será arquivado em ${CTX_ARCHIVE}/." "The other agent entry file will be archived in ${CTX_ARCHIVE}/."
   say_ui 'O arquivo da ferramenta escolhida será preservado e receberá a referência às instruções.' 'The selected agent entry file will be preserved and linked to the instructions.'
   say_ui 'Os originais ficarão guardados no backup. Configurações avançadas exigem revisão manual.' 'Original files will be kept in the backup. Review advanced settings manually.'
   ask_ui 'Digite ORGANIZAR para aplicar; Enter cancela: ' 'Type ORGANIZE to apply; Enter cancels: ' || return 1
@@ -457,17 +542,19 @@ organize_project() {
 }
 
 ensure_instruction_setup() {
+  project_context || return 1
   local native
   choose_project_tool || return 1
   case "$TOOL" in codex) native=AGENTS.md ;; claude) native=CLAUDE.md ;; esac
-  if [ -f "$PROJECT/$native" ] && [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ] && entry_references_instructions "$PROJECT/$native"; then return 0; fi
+  if [ -f "$PROJECT/$native" ] && [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ] && entry_references_instructions "$PROJECT/$native"; then return 0; fi
   say 'Este projeto ainda não tem as instruções organizadas e conectadas ao agente.'
   organize_project || return 1
 }
 
 edit_instructions_terminal() {
+  project_context || return 1
   local line content='' archive
-  safe_project_path INSTRUCOES/PROJETO.md && safe_project_path DOCS/BACKUPS-INSTRUCOES || return 1
+  safe_project_path "${CTX_INSTRUCTIONS}" && safe_project_path "${CTX_BACKUPS}" || return 1
   say_ui 'Cole as instruções completas. FIM salva; CANCELAR preserva o arquivo atual.' 'Paste the full instructions. DONE saves; CANCEL keeps the current file.'
   while ask '> '; do
     line="$REPLY"
@@ -476,10 +563,10 @@ edit_instructions_terminal() {
       FIM|DONE)
         text_has_content "$content" || { warn 'Instruções vazias; arquivo preservado.'; return 1; }
         [ "$(printf '%s' "$content" | wc -c | tr -d ' ')" -le 30000 ] || { warn 'Use até 30 KB nas instruções principais.'; return 1; }
-        mkdir -p "$PROJECT/DOCS/BACKUPS-INSTRUCOES" || return 1
-        archive="$(mktemp "$PROJECT/DOCS/BACKUPS-INSTRUCOES/PROJETO.md.XXXXXXXX")" || return 1
-        cp -p "$PROJECT/INSTRUCOES/PROJETO.md" "$archive" || return 1
-        put "$PROJECT/INSTRUCOES/PROJETO.md" "$content" || return 1
+        mkdir -p "$PROJECT/${CTX_BACKUPS}" || return 1
+        archive="$(mktemp "$PROJECT/${CTX_BACKUPS}/${CTX_INSTRUCTIONS##*/}.XXXXXXXX")" || return 1
+        cp -p "$PROJECT/${CTX_INSTRUCTIONS}" "$archive" || return 1
+        put "$PROJECT/${CTX_INSTRUCTIONS}" "$content" || return 1
         say "$(ui 'Instruções salvas. Backup' 'Instructions saved. Backup'): $archive"
         say_ui 'Inicie uma nova conversa para usar as novas instruções.' 'Start a new conversation to use the new instructions.'
         return 0 ;;
@@ -491,24 +578,25 @@ edit_instructions_terminal() {
 }
 
 instructions_menu() {
+  project_context || return 1
   local choice
   ensure_instruction_setup || return 1
   while :; do
     header_ui 'Instruções permanentes deste projeto' 'Permanent instructions for this project'
-    say_ui 'Arquivo principal: INSTRUCOES/PROJETO.md' 'Main file: INSTRUCOES/PROJETO.md'
+    say_ui "Arquivo principal: ${CTX_INSTRUCTIONS}" "Main file: ${CTX_INSTRUCTIONS}"
     say_ui '1) Editar no TextEdit' '1) Edit in TextEdit'
     say_ui '2) Substituir pelo terminal (com backup)' '2) Replace in Terminal (with backup)'
-    say_ui '3) Abrir pasta INSTRUCOES no Finder' '3) Open INSTRUCOES in Finder'
+    say_ui "3) Abrir pasta ${CTX_RULES} no Finder" "3) Open ${CTX_RULES} in Finder"
     say_ui '4) Criar atalhos de encerrar sessão e resumo (opcional)' '4) Create wrap-up and summary shortcuts (optional)'
     say_ui '0) Voltar' '0) Back'
     ask_ui 'Escolha: ' 'Choose: ' || return 1
     choice="$REPLY"
     case "$choice" in
-      1) safe_project_path INSTRUCOES/PROJETO.md || return 1
+      1) safe_project_path "${CTX_INSTRUCTIONS}" || return 1
          say_ui 'Salve como texto simples, mantendo a extensão .md. Depois inicie uma nova conversa.' 'Save as plain text with the .md extension, then start a new conversation.'
-         edit_path "$PROJECT/INSTRUCOES/PROJETO.md" ;;
+         edit_path "$PROJECT/${CTX_INSTRUCTIONS}" ;;
       2) edit_instructions_terminal ;;
-      3) open_path "$PROJECT/INSTRUCOES" ;;
+      3) open_path "$PROJECT/${CTX_RULES}" ;;
       4) create_project_shortcuts ;;
       0) return 0 ;;
       *) say_ui 'Escolha 1, 2, 3, 4 ou 0.' 'Choose 1, 2, 3, 4, or 0.' ;;
@@ -559,6 +647,7 @@ publish_new_file() {
 }
 
 create_project_shortcuts() {
+  project_context || return 1
   local path name profile root relative prompt description close_name=encerrar summary_name=resumo dirs=() files=()
   [ ! -L "$PROJECT" ] || { warn 'A pasta do projeto é um link simbólico. Nada foi criado.'; return 1; }
   if [ "$APP_LANG" = en ]; then close_name=wrap-up; summary_name=summary; fi
@@ -591,7 +680,7 @@ create_project_shortcuts() {
   if [ "$TOOL" = claude ]; then
     for name in "$close_name" "$summary_name"; do safe_project_path ".claude/skills/$name" || return 1; done
   fi
-  for path in PROMPTS/ENCERRAR-SESSAO.md PROMPTS/RESUMO-RAPIDO.md; do
+  for path in "${CTX_CLOSE}" "${CTX_SUMMARY}"; do
     safe_project_path "$path" || return 1
     [ -f "$PROJECT/$path" ] || { warn "Falta $path. Organize o projeto antes de criar os comandos."; return 1; }
   done
@@ -611,8 +700,8 @@ create_project_shortcuts() {
       continue
     fi
     case "$name" in
-      encerrar|wrap-up) prompt=PROMPTS/ENCERRAR-SESSAO.md; description="$(ui 'Encerrar a sessão e registrar o andamento quando o usuário pedir para encerrar o trabalho.' 'Wrap up the session and record progress when the user asks to finish the work.')" ;;
-      resumo|summary) prompt=PROMPTS/RESUMO-RAPIDO.md; description="$(ui 'Resumir o contexto da conversa quando o usuário pedir um resumo para continuar em outra sessão.' 'Summarize conversation context when the user asks for a handoff to another session.')" ;;
+      encerrar|wrap-up) prompt="$CTX_CLOSE"; description="$(ui 'Encerrar a sessão e registrar o andamento quando o usuário pedir para encerrar o trabalho.' 'Wrap up the session and record progress when the user asks to finish the work.')" ;;
+      resumo|summary) prompt="$CTX_SUMMARY"; description="$(ui 'Resumir o contexto da conversa quando o usuário pedir um resumo para continuar em outra sessão.' 'Summarize conversation context when the user asks for a handoff to another session.')" ;;
     esac
     if [ "$TOOL" = claude ]; then
       printf '@%s\n' "$prompt" | write_new_file_atomic "$relative" || return 1
@@ -642,15 +731,17 @@ file_bytes() { wc -c < "$1" | tr -d ' '; }
 
 # Imprime ' (grande — ...)' quando o arquivo parece documento, não prompt.
 prompt_size_note() {
+  project_context || return 1
   [ -f "$1" ] && [ -r "$1" ] || return 0
-  [ "$(file_bytes "$1")" -le "$PROMPT_LARGE_BYTES" ] || printf ' (grande — parece documento; melhor em DOCS/)'
+  [ "$(file_bytes "$1")" -le "$PROMPT_LARGE_BYTES" ] || printf " (grande — parece documento; melhor em ${CTX_DOCS}/)"
 }
 
 # Lista (um por linha) os .md/.txt grandes diretamente em PROMPTS/.
 large_prompt_files() {
+  project_context || return 1
   local file
-  [ -d "$PROJECT/PROMPTS" ] && [ ! -L "$PROJECT/PROMPTS" ] || return 0
-  for file in "$PROJECT"/PROMPTS/*.md "$PROJECT"/PROMPTS/*.txt "$PROJECT"/PROMPTS/*.MD "$PROJECT"/PROMPTS/*.TXT; do
+  [ -d "$PROJECT/${CTX_PROMPTS}" ] && [ ! -L "$PROJECT/${CTX_PROMPTS}" ] || return 0
+  for file in "$PROJECT/${CTX_PROMPTS}"/*.md "$PROJECT/${CTX_PROMPTS}"/*.txt "$PROJECT/${CTX_PROMPTS}"/*.MD "$PROJECT/${CTX_PROMPTS}"/*.TXT; do
     [ -f "$file" ] && [ ! -L "$file" ] || continue
     [ "$(file_bytes "$file")" -le "$PROMPT_LARGE_BYTES" ] || printf '%s\n' "$file"
   done
@@ -665,20 +756,23 @@ project_native_entry() {
 
 # Aviso forte: o objetivo ainda é o texto-modelo.
 instructions_unfilled() {
-  local file="$PROJECT/INSTRUCOES/PROJETO.md"
-  [ -f "$file" ] && [ ! -L "$file" ] && LC_ALL=C /usr/bin/grep -Fxq -e "$OBJECTIVE_PLACEHOLDER" -e "$OBJECTIVE_PLACEHOLDER_EN" "$file"
+  project_context || return 1
+  local file="$PROJECT/${CTX_INSTRUCTIONS}"
+  [ -f "$file" ] && [ ! -L "$file" ] && LC_ALL=C /usr/bin/grep -Fxq -e "$OBJECTIVE_PLACEHOLDER" -e "$OBJECTIVE_PLACEHOLDER_EN" -e "$OBJECTIVE_PLACEHOLDER_ES" "$file"
 }
 
 # Aviso leve: objetivo escrito, mas restam trechos do modelo (contexto/requisitos).
 instructions_details_pending() {
-  local file="$PROJECT/INSTRUCOES/PROJETO.md"
+  project_context || return 1
+  local file="$PROJECT/${CTX_INSTRUCTIONS}"
   [ -f "$file" ] && [ ! -L "$file" ] && ! instructions_unfilled &&
     LC_ALL=C /usr/bin/grep -Eq '[Pp]reencha|[Dd]escreva o neg|[Ff]ill in|[Dd]escribe the business' "$file"
 }
 
 # Arquivo sem nenhuma linha fora do modelo (e da seção Eficiência): não há texto do usuário a proteger.
 instructions_pristine() {
-  local file="$PROJECT/INSTRUCOES/PROJETO.md" template extra
+  project_context || return 1
+  local file="$PROJECT/${CTX_INSTRUCTIONS}" template extra
   [ -f "$file" ] && [ ! -L "$file" ] || return 1
   template="$(mktemp "${TMPDIR:-/tmp}/assistente-modelo.XXXXXXXX")" || return 1
   { instructions_template_text; efficiency_section; } > "$template"
@@ -698,7 +792,8 @@ weight_label() {
 
 # Aceita o marcador do kit ou qualquer referência direta (ex.: @INSTRUCOES/PROJETO.md).
 entry_references_instructions() {
-  /usr/bin/grep -Fq "$INSTRUCTION_MARKER" "$1" 2>/dev/null || /usr/bin/grep -Fq 'INSTRUCOES/PROJETO.md' "$1" 2>/dev/null
+  project_context || return 1
+  /usr/bin/grep -Fq "$INSTRUCTION_MARKER" "$1" 2>/dev/null || /usr/bin/grep -Fq "$CTX_INSTRUCTIONS" "$1" 2>/dev/null
 }
 entry_connected() {
   local native="$1"
@@ -711,9 +806,10 @@ ANDAMENTO_WARN_BYTES=8000
 
 # Bytes lidos em toda conversa: arquivo de entrada + INSTRUCOES/PROJETO.md.
 fixed_weight_bytes() {
+  project_context || return 1
   local total=0 file native="${1:-}" bytes
   if [ -z "$native" ]; then native="$(project_native_entry)" || native=''; fi
-  for file in "$native" INSTRUCOES/PROJETO.md; do
+  for file in "$native" "${CTX_INSTRUCTIONS}"; do
     [ -n "$file" ] && [ -f "$PROJECT/$file" ] && [ ! -L "$PROJECT/$file" ] || continue
     bytes="$(file_bytes "$PROJECT/$file")" || continue
     total=$((total+bytes))
@@ -722,29 +818,33 @@ fixed_weight_bytes() {
 }
 
 andamento_bytes() {
-  local file="$PROJECT/DOCS/ANDAMENTO.md"
+  project_context || return 1
+  local file="$PROJECT/${CTX_PROGRESS}"
   [ -f "$file" ] && [ ! -L "$file" ] || { printf 0; return 0; }
   file_bytes "$file"
 }
 
 has_efficiency_section() {
-  [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ] && [ ! -L "$PROJECT/INSTRUCOES/PROJETO.md" ] &&
-    /usr/bin/grep -Fq -e '## Eficiência' -e '## Efficiency' "$PROJECT/INSTRUCOES/PROJETO.md"
+  project_context || return 1
+  [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ] && [ ! -L "$PROJECT/${CTX_INSTRUCTIONS}" ] &&
+    /usr/bin/grep -Fq -e '## Eficiência' -e '## Efficiency' -e '## Eficiencia' "$PROJECT/${CTX_INSTRUCTIONS}"
 }
 
 missing_default_prompts() {
+  project_context || return 1
   local name
-  for name in ENCERRAR-SESSAO.md RESUMO-RAPIDO.md; do
-    [ -e "$PROJECT/PROMPTS/$name" ] || [ -L "$PROJECT/PROMPTS/$name" ] || printf '%s\n' "$name"
+  for name in "${CTX_CLOSE##*/}" "${CTX_SUMMARY##*/}"; do
+    [ -e "$PROJECT/${CTX_PROMPTS}/$name" ] || [ -L "$PROJECT/${CTX_PROMPTS}/$name" ] || printf '%s\n' "$name"
   done
 }
 
 append_efficiency_section() {
-  local file="$PROJECT/INSTRUCOES/PROJETO.md" archive temporary
-  safe_project_path INSTRUCOES/PROJETO.md && safe_project_path DOCS/BACKUPS-INSTRUCOES || return 1
+  project_context || return 1
+  local file="$PROJECT/${CTX_INSTRUCTIONS}" archive temporary
+  safe_project_path "${CTX_INSTRUCTIONS}" && safe_project_path "${CTX_BACKUPS}" || return 1
   [ -f "$file" ] || return 1
-  mkdir -p "$PROJECT/DOCS/BACKUPS-INSTRUCOES" || return 1
-  archive="$(mktemp "$PROJECT/DOCS/BACKUPS-INSTRUCOES/PROJETO.md.XXXXXXXX")" || return 1
+  mkdir -p "$PROJECT/${CTX_BACKUPS}" || return 1
+  archive="$(mktemp "$PROJECT/${CTX_BACKUPS}/${CTX_INSTRUCTIONS##*/}.XXXXXXXX")" || return 1
   cp -p "$file" "$archive" || return 1
   temporary="$(mktemp "$file.XXXXXXXX")" || return 1
   keep_file_mode "$file" "$temporary"
@@ -755,28 +855,30 @@ append_efficiency_section() {
 }
 
 create_missing_default_prompts() {
+  project_context || return 1
   local name
-  safe_project_path PROMPTS || return 1
-  mkdir -p "$PROJECT/PROMPTS" || return 1
-  for name in ENCERRAR-SESSAO.md RESUMO-RAPIDO.md; do
-    [ ! -e "$PROJECT/PROMPTS/$name" ] && [ ! -L "$PROJECT/PROMPTS/$name" ] || continue
+  safe_project_path "${CTX_PROMPTS}" || return 1
+  mkdir -p "$PROJECT/${CTX_PROMPTS}" || return 1
+  for name in "${CTX_CLOSE##*/}" "${CTX_SUMMARY##*/}"; do
+    [ ! -e "$PROJECT/${CTX_PROMPTS}/$name" ] && [ ! -L "$PROJECT/${CTX_PROMPTS}/$name" ] || continue
     case "$name" in
-      ENCERRAR-SESSAO.md) prompt_encerrar_text | write_new_file "PROMPTS/$name" || return 1 ;;
-      RESUMO-RAPIDO.md) prompt_resumo_text | write_new_file "PROMPTS/$name" || return 1 ;;
+      "${CTX_CLOSE##*/}") prompt_encerrar_text | write_new_file "${CTX_PROMPTS}/$name" || return 1 ;;
+      "${CTX_SUMMARY##*/}") prompt_resumo_text | write_new_file "${CTX_PROMPTS}/$name" || return 1 ;;
     esac
-    say "Criado PROMPTS/$name"
+    say "Criado ${CTX_PROMPTS}/$name"
   done
 }
 
 # Avisos curtos e sem perguntas (no máximo 3 linhas), por prioridade.
 project_quick_warnings() {
+  project_context || return 1
   local native count=0 file shown=0 weight
   [ -n "$PROJECT" ] && [ -d "$PROJECT" ] || return 0
   if instructions_unfilled; then
-    say 'Aviso: INSTRUCOES/PROJETO.md ainda é o modelo. Escreva o objetivo e as regras (menu 6 → 9).'
+    say "Aviso: ${CTX_INSTRUCTIONS} ainda é o modelo. Escreva o objetivo e as regras (menu 6 → 9)."
     shown=$((shown+1))
   elif instructions_details_pending; then
-    say 'Aviso leve: faltam detalhes em INSTRUCOES/PROJETO.md (contexto e requisitos). Não é obrigatório para começar.'
+    say "Aviso leve: faltam detalhes em ${CTX_INSTRUCTIONS} (contexto e requisitos). Não é obrigatório para começar."
     shown=$((shown+1))
   fi
   while IFS= read -r file; do
@@ -785,7 +887,7 @@ project_quick_warnings() {
 $(large_prompt_files)
 EOF
   if [ "$count" -gt 0 ] && [ "$shown" -lt 3 ]; then
-    say "Aviso: $count arquivo(s) grande(s) em PROMPTS/ parecem documentos; mova para DOCS/ (menu 6 → 12)."
+    say "Aviso: $count arquivo(s) grande(s) em ${CTX_PROMPTS}/ parecem documentos; mova para ${CTX_DOCS}/ (menu 6 → 12)."
     shown=$((shown+1))
   fi
   native="$(project_native_entry)" || native=''
@@ -795,11 +897,11 @@ EOF
   fi
   weight="$(fixed_weight_bytes)"
   if [ "$weight" -gt "$FIXED_WEIGHT_WARN_BYTES" ] && [ "$shown" -lt 3 ]; then
-    say "Aviso: instruções fixas pesadas ($(weight_label "$weight") por conversa); enxugue INSTRUCOES/PROJETO.md."
+    say "Aviso: instruções fixas pesadas ($(weight_label "$weight") por conversa); enxugue ${CTX_INSTRUCTIONS}."
     shown=$((shown+1))
   fi
   if [ "$(andamento_bytes)" -gt "$ANDAMENTO_WARN_BYTES" ] && [ "$shown" -lt 3 ]; then
-    say 'Aviso: DOCS/ANDAMENTO.md está grande; condense com o prompt ENCERRAR-SESSAO.'
+    say "Aviso: ${CTX_PROGRESS} está grande; condense com o prompt ${CTX_CLOSE##*/}."
     shown=$((shown+1))
   fi
   return 0
@@ -810,24 +912,27 @@ doctor_line() {
 }
 
 move_prompt_to_docs() {
+  project_context || return 1
   local file="$1" name
   name="$(basename "$file")"
-  safe_project_path "PROMPTS/$name" && safe_project_path DOCS || return 1
-  if [ -e "$PROJECT/DOCS/$name" ] || [ -L "$PROJECT/DOCS/$name" ]; then
-    warn "Já existe DOCS/$name. Nada foi movido."
+  safe_project_path "${CTX_PROMPTS}/$name" && safe_project_path "${CTX_DOCS}" || return 1
+  if [ -e "$PROJECT/${CTX_DOCS}/$name" ] || [ -L "$PROJECT/${CTX_DOCS}/$name" ]; then
+    warn "Já existe ${CTX_DOCS}/$name. Nada foi movido."
     return 1
   fi
-  mkdir -p "$PROJECT/DOCS" || return 1
-  safe_project_path "DOCS/$name" || return 1
-  mv -n "$file" "$PROJECT/DOCS/$name" || return 1
+  mkdir -p "$PROJECT/${CTX_DOCS}" || return 1
+  safe_project_path "${CTX_DOCS}/$name" || return 1
+  mv -n "$file" "$PROJECT/${CTX_DOCS}/$name" || return 1
   [ ! -e "$file" ] || { warn "Não consegui mover $name."; return 1; }
-  say "Movido para DOCS/$name"
+  say "Movido para ${CTX_DOCS}/$name"
 }
 
 # Objetivo em uma frase: preenche só as linhas ainda em modelo (nunca sobrescreve texto seu).
 OBJECTIVE_PLACEHOLDER='- Objetivo: preencha o que deseja construir e para quem.'
 README_PLACEHOLDER='Descreva a finalidade do projeto.'
+OBJECTIVE_PLACEHOLDER_ES='- Objetivo: describe qué quieres crear y para quién.'
 OBJECTIVE_PLACEHOLDER_EN='- Goal: describe what you want to build and for whom.'
+README_PLACEHOLDER_ES='Describe el propósito del proyecto.'
 README_PLACEHOLDER_EN='Describe the purpose of the project.'
 
 # Mantém as permissões do arquivo original ao regravá-lo (stat do macOS, com alternativa GNU).
@@ -851,43 +956,48 @@ replace_first_line() {
 }
 
 objective_pending() {
-  [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ] && [ ! -L "$PROJECT/INSTRUCOES/PROJETO.md" ] &&
-    /usr/bin/grep -Fxq -e "$OBJECTIVE_PLACEHOLDER" -e "$OBJECTIVE_PLACEHOLDER_EN" "$PROJECT/INSTRUCOES/PROJETO.md" && return 0
+  project_context || return 1
+  [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ] && [ ! -L "$PROJECT/${CTX_INSTRUCTIONS}" ] &&
+    /usr/bin/grep -Fxq -e "$OBJECTIVE_PLACEHOLDER" -e "$OBJECTIVE_PLACEHOLDER_EN" -e "$OBJECTIVE_PLACEHOLDER_ES" "$PROJECT/${CTX_INSTRUCTIONS}" && return 0
   [ -f "$PROJECT/README.md" ] && [ ! -L "$PROJECT/README.md" ] &&
     /usr/bin/grep -Fxq -e "$README_PLACEHOLDER" -e "$README_PLACEHOLDER_EN" "$PROJECT/README.md"
 }
 
 fill_project_objective() {
+  project_context || return 1
   local text="$1" archive done_files='' placeholder readme_placeholder
-  safe_project_path INSTRUCOES/PROJETO.md && safe_project_path README.md && safe_project_path DOCS/BACKUPS-INSTRUCOES || return 1
+  safe_project_path "${CTX_INSTRUCTIONS}" && safe_project_path README.md && safe_project_path "${CTX_BACKUPS}" || return 1
   placeholder="$OBJECTIVE_PLACEHOLDER"
-  if [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ] && /usr/bin/grep -Fxq -e "$OBJECTIVE_PLACEHOLDER_EN" "$PROJECT/INSTRUCOES/PROJETO.md"; then placeholder="$OBJECTIVE_PLACEHOLDER_EN"; fi
-  if [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ] && /usr/bin/grep -Fxq -e "$placeholder" "$PROJECT/INSTRUCOES/PROJETO.md"; then
+  [ "$CTX_LANGUAGE" != es ] || placeholder="$OBJECTIVE_PLACEHOLDER_ES"
+  if [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ] && /usr/bin/grep -Fxq -e "$OBJECTIVE_PLACEHOLDER_EN" "$PROJECT/${CTX_INSTRUCTIONS}"; then placeholder="$OBJECTIVE_PLACEHOLDER_EN"; fi
+  if [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ] && /usr/bin/grep -Fxq -e "$placeholder" "$PROJECT/${CTX_INSTRUCTIONS}"; then
     # Arquivo ainda igual ao modelo: nada do usuário a proteger, então sem backup.
     if ! instructions_pristine; then
-      mkdir -p "$PROJECT/DOCS/BACKUPS-INSTRUCOES" || return 1
-      archive="$(mktemp "$PROJECT/DOCS/BACKUPS-INSTRUCOES/PROJETO.md.XXXXXXXX")" || return 1
-      cp -p "$PROJECT/INSTRUCOES/PROJETO.md" "$archive" || return 1
+      mkdir -p "$PROJECT/${CTX_BACKUPS}" || return 1
+      archive="$(mktemp "$PROJECT/${CTX_BACKUPS}/${CTX_INSTRUCTIONS##*/}.XXXXXXXX")" || return 1
+      cp -p "$PROJECT/${CTX_INSTRUCTIONS}" "$archive" || return 1
     fi
     if [ "$placeholder" = "$OBJECTIVE_PLACEHOLDER_EN" ]; then
-      replace_first_line "$PROJECT/INSTRUCOES/PROJETO.md" "$placeholder" "- Goal: $text" && done_files='INSTRUCOES/PROJETO.md'
+      replace_first_line "$PROJECT/${CTX_INSTRUCTIONS}" "$placeholder" "- Goal: $text" && done_files="$CTX_INSTRUCTIONS"
     else
-      replace_first_line "$PROJECT/INSTRUCOES/PROJETO.md" "$placeholder" "- Objetivo: $text" && done_files='INSTRUCOES/PROJETO.md'
+      replace_first_line "$PROJECT/${CTX_INSTRUCTIONS}" "$placeholder" "- Objetivo: $text" && done_files="$CTX_INSTRUCTIONS"
     fi
   fi
   readme_placeholder="$README_PLACEHOLDER"
+  [ "$CTX_LANGUAGE" != es ] || readme_placeholder="$README_PLACEHOLDER_ES"
   if [ -f "$PROJECT/README.md" ] && /usr/bin/grep -Fxq -e "$README_PLACEHOLDER_EN" "$PROJECT/README.md"; then readme_placeholder="$README_PLACEHOLDER_EN"; fi
   if replace_first_line "$PROJECT/README.md" "$readme_placeholder" "$text"; then
     done_files="${done_files:+$done_files e }README.md"
   fi
   [ -n "$done_files" ] || { say_ui 'Nada a preencher: o objetivo já foi escrito.' 'Nothing to fill in: the goal is already written.'; return 0; }
   say "$(ui 'Objetivo registrado em' 'Goal recorded in') $done_files."
-  [ -z "$archive" ] || say "$(ui 'Backup do PROJETO.md' 'PROJETO.md backup'): $archive"
+  [ -z "$archive" ] || say "$(ui "Backup de $CTX_INSTRUCTIONS" "$CTX_INSTRUCTIONS backup"): $archive"
   say_ui 'Quando quiser, complete o contexto e os requisitos em Cuidar do projeto → 9.' 'When ready, complete the context and requirements under Project care → 9.'
   say_ui 'Depois de editar as instruções, comece uma conversa nova.' 'Start a new conversation after editing the instructions.'
 }
 
 ask_project_objective() {
+  project_context || return 1
   local text
   say_ui 'Em uma frase, para que serve este projeto? (Enter pula. Depois você preenche em Cuidar do projeto → 9, Editar as instruções.)' 'In one sentence, what is this project for? (Enter skips. You can fill this in later under Project care → 9, Edit instructions.)'
   ask '> ' || return 1
@@ -895,15 +1005,16 @@ ask_project_objective() {
   text="${text#"${text%%[![:space:]]*}"}"; text="${text%"${text##*[![:space:]]}"}"
   text_has_content "$text" || return 0
   single_line "$text" || { warn 'Use uma linha só, sem tabulação.'; return 1; }
-  [ "${#text}" -le 300 ] || { warn 'Use até 300 caracteres; detalhes vão em INSTRUCOES/PROJETO.md.'; return 1; }
+  [ "${#text}" -le 300 ] || { warn "Use até 300 caracteres; detalhes vão em ${CTX_INSTRUCTIONS}."; return 1; }
   fill_project_objective "$text"
 }
 
 project_doctor() {
+  project_context || return 1
   local folder native profile file name issues=0 large=() weight missing
   ensure_project || return 1
   header_ui 'Verificar estrutura do projeto' 'Check project structure'
-  for folder in INSTRUCOES PROMPTS DOCS ANEXOS; do
+  for folder in "${CTX_RULES}" "${CTX_PROMPTS}" "${CTX_DOCS}" "${CTX_ATTACHMENTS}"; do
     if [ -d "$PROJECT/$folder" ] && [ ! -L "$PROJECT/$folder" ]; then doctor_line ok "$(ui 'Pasta' 'Folder') $folder/"
     else doctor_line warn "$(ui 'Pasta' 'Folder') $folder/ $(ui 'ausente ou inválida (menu 6 → 11 cria a estrutura)' 'missing or invalid (menu 6 → 11 creates the layout)')"; issues=$((issues+1)); fi
   done
@@ -911,20 +1022,20 @@ project_doctor() {
   if [ -n "$profile" ]; then doctor_line ok "$(ui 'Perfil da ferramenta' 'Agent profile'): $profile"
   else doctor_line warn "$(ui 'Perfil da ferramenta indefinido (.assistente-ia/tool)' 'Agent profile undefined (.assistente-ia/tool)')"; issues=$((issues+1)); fi
   native="$(project_native_entry)" || native=''
-  if entry_connected "$native"; then doctor_line ok "$native $(ui 'aponta para' 'points to') INSTRUCOES/PROJETO.md"
+  if entry_connected "$native"; then doctor_line ok "$native $(ui 'aponta para' 'points to') ${CTX_INSTRUCTIONS}"
   else doctor_line warn "$(ui 'Arquivo de entrada ausente ou sem referência às instruções (menu 6 → 11)' 'Entry file missing or not linked to instructions (menu 6 → 11)')"; issues=$((issues+1)); fi
-  if [ ! -f "$PROJECT/INSTRUCOES/PROJETO.md" ]; then
-    doctor_line warn "$(ui 'INSTRUCOES/PROJETO.md não existe' 'INSTRUCOES/PROJETO.md does not exist')"; issues=$((issues+1))
+  if [ ! -f "$PROJECT/${CTX_INSTRUCTIONS}" ]; then
+    doctor_line warn "$CTX_INSTRUCTIONS $(ui 'não existe' 'does not exist')"; issues=$((issues+1))
   elif instructions_unfilled; then
-    doctor_line warn "$(ui 'INSTRUCOES/PROJETO.md ainda é o modelo; escreva o objetivo (abaixo) e as regras (menu 6 → 9)' 'INSTRUCOES/PROJETO.md is still a template; write the goal below and rules under menu 6 → 9')"; issues=$((issues+1))
+    doctor_line warn "$CTX_INSTRUCTIONS $(ui 'ainda é o modelo. Escreva o objetivo e as regras (menu 6 → 9)' 'is still a template. Write the goal and rules (menu 6 → 9)')"; issues=$((issues+1))
   elif instructions_details_pending; then
-    doctor_line ok "$(ui 'INSTRUCOES/PROJETO.md com objetivo escrito' 'INSTRUCOES/PROJETO.md has a written goal')"
-    say_ui '  → Faltam detalhes em INSTRUCOES/PROJETO.md (contexto e requisitos). Não é obrigatório para começar.' '  → INSTRUCOES/PROJETO.md lacks context and requirements. You can start without them.'
-  else doctor_line ok "$(ui 'INSTRUCOES/PROJETO.md preenchido' 'INSTRUCOES/PROJETO.md filled in')"; fi
+    doctor_line ok "$CTX_INSTRUCTIONS $(ui 'com objetivo escrito' 'has a written goal')"
+    say_ui "  → Faltam detalhes em ${CTX_INSTRUCTIONS} (contexto e requisitos). Não é obrigatório para começar." "  → ${CTX_INSTRUCTIONS} lacks context and requirements. You can start without them."
+  else doctor_line ok "$CTX_INSTRUCTIONS $(ui 'preenchido' 'filled in')"; fi
   for file in AGENTS.md CLAUDE.md; do
     [ "$file" != "$native" ] && [ -e "$PROJECT/$file" ] || continue
     if entry_connected "$file"; then
-      doctor_line ok "$file $(ui 'aponta para' 'points to') INSTRUCOES/PROJETO.md"
+      doctor_line ok "$file $(ui 'aponta para' 'points to') ${CTX_INSTRUCTIONS}"
     else
       doctor_line warn "$file $(ui 'usa instruções próprias; revise a referência para compartilhar contexto' 'uses independent instructions; review its link to share context')"
       issues=$((issues+1))
@@ -939,14 +1050,14 @@ EOF
   else
     for file in "${large[@]}"; do
       name="$(basename "$file")"
-      doctor_line warn "PROMPTS/$name $(ui 'é grande' 'is large') (~$(( $(file_bytes "$file") / 1024 )) KB); $(ui 'parece documento' 'looks like a document')"
+      doctor_line warn "${CTX_PROMPTS}/$name $(ui 'é grande' 'is large') (~$(( $(file_bytes "$file") / 1024 )) KB); $(ui 'parece documento' 'looks like a document')"
       issues=$((issues+1))
     done
     say ''
     for file in "${large[@]}"; do
       name="$(basename "$file")"
-      ask "$(ui 'Mover' 'Move') \"$name\" $(ui 'para' 'to') DOCS/? $(ui '[s/N]' '[y/N]'): " || return 1
-      case "$REPLY" in s|S|y|Y) move_prompt_to_docs "$file" || true ;; *) say_ui 'Mantido em PROMPTS/.' 'Kept in PROMPTS/.' ;; esac
+      ask "$(ui 'Mover' 'Move') \"$name\" $(ui 'para' 'to') ${CTX_DOCS}/? $(ui '[s/N]' '[y/N]'): " || return 1
+      case "$REPLY" in s|S|y|Y) move_prompt_to_docs "$file" || true ;; *) say_ui "Mantido em ${CTX_PROMPTS}/." "Kept in ${CTX_PROMPTS}/." ;; esac
     done
   fi
   weight="$(fixed_weight_bytes)"
@@ -954,27 +1065,27 @@ EOF
     doctor_line warn "$(ui 'Instruções fixas pesadas' 'Large permanent instructions') ($(weight_label "$weight") $(ui 'em toda conversa); enxugue' 'in every conversation); shorten them')"; issues=$((issues+1))
   else doctor_line ok "$(ui 'Instruções fixas leves' 'Light permanent instructions') ($(weight_label "$weight") $(ui 'por conversa' 'per conversation'))"; fi
   if [ "$(andamento_bytes)" -gt "$ANDAMENTO_WARN_BYTES" ]; then
-    doctor_line warn "$(ui 'DOCS/ANDAMENTO.md está grande (mais de 8 KB); condense com o pedido pronto ENCERRAR-SESSAO' 'DOCS/ANDAMENTO.md is large (over 8 KB); condense it with the ENCERRAR-SESSAO prompt')"; issues=$((issues+1))
+    doctor_line warn "$CTX_PROGRESS $(ui 'está grande (mais de 8 KB). Use o pedido' 'is large (over 8 KB). Use the prompt') $CTX_CLOSE"; issues=$((issues+1))
   fi
-  if [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ] && ! has_efficiency_section; then
-    say_ui '  → Dica: PROJETO.md sem a seção Eficiência (economia de tokens).' '  → Tip: PROJETO.md lacks the Efficiency section (token savings).'
+  if [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ] && ! has_efficiency_section; then
+    say_ui "  → Dica: $CTX_INSTRUCTIONS sem a seção Eficiência (economia de tokens)." "  → Tip: $CTX_INSTRUCTIONS lacks the Efficiency section (token savings)."
     ask_ui 'Adicionar a seção ao final (com backup)? [s/N]: ' 'Append the section (with backup)? [y/N]: ' || REPLY=''
     case "$REPLY" in s|S|y|Y) append_efficiency_section || true ;; *) say_ui 'Mantido como está.' 'Kept as is.' ;; esac
   fi
   missing="$(missing_default_prompts)"
   if [ -n "$missing" ]; then
-    say "  → $(ui 'Dica: faltam pedidos prontos (prompts) em' 'Tip: default saved prompts are missing in') PROMPTS/: $(printf '%s' "$missing" | tr '\n' ' ')"
+    say "  → $(ui 'Dica: faltam pedidos prontos (prompts) em' 'Tip: default saved prompts are missing in') ${CTX_PROMPTS}/: $(printf '%s' "$missing" | tr '\n' ' ')"
     ask_ui 'Criar os pedidos prontos que faltam (sem sobrescrever)? [s/N]: ' 'Create the missing saved prompts (without overwriting)? [y/N]: ' || REPLY=''
     case "$REPLY" in s|S|y|Y) create_missing_default_prompts || true ;; *) say_ui 'Nada criado.' 'Nothing created.' ;; esac
   fi
   say ''
   if objective_pending; then
-    doctor_line warn "$(ui 'O objetivo do projeto ainda está em modelo (INSTRUCOES/PROJETO.md e README.md)' 'The project goal is still a placeholder (INSTRUCOES/PROJETO.md and README.md)')"
+    doctor_line warn "$(ui 'O objetivo do projeto ainda está em modelo' 'The project goal is still a placeholder') ($CTX_INSTRUCTIONS / README.md)"
     issues=$((issues+1))
     ask_project_objective || true
     say ''
   fi
   if [ "$issues" -eq 0 ]; then say_ui 'Tudo certo com a estrutura.' 'Project structure looks good.'; fi
-  say_ui 'Instruções permanentes ficam em INSTRUCOES/PROJETO.md.' 'Permanent instructions live in INSTRUCOES/PROJETO.md.'
-  say_ui 'PROMPTS/ é só para pedidos reutilizáveis escolhidos um a um; requisitos e referências ficam em DOCS/.' 'PROMPTS/ is for reusable requests selected one at a time; requirements and references belong in DOCS/.'
+  say_ui "Instruções permanentes ficam em ${CTX_INSTRUCTIONS}." "Permanent instructions live in ${CTX_INSTRUCTIONS}."
+  say_ui "$CTX_PROMPTS/ é só para pedidos reutilizáveis escolhidos um a um; requisitos e referências ficam em ${CTX_DOCS}/." "$CTX_PROMPTS/ is for reusable requests selected one at a time; requirements and references belong in ${CTX_DOCS}/."
 }

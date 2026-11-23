@@ -36,7 +36,7 @@ class WorkflowTests(unittest.TestCase):
     def bridge(self, *args, check=True):
         return subprocess.run(["/bin/bash", str(ROOT / "ASSISTENTE-IA-MAC.command"), "--app", *map(str, args)],
                               text=True, capture_output=True, check=check,
-                              env={**os.environ, "ASSISTENTE_STATE_DIR": str(self.root / "state")})
+                              env={**os.environ, "ASSISTENTE_STATE_DIR": str(self.root / "state"), "ASSISTENTE_LANG": "pt-BR"})
 
     def check_isolation(self, folder, agent, task):
         self.assertEqual(folder.parent, self.root)
@@ -69,7 +69,8 @@ class WorkflowTests(unittest.TestCase):
                 wf.create_worktree(self.project, "codex", value)
 
     def test_reviewed_notes_preserve_old_notes_and_test_claims(self):
-        core.scaffold(self.project, "codex")
+        with mock.patch.object(core, "PANEL_LANGUAGE", "pt-BR"):
+            core.scaffold(self.project, "codex")
         path = self.project / "DOCS/ANDAMENTO.md"
         path.write_text("old notes", encoding="utf-8")
         changes = wf.changed_files(self.project)
@@ -117,7 +118,8 @@ class WorkflowTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows PowerShell terminal")
     def test_windows_terminal_resume_summary_and_read_notes(self):
-        core.scaffold(self.project, "codex")
+        with mock.patch.object(core, "PANEL_LANGUAGE", "pt-BR"):
+            core.scaffold(self.project, "codex")
         wf.save_checkpoint(self.project, "claude", "codex", "", "", "Check layout")
         code = r'''
 . $env:WORKFLOW_LAUNCHER -Check
@@ -128,11 +130,15 @@ Agent-Menu 'resume'
 Agent-Menu 'select'
 Agent-Menu 'summary'
 Agent-Menu 'notes'
+$script:lang = 'es'
+$layout = Project-Layout $env:WORKFLOW_EMPTY_PROJECT
+Write-Output ("SPANISH " + $layout.Progress)
 '''
         run = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-Command", code],
                              capture_output=True, encoding="utf-8", errors="replace", check=True,
                              env={**os.environ, "ASSISTENTE_LANG": "en", "ASSISTENTE_STATE_DIR": str(self.root / "state"),
-                                  "WORKFLOW_LAUNCHER": str(ROOT / "ASSISTENTE-IA-WINDOWS.ps1"), "WORKFLOW_PROJECT": str(self.project)})
+                                  "WORKFLOW_LAUNCHER": str(ROOT / "ASSISTENTE-IA-WINDOWS.ps1"), "WORKFLOW_PROJECT": str(self.project),
+                                  "WORKFLOW_EMPTY_PROJECT": str(self.root)})
         calls = [line for line in run.stdout.splitlines() if line.startswith("CALL ")]
         self.assertEqual(len(calls), 4, run.stdout)
         self.assertTrue(all(str(self.project) in line for line in calls))
@@ -140,6 +146,7 @@ Agent-Menu 'notes'
         self.assertNotIn("--last", calls[1])
         self.assertIn("Update DOCS/ANDAMENTO.md", calls[2])
         self.assertIn("Read DOCS/ANDAMENTO.md", calls[3])
+        self.assertIn("SPANISH DOCUMENTOS/PROGRESO.md", run.stdout)
 
     @unittest.skipUnless(os.environ.get("ASSISTENTE_TEST_WORKFLOW_UI") == "1", "requires Tk display")
     def test_gui_switch_cancel_save_and_parallel_launch(self):
@@ -148,7 +155,7 @@ Agent-Menu 'notes'
         import panel
         root = tk.Tk()
         self.addCleanup(root.destroy)
-        with mock.patch.dict(os.environ, {"ASSISTENTE_STATE_DIR": str(self.root / "state")}):
+        with mock.patch.dict(os.environ, {"ASSISTENTE_STATE_DIR": str(self.root / "state"), "ASSISTENTE_LANG": "pt-BR"}):
             app = panel.Panel(root)
         app.select(self.project)
         app.background = lambda work, success: success(work())

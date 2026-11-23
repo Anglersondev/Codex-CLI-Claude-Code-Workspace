@@ -975,6 +975,27 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         self.assert_ok(info)
         self.assertTrue({"override", "progress", "large-context"}.issubset(info.stdout.splitlines()))
 
+    def test_localized_project_checkpoint_and_continue_use_existing_layout(self):
+        for lang, instructions, progress, continuation in (
+            ("en", "INSTRUCTIONS/PROJECT.md", "DOCS/PROGRESS.md", "PROMPTS/CONTINUE.md"),
+            ("es", "INSTRUCCIONES/PROYECTO.md", "DOCUMENTOS/PROGRESO.md", "SOLICITUDES/CONTINUAR.md"),
+        ):
+            self.env["ASSISTENTE_LANG"] = lang
+            created = self.run_main("--app", "create", str(self.parent), lang, "codex", "Fixture", "direct")
+            self.assert_ok(created)
+            folder = Path(created.stdout.strip())
+            self.assertIn("Fixture", (folder / instructions).read_text())
+            self.assertFalse((folder / "INSTRUCOES").exists())
+            self.env["ASSISTENTE_LANG"] = "pt-BR"
+            self.assert_ok(self.run_main("--app", "checkpoint-append", str(folder), "\n- Next fixture step.\n"))
+            self.assertIn("Next fixture step", (folder / progress).read_text())
+            self.assertEqual(self.run_main("--app", "layout", str(folder)).stdout.splitlines()[:3],
+                             [instructions, progress, continuation])
+            self.assertFalse((folder / "DOCS/ANDAMENTO.md").exists())
+            result = self.project_shell(folder, "choose_prompt && printf '%s' \"$INITIAL_PROMPT\"", "1\n")
+            self.assert_ok(result)
+            self.assertIn(progress, result.stdout)
+
     def test_handoff_uses_new_agent_in_terminal_and_reads_latest_checkpoint(self):
         folder = self.managed_project("codex")
         self.assert_ok(self.run_main("--app", "checkpoint-append", str(folder), "\n### Next\nReview the layout.\n"))

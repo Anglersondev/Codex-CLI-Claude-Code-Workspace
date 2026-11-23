@@ -10,6 +10,21 @@ func defaultProjectFolder(_ path: String = UserDefaults.standard.string(forKey: 
     return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
 }
 
+struct ProjectLayout {
+    let instructions: String
+    let progress: String
+    let continuing: String
+    let prompts: String
+    let docs: String
+    let attachments: String
+
+    init?(_ paths: [String]) {
+        guard paths.count == 6 else { return nil }
+        (instructions, progress, continuing, prompts, docs, attachments) =
+            (paths[0], paths[1], paths[2], paths[3], paths[4], paths[5])
+    }
+}
+
 @MainActor
 final class Workspace: ObservableObject {
     static let shared = Workspace()
@@ -21,6 +36,7 @@ final class Workspace: ObservableObject {
     @Published var workMode = "trabalhar"
     @Published var prompt: URL?
     @Published var context: [String] = []
+    @Published var layout: ProjectLayout?
     @Published var tools: [String] = []
     @Published var accounts: [Agent: Bool] = [:]
     @Published var busy = false
@@ -75,11 +91,16 @@ final class Workspace: ObservableObject {
         if pickAgent {
             projectDetailsLoaded = nil
             context = []
+            layout = nil
             prompt = nil
         }
         do {
-            let info = Backend.lines(try await Backend.run(["info", path]))
+            async let infoOutput = Backend.run(["info", path])
+            async let layoutOutput = Backend.run(["layout", path])
+            let info = Backend.lines(try await infoOutput)
+            let resolvedLayout = ProjectLayout(Backend.lines(try await layoutOutput))
             guard selected == path, !Task.isCancelled else { return }
+            layout = resolvedLayout
             context = Array(info.dropFirst())
             if pickAgent { agent = Agent(rawValue: info.first ?? "") ?? .codex }
             projectDetailsLoaded = path
@@ -117,8 +138,8 @@ final class Workspace: ObservableObject {
     func savePrompt(project: String, name: String, text: String) async -> Bool {
         await perform {
             _ = try await Backend.run(["save-prompt", project, name, text])
-            if selected == project {
-                prompt = URL(fileURLWithPath: project).appendingPathComponent("PROMPTS/\(name).md")
+            if selected == project, let layout {
+                prompt = URL(fileURLWithPath: project).appendingPathComponent("\(layout.prompts)/\(name).md")
                 notice = tr("Pedido salvo e selecionado para a próxima sessão.")
             }
         }
@@ -127,7 +148,7 @@ final class Workspace: ObservableObject {
     func attach(_ file: URL, to project: String) async {
         await perform {
             _ = try await Backend.run(["attach", project, file.path])
-            if selected == project { notice = tr("Arquivo copiado para ANEXOS.") }
+            if selected == project { notice = tr("Anexo copiado.") }
         }
     }
 

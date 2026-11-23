@@ -145,9 +145,9 @@
     "Solo seleccionar agente"
   ],
   "note_destination": [
-    "O checkpoint será acrescentado a DOCS/ANDAMENTO.md.",
-    "The checkpoint will be appended to DOCS/ANDAMENTO.md.",
-    "El checkpoint se añadirá a DOCS/ANDAMENTO.md."
+    "O checkpoint será acrescentado a {path}.",
+    "The checkpoint will be appended to {path}.",
+    "El checkpoint se añadirá a {path}."
   ],
   "enter_next": [
     "Informe o próximo passo.",
@@ -155,14 +155,14 @@
     "Indica el próximo paso."
   ],
   "saved": [
-    "Checkpoint salvo em DOCS/ANDAMENTO.md.",
-    "Checkpoint saved to DOCS/ANDAMENTO.md.",
-    "Checkpoint guardado en DOCS/ANDAMENTO.md."
+    "Checkpoint salvo em {path}.",
+    "Checkpoint saved to {path}.",
+    "Checkpoint guardado en {path}."
   ],
   "resume_prompt": [
-    "Leia o checkpoint mais recente em DOCS/ANDAMENTO.md, confira os arquivos citados e retome pelo próximo passo.",
-    "Read the latest checkpoint in DOCS/ANDAMENTO.md, check the referenced files and continue from the recorded next step.",
-    "Lee el último checkpoint de DOCS/ANDAMENTO.md, revisa los archivos citados y continúa desde el próximo paso registrado."
+    "Leia o checkpoint mais recente em {path}, confira os arquivos citados e retome pelo próximo passo.",
+    "Read the latest checkpoint in {path}, check the referenced files and continue from the recorded next step.",
+    "Lee el último checkpoint de {path}, revisa los archivos citados y continúa desde el próximo paso registrado."
   ],
   "isolated": [
     "Sessão isolada…",
@@ -235,9 +235,9 @@
     "Sesiones abiertas"
   ],
   "unsafe_notes": [
-    "Confira se DOCS é uma pasta e ANDAMENTO.md é um arquivo comum, sem links simbólicos.",
-    "Check that DOCS is a directory and ANDAMENTO.md is a regular file, with no symbolic links.",
-    "Comprueba que DOCS es una carpeta y ANDAMENTO.md un archivo normal, sin enlaces simbólicos."
+    "Confira se o arquivo de progresso e a pasta dele são caminhos comuns, sem links simbólicos.",
+    "Check that the progress file and its parent are regular paths with no symbolic links.",
+    "Comprueba que el archivo de progreso y su carpeta sean rutas normales sin enlaces simbólicos."
   ],
   "checkpoints": [
     "Checkpoint",

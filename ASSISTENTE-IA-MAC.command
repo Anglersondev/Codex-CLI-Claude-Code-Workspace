@@ -42,6 +42,7 @@ load_language() {
   local saved=''
   if [ -n "${ASSISTENTE_LANG:-}" ]; then saved="$ASSISTENTE_LANG"
   elif [ -f "$STATE_DIR/language" ] && [ ! -L "$STATE_DIR/language" ]; then IFS= read -r saved < "$STATE_DIR/language"; fi
+  if [ "$saved" = es ]; then ASSISTENTE_PROJECT_LANG=es; saved=en; fi
   case "$saved" in en|pt-BR) APP_LANG="$saved" ;; *) detect_system_language ;; esac
 }
 language_menu() {
@@ -49,9 +50,18 @@ language_menu() {
   header_ui 'Idioma do programa' 'Application language'
   say_ui '1) Português (Brasil)' '1) Português (Brasil)'
   say_ui '2) English' '2) English'
+  say '3) Español (proyectos)'
   say_ui '0) Voltar' '0) Back'
   ask_ui 'Idioma: ' 'Language: ' || return 1
   choice="$REPLY"
+  if [ "$choice" = 3 ]; then
+    APP_LANG=en
+    ASSISTENTE_PROJECT_LANG=es
+    put "$STATE_DIR/language" es || return 1
+    say 'Idioma de los proyectos: Español.'
+    return
+  fi
+  unset ASSISTENTE_PROJECT_LANG
   case "$choice" in 1) APP_LANG='pt-BR' ;; 2) APP_LANG=en ;; 0|'') return 0 ;; *) say_ui 'Escolha 1, 2 ou 0.' 'Choose 1, 2, or 0.'; return 1 ;; esac
   put "$STATE_DIR/language" "$APP_LANG" || return 1
   say_ui 'Idioma salvo: português do Brasil.' 'Language saved: English.'
@@ -523,22 +533,23 @@ load_prompt_file() {
   text_has_content "$INITIAL_PROMPT" || { warn "$(ui 'O pedido está vazio. Edite o arquivo antes de usá-lo.' 'The prompt is empty. Edit the file before using it.')"; return 1; }
 }
 choose_saved_prompt() {
+  project_context || return 1
   local file pick i=0
   local -a prompt_files=()
   while :; do
     prompt_files=()
-    if [ -d "$PROJECT/PROMPTS" ]; then
-      for file in "$PROJECT"/PROMPTS/*.md "$PROJECT"/PROMPTS/*.txt "$PROJECT"/PROMPTS/*.MD "$PROJECT"/PROMPTS/*.TXT; do
+    if [ -d "$PROJECT/${CTX_PROMPTS}" ]; then
+      for file in "$PROJECT/${CTX_PROMPTS}"/*.md "$PROJECT/${CTX_PROMPTS}"/*.txt "$PROJECT/${CTX_PROMPTS}"/*.MD "$PROJECT/${CTX_PROMPTS}"/*.TXT; do
         [ -f "$file" ] || continue
         prompt_files[${#prompt_files[@]}]="$file"
       done
     fi
     if [ "${#prompt_files[@]}" -eq 0 ]; then
-      say "Ainda não há pedidos prontos em $PROJECT/PROMPTS/."
+      say "Ainda não há pedidos prontos em $PROJECT/${CTX_PROMPTS}/."
       ask 'Quer criar um pedido pronto para esta pasta agora? [s/N]: ' || return 1
       case "$REPLY" in s|S) save_prompt || return 1; continue ;; *) return 1 ;; esac
     fi
-    say "Pedidos prontos deste projeto · $PROJECT/PROMPTS/"
+    say "Pedidos prontos deste projeto · $PROJECT/${CTX_PROMPTS}/"
     i=0
     while [ "$i" -lt "${#prompt_files[@]}" ]; do
       file="${prompt_files[$i]}"
@@ -560,28 +571,30 @@ choose_saved_prompt() {
 }
 # Há andamento de verdade em DOCS/ANDAMENTO.md (além dos títulos e do texto do modelo)?
 has_real_progress() {
-  local file="$PROJECT/DOCS/ANDAMENTO.md"
+  project_context || return 1
+  local file="$PROJECT/${CTX_PROGRESS}"
   [ -f "$file" ] && [ ! -L "$file" ] || return 1
-  LC_ALL=C /usr/bin/grep -v '^[[:space:]]*$' "$file" | LC_ALL=C /usr/bin/grep -v '^#' | LC_ALL=C /usr/bin/grep -Fv 'Registre fatos confirmados' | LC_ALL=C /usr/bin/grep -Fv 'Record confirmed facts' | LC_ALL=C /usr/bin/grep -q .
+  LC_ALL=C /usr/bin/grep -v '^[[:space:]]*$' "$file" | LC_ALL=C /usr/bin/grep -v '^#' | LC_ALL=C /usr/bin/grep -Fv 'Registre fatos confirmados' | LC_ALL=C /usr/bin/grep -Fv 'Record confirmed facts' | LC_ALL=C /usr/bin/grep -Fv 'Registra hechos confirmados' | LC_ALL=C /usr/bin/grep -q .
 }
 choose_prompt() {
+  project_context || return 1
   local choice line file default=2
   INITIAL_PROMPT='' IMAGE=''
   say "$(ui 'Projeto' 'Project'): $PROJECT"
-  if [ -f "$PROJECT/PROMPTS/CONTINUAR.md" ]; then
+  if [ -f "$PROJECT/${CTX_CONTINUE}" ]; then
     if has_real_progress; then default=1
     else say_ui 'Projeto novo: ainda não há andamento para continuar.' 'New project: there is no saved progress to continue yet.'; fi
   fi
   say_ui 'Como você quer começar?' 'How would you like to start?'
-  if [ -f "$PROJECT/PROMPTS/CONTINUAR.md" ] && ! has_real_progress; then
+  if [ -f "$PROJECT/${CTX_CONTINUE}" ] && ! has_real_progress; then
     say_ui '1) Continuar o trabalho (ainda sem andamento registrado)' '1) Continue the work (no progress recorded yet)'
-  elif [ -f "$PROJECT/PROMPTS/CONTINUAR.md" ]; then
+  elif [ -f "$PROJECT/${CTX_CONTINUE}" ]; then
     say_ui '1) Continuar o trabalho (o agente lê o andamento do projeto)' '1) Continue the work (the agent reads project progress)'
   else
-    say_ui '1) Continuar o trabalho (indisponível: falta PROMPTS/CONTINUAR.md)' '1) Continue the work (unavailable: PROMPTS/CONTINUAR.md is missing)'
+    say_ui "1) Continuar o trabalho (indisponível: falta ${CTX_CONTINUE})" "1) Continue the work (unavailable: ${CTX_CONTINUE} is missing)"
   fi
   say_ui '2) Escrever um pedido novo (várias linhas)' '2) Write a new prompt (multiple lines)'
-  say_ui '3) Escolher um pedido pronto salvo (pasta PROMPTS/)' '3) Choose a saved prompt (PROMPTS/ folder)'
+  say_ui "3) Escolher um pedido pronto salvo (pasta ${CTX_PROMPTS}/)" '3) Choose a saved prompt (PROMPTS/ folder)'
   say_ui '4) Começar sem pedido e escrever dentro do agente' '4) Start without a prompt and write inside the agent'
   say_ui '5) Usar um arquivo .md/.txt de outra pasta' '5) Use an .md/.txt file from another folder'
   say_ui '6) Começar com uma imagem (Codex)' '6) Start with an image (Codex)'
@@ -590,8 +603,8 @@ choose_prompt() {
   choice="${REPLY:-$default}"
   case "$choice" in
     1)
-      [ -f "$PROJECT/PROMPTS/CONTINUAR.md" ] || { warn "$(ui 'Este projeto não tem PROMPTS/CONTINUAR.md (Cuidar do projeto → 12 cria os pedidos prontos padrão).' 'This project lacks PROMPTS/CONTINUAR.md (Project care → 12 creates default prompts).')"; return 1; }
-      load_prompt_file "$PROJECT/PROMPTS/CONTINUAR.md" ;;
+      [ -f "$PROJECT/${CTX_CONTINUE}" ] || { warn "$(ui "Este projeto não tem ${CTX_CONTINUE} (Cuidar do projeto → 12 cria os pedidos prontos padrão)." "This project lacks ${CTX_CONTINUE} (Project care → 12 creates default prompts).")"; return 1; }
+      load_prompt_file "$PROJECT/${CTX_CONTINUE}" ;;
     2)
       say_ui 'Escreva o pedido. Quando terminar, digite FIM numa linha sozinha (CANCELAR sozinho volta).' 'Write your prompt. Type DONE on its own line to finish, or CANCEL to go back.'
       while ask '> '; do
@@ -609,7 +622,7 @@ choose_prompt() {
       file="$CHOSEN_FILE"
       load_prompt_file "$file" ;;
     6)
-      [ "$TOOL" = codex ] || { say_ui 'Para Claude, salve a imagem em ANEXOS e peça para analisá-la na conversa.' 'For Claude, save the image in ANEXOS and ask the agent to analyze it in the conversation.'; return 1; }
+      [ "$TOOL" = codex ] || { say_ui "Para Claude, salve a imagem em ${CTX_ATTACHMENTS} e peça para analisá-la na conversa." "For Claude, save the image in ${CTX_ATTACHMENTS} and ask the agent to analyze it in the conversation."; return 1; }
       choose_local_file || return 1
       IMAGE="$CHOSEN_FILE"
       [ -f "$IMAGE" ] || { warn "$(ui 'Imagem não encontrada.' 'Image not found.')"; return 1; }
@@ -641,6 +654,7 @@ save_preferences() {
   put "$PREF_DIR/$TOOL.model" "$MODEL" && put "$PREF_DIR/$TOOL.effort" "$EFFORT" && put "$PREF_DIR/$TOOL.mode" "$WORKMODE" && put "$PREF_DIR/tool" "$TOOL"
 }
 launch_agent() {
+  project_context || return 1
   local mode="${1:-novo}" status confirm skip=1
   ensure_project || return 1
   header_ui 'Passo 1 de 4 · Ferramenta' 'Step 1 of 4 · Agent'
@@ -667,8 +681,8 @@ launch_agent() {
   say "$(ui 'Modelo' 'Model'): ${MODEL:-$(ui 'padrão da ferramenta — /model troca durante a conversa' 'agent default — change with /model during the conversation')}"
   say "$(ui 'Esforço' 'Effort'): ${EFFORT:-$(ui 'automático' 'automatic')}"
   say "$(ui 'Modo' 'Mode'): $(ui "$WORKMODE" "$([ "$WORKMODE" = planejar ] && printf plan || printf work)")"
-  if [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ]; then
-    say_ui 'Instruções permanentes: INSTRUCOES/PROJETO.md (menu 6 → 9 para editar)' 'Permanent instructions: INSTRUCOES/PROJETO.md (menu 6 → 9 to edit)'
+  if [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ]; then
+    say_ui "Instruções permanentes: ${CTX_INSTRUCTIONS} (menu 6 → 9 para editar)" "Permanent instructions: ${CTX_INSTRUCTIONS} (menu 6 → 9 to edit)"
   fi
   type rtk_state_line >/dev/null 2>&1 && say "$(rtk_state_line "$TOOL")"
   type project_quick_warnings >/dev/null 2>&1 && project_quick_warnings
@@ -841,13 +855,14 @@ quick_resume() {
 }
 # Continua a última conversa e pede o resumo que atualiza DOCS/ANDAMENTO.md.
 quick_close() {
+  project_context || return 1
   local status started file
   ensure_project || return 1
   header_ui 'Encerrar com resumo' 'Wrap up with a summary'
   choose_project_tool || return 1
-  file="$PROJECT/PROMPTS/ENCERRAR-SESSAO.md"
+  file="$PROJECT/${CTX_CLOSE}"
   if [ ! -f "$file" ]; then
-    say_ui 'Este projeto ainda não tem o pedido pronto PROMPTS/ENCERRAR-SESSAO.md.' 'This project does not yet have PROMPTS/ENCERRAR-SESSAO.md.'
+    say_ui "Este projeto ainda não tem o pedido pronto ${CTX_CLOSE}." "This project does not yet have ${CTX_CLOSE}."
     ask_ui 'Criar os pedidos prontos padrão agora (sem sobrescrever nada)? [S/n]: ' 'Create the default saved prompts now (without overwriting anything)? [Y/n]: ' || return 1
     case "$REPLY" in n|N|0) return 1 ;; esac
     type create_missing_default_prompts >/dev/null 2>&1 && create_missing_default_prompts || return 1
@@ -859,10 +874,10 @@ quick_close() {
   say ''
   say_ui 'O que vai acontecer:' 'What happens next:'
   say_ui '  1. A última conversa deste projeto abre e recebe o pedido de resumo.' '  1. The latest conversation opens and receives the summary request.'
-  say_ui '  2. O agente atualiza DOCS/ANDAMENTO.md (curto, só fatos confirmados).' '  2. The agent updates DOCS/ANDAMENTO.md (short, confirmed facts only).'
+  say_ui "  2. O agente atualiza ${CTX_PROGRESS} (curto, só fatos confirmados)." "  2. The agent updates ${CTX_PROGRESS} (short, confirmed facts only)."
   say_ui '  3. Depois feche com /exit. Na próxima vez, use “Começar uma conversa nova” → Continuar o trabalho.' '  3. Exit with /exit. Next time, choose Start a new conversation → Continue the work.'
   if [ "$TOOL" = codex ]; then
-    say_ui 'Se o Codex abrir sem o pedido, digite: leia PROMPTS/ENCERRAR-SESSAO.md e siga.' 'If Codex opens without the prompt, type: read and follow PROMPTS/ENCERRAR-SESSAO.md.'
+    say_ui "Se o Codex abrir sem o pedido, digite: leia ${CTX_CLOSE} e siga." "If Codex opens without the prompt, type: read and follow ${CTX_CLOSE}."
   fi
   load_prompt_file "$file" || return 1
   IMAGE=''
@@ -877,7 +892,7 @@ quick_close() {
     say_ui 'Abra “Começar uma conversa nova” e, no fim, use Encerrar com resumo.' 'Start a new conversation, then use Wrap up with a summary when done.'
   else
     say ''
-    say_ui 'Conversa encerrada. Confira DOCS/ANDAMENTO.md e use “Continuar o trabalho” na próxima vez.' 'Conversation ended. Check DOCS/ANDAMENTO.md and choose Continue the work next time.'
+    say_ui "Conversa encerrada. Confira ${CTX_PROGRESS} e use “Continuar o trabalho” na próxima vez." "Conversation ended. Check ${CTX_PROGRESS} and choose Continue the work next time."
   fi
   return "$status"
 }
@@ -1007,9 +1022,10 @@ choose_local_file() {
   CHOSEN_FILE="$file"
 }
 copy_attachment() {
+  project_context || return 1
   local file name dest
   choose_local_file || return 1
-  file="$CHOSEN_FILE"; name="$(basename "$file")"; dest="$PROJECT/ANEXOS/$name"
+  file="$CHOSEN_FILE"; name="$(basename "$file")"; dest="$PROJECT/${CTX_ATTACHMENTS}/$name"
   say "$(ui 'Copiar' 'Copy'): $file"
   say "$(ui 'Para' 'To'): $dest"
   ask_ui 'Enter para copiar; 0 para cancelar: ' 'Press Enter to copy; 0 to cancel: ' || return 1
@@ -1018,36 +1034,39 @@ copy_attachment() {
   say "$(ui 'Copiado. Na conversa, peça para analisar' 'Copied. In the conversation, ask the agent to analyze'): ANEXOS/$name"
 }
 copy_attachment_file() {
+  project_context || return 1
   local file="$1" name dest
   [ -f "$file" ] && [ -r "$file" ] || { warn "$(ui 'Anexo indisponível.' 'Attachment is unavailable.')"; return 1; }
   name="$(basename "$file")"
   single_line "$name" || return 1
-  dest="$PROJECT/ANEXOS/$name"
-  safe_project_path "ANEXOS/$name" || return 1
+  dest="$PROJECT/${CTX_ATTACHMENTS}/$name"
+  safe_project_path "${CTX_ATTACHMENTS}/$name" || return 1
   [ ! -e "$dest" ] || { warn "$(ui 'Já existe um anexo com esse nome.' 'An attachment with that name already exists.')"; return 1; }
-  mkdir -p "$PROJECT/ANEXOS" || return 1
-  write_new_file_atomic "ANEXOS/$name" < "$file"
+  mkdir -p "$PROJECT/${CTX_ATTACHMENTS}" || return 1
+  write_new_file_atomic "${CTX_ATTACHMENTS}/$name" < "$file"
 }
 write_project_prompt() {
+  project_context || return 1
   local name="$1" content="$2" bytes
   valid_name "$name" || { warn "$(ui 'Nome de pedido inválido.' 'Invalid prompt name.')"; return 1; }
   text_has_content "$content" || { warn "$(ui 'O pedido está vazio; nada foi salvo.' 'The prompt is empty; nothing was saved.')"; return 1; }
   bytes="$(printf '%s' "$content" | wc -c | tr -d ' ')"
   [ "$bytes" -le 60000 ] || { warn 'Limite de 60 KB atingido.'; return 1; }
-  safe_project_path "PROMPTS/$name.md" || return 1
-  [ ! -e "$PROJECT/PROMPTS/$name.md" ] || { warn "$(ui 'Esse pedido já existe.' 'This prompt already exists.')"; return 1; }
-  mkdir -p "$PROJECT/PROMPTS" || return 1
-  printf '%s' "$content" | write_new_file_atomic "PROMPTS/$name.md"
+  safe_project_path "${CTX_PROMPTS}/$name.md" || return 1
+  [ ! -e "$PROJECT/${CTX_PROMPTS}/$name.md" ] || { warn "$(ui 'Esse pedido já existe.' 'This prompt already exists.')"; return 1; }
+  mkdir -p "$PROJECT/${CTX_PROMPTS}" || return 1
+  printf '%s' "$content" | write_new_file_atomic "${CTX_PROMPTS}/$name.md"
 }
 save_prompt() {
+  project_context || return 1
   local name dest line content=''
-  say "$(ui 'Este pedido pronto será salvo só neste projeto' 'This saved prompt will belong only to this project'): $PROJECT/PROMPTS/"
+  say "$(ui 'Este pedido pronto será salvo só neste projeto' 'This saved prompt will belong only to this project'): $PROJECT/${CTX_PROMPTS}/"
   ask_ui 'Nome do pedido (sem extensão, Enter cancela): ' 'Prompt name (without extension; Enter cancels): ' || return 1
   name="$REPLY"
   [ -n "$name" ] || { say_ui 'Cancelado.' 'Canceled.'; return 1; }
   valid_name "$name" || { warn "$(ui 'Nome inválido. Use até 120 caracteres, sem / \ : e sem ponto no começo.' 'Invalid name. Use up to 120 characters without /, backslash, :, or a leading dot.')"; return 1; }
-  dest="$PROJECT/PROMPTS/$name.md"
-  safe_project_path "PROMPTS/$name.md" || return 1
+  dest="$PROJECT/${CTX_PROMPTS}/$name.md"
+  safe_project_path "${CTX_PROMPTS}/$name.md" || return 1
   [ ! -e "$dest" ] && [ ! -L "$dest" ] || { warn "$(ui 'Esse pedido já existe. Nada foi alterado.' 'This prompt already exists. Nothing changed.')"; return 1; }
   say_ui 'Escreva o pedido. Quando terminar, digite FIM numa linha sozinha (CANCELAR sozinho volta).' 'Write the prompt. Type DONE on its own line to save, or CANCEL to go back.'
   while ask '> '; do
@@ -1108,12 +1127,13 @@ open_site() {
 # Descoberta limitada à pasta CODIGO e a um nível de subpastas, sem seguir links.
 # Os chamadores declaram PROJECT_CODE_DIRS local para não guardar estado entre ações.
 project_code_directories() {
+  project_context || return 1
   local dir relative candidates=()
   PROJECT_CODE_DIRS=()
   [ -n "$PROJECT" ] && [ -d "$PROJECT" ] && [ ! -L "$PROJECT" ] || return 1
   for dir in "$PROJECT"/*; do candidates[${#candidates[@]}]="$dir"; done
-  if [ -d "$PROJECT/CODIGO" ] && [ ! -L "$PROJECT/CODIGO" ]; then
-    for dir in "$PROJECT/CODIGO"/*; do candidates[${#candidates[@]}]="$dir"; done
+  if [ -d "$PROJECT/${CTX_CODE}" ] && [ ! -L "$PROJECT/${CTX_CODE}" ]; then
+    for dir in "$PROJECT/${CTX_CODE}"/*; do candidates[${#candidates[@]}]="$dir"; done
   fi
   for dir in "${candidates[@]}"; do
     [ -d "$dir" ] && [ ! -L "$dir" ] || continue
@@ -1205,6 +1225,7 @@ git_changes() {
   return "$status"
 }
 project_tools() {
+  project_context || return 1
   local choice file skip
   ensure_project || return 1
   while :; do
@@ -1219,8 +1240,8 @@ project_tools() {
     say ''
     say_ui 'ARQUIVOS' 'FILES'
     say_ui ' 1) Abrir a pasta' ' 1) Open folder'
-    say_ui ' 2) Copiar um anexo para ANEXOS (imagem, PDF, documento)' ' 2) Copy an attachment to ANEXOS (image, PDF, document)'
-    say_ui ' 4) Capturar parte da tela para ANEXOS' ' 4) Capture part of the screen to ANEXOS'
+    say_ui " 2) Copiar um anexo para ${CTX_ATTACHMENTS} (imagem, PDF, documento)" " 2) Copy an attachment to ${CTX_ATTACHMENTS} (image, PDF, document)"
+    say_ui " 4) Capturar parte da tela para ${CTX_ATTACHMENTS}" " 4) Capture part of the screen to ${CTX_ATTACHMENTS}"
     say ''
     say_ui 'OUTROS' 'OTHER'
     say_ui ' 5) Ver alterações do Git' ' 5) View Git changes'
@@ -1237,9 +1258,9 @@ project_tools() {
       2) copy_attachment ;;
       3) save_prompt ;;
       4)
-        safe_project_path ANEXOS || return 1
-        mkdir -p "$PROJECT/ANEXOS" || return 1
-        file="$PROJECT/ANEXOS/captura-$(date '+%Y%m%d-%H%M%S')-$RANDOM.png"
+        safe_project_path "${CTX_ATTACHMENTS}" || return 1
+        mkdir -p "$PROJECT/${CTX_ATTACHMENTS}" || return 1
+        file="$PROJECT/${CTX_ATTACHMENTS}/captura-$(date '+%Y%m%d-%H%M%S')-$RANDOM.png"
         capture_screen "$file"
         [ ! -s "$file" ] || say "$(ui 'Captura salva' 'Screenshot saved'): $file" ;;
       5) git_changes ;;
@@ -1247,7 +1268,7 @@ project_tools() {
       7) open_site ;;
       8) start_dev_server ;;
       9) instructions_menu ;;
-      10) safe_project_path PROMPTS && mkdir -p "$PROJECT/PROMPTS" && open_path "$PROJECT/PROMPTS"; skip=1 ;;
+      10) safe_project_path "${CTX_PROMPTS}" && mkdir -p "$PROJECT/${CTX_PROMPTS}" && open_path "$PROJECT/${CTX_PROMPTS}"; skip=1 ;;
       11)
         say_ui 'Serão criados os arquivos compartilhados e as entradas que estiverem faltando.' 'Missing shared files and agent entry files will be created.'
         if ask_ui 'Digite PREPARAR para aplicar; Enter cancela: ' 'Type PREPARE to apply; Enter cancels: '; then
@@ -1270,7 +1291,7 @@ show_guide() {
     say '4. Next time, menu 2 → Continue the work starts with a concise summary.'
     say ''
     say 'Menu 4 shows usage for each project and helps you decide when to wrap up.'
-    say 'Project rules are in INSTRUCOES/PROJETO.md; PROMPTS/ stores ready-to-use requests.'
+    say 'Project instructions and saved prompts are available under Project care.'
     say 'Manage automatic behavior in Help and settings → Preferences (menu 7 → 4).'
     say ''
     say "Full guide (Portuguese): $BASE_DIR/GUIA-DE-USO.md"
@@ -1285,7 +1306,7 @@ show_guide() {
   say '4. Na próxima vez, menu 2 → “Continuar o trabalho”: a conversa começa leve e já sabe o que foi feito.'
   say ''
   say 'O menu 4 mostra o uso de cada projeto e avisa quando vale encerrar.'
-  say 'As regras do projeto ficam em INSTRUCOES/PROJETO.md; PROMPTS/ guarda pedidos prontos.'
+  say 'As instruções e os pedidos prontos ficam em Cuidar do projeto.'
   say 'Você controla o que é automático em Ajuda e ajustes → Preferências (menu 7 → 4).'
   say ''
   say "Guia completo: $BASE_DIR/GUIA-DE-USO.md"
@@ -1467,6 +1488,7 @@ main() {
     if [ -n "$pause_after" ]; then pause || return 0; fi
   done
 }
+. "$BASE_DIR/lib/context.sh"
 if [ -f "$BASE_DIR/lib/projects.sh" ]; then . "$BASE_DIR/lib/projects.sh"; fi
 if [ -f "$BASE_DIR/lib/rtk.sh" ]; then . "$BASE_DIR/lib/rtk.sh"; fi
 if [ -f "$BASE_DIR/lib/dicas.sh" ]; then . "$BASE_DIR/lib/dicas.sh"; fi
@@ -1486,13 +1508,13 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     --check)
       result=0
       /bin/bash -n "$BASE_DIR/ASSISTENTE-IA-MAC.command" || result=1
-      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
+      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/context.sh lib/project-layouts.tsv lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
         [ -s "$BASE_DIR/$required" ] || { warn "Arquivo ausente: $required"; result=1; }
       done
       [ ! -f "$BASE_DIR/lib/rtk.sh" ] || /bin/bash -n "$BASE_DIR/lib/rtk.sh" || result=1
       [ ! -f "$BASE_DIR/lib/projects.sh" ] || /bin/bash -n "$BASE_DIR/lib/projects.sh" || result=1
       [ ! -f "$BASE_DIR/lib/dicas.sh" ] || /bin/bash -n "$BASE_DIR/lib/dicas.sh" || result=1
-      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh; do
+      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/context.sh; do
         [ ! -f "$BASE_DIR/$extra" ] || /bin/bash -n "$BASE_DIR/$extra" || result=1
       done
       [ "$result" -ne 0 ] || say_ui 'Kit completo. Sintaxe Bash verificada.' 'Kit complete. Bash syntax verified.'

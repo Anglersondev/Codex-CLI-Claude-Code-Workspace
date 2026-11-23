@@ -22,7 +22,6 @@
 "Anexos" = "Archivos adjuntos";
 "Ao sair da sessão no Terminal, você volta a esta janela." = "Al salir de la sesión de Terminal, volverás a esta ventana.";
 "Aplicar ao agente" = "Aplicar al agente";
-"Arquivo copiado para ANEXOS." = "Archivo copiado a ANEXOS.";
 "Arquivos do projeto" = "Archivos del proyecto";
 "Assistente atualizado (%@)." = "Assistente está actualizado (%@).";
 "Atalhos do projeto" = "Atajos del proyecto";
@@ -62,7 +61,6 @@
 "Escolher arquivo…" = "Elegir archivo…";
 "Escolher pasta" = "Elegir carpeta";
 "Escolher…" = "Elegir…";
-"Escreva o objetivo em PROJETO.md antes de começar." = "Escribe tu objetivo en PROJETO.md antes de empezar.";
 "Esforço" = "Esfuerzo";
 "Evitar dupla compactação do Terminal" = "Evitar la doble compresión en Terminal";
 "Executar npm run dev" = "Ejecutar npm run dev";
@@ -102,7 +100,6 @@
 "O Terminal do macOS não foi encontrado." = "No se encontró Terminal de macOS.";
 "O Terminal executará npm run dev na pasta selecionada. Use Ctrl+C para encerrar o servidor." = "Terminal ejecutará npm run dev en la carpeta seleccionada. Pulsa Ctrl+C para detener el servidor.";
 "O Terminal não iniciou a sessão. Abra o Terminal uma vez e tente novamente." = "Terminal no inició la sesión. Abre Terminal e inténtalo de nuevo.";
-"O agente retomará sua conversa mais recente e atualizará DOCS/ANDAMENTO.md." = "El agente retomará el último chat y actualizará DOCS/ANDAMENTO.md.";
 "O app consulta no máximo uma vez por dia quando estiver em uso. Atualizações do Assistente são aplicadas ao sair." = "El panel busca actualizaciones como máximo una vez al día mientras está abierto. Las actualizaciones de Assistente se aplican al salir.";
 "O bundle baixado tem versão ou identificação diferente da esperada." = "La versión o el identificador del paquete descargado no coincide con el esperado.";
 "O download da versão publicada falhou." = "Falló la descarga de la versión.";
@@ -151,7 +148,6 @@
 "Trabalhar" = "Trabajar";
 "Trocar conta…" = "Cambiar de cuenta…";
 "Trocar de conta?" = "¿Cambiar de cuenta?";
-"Uma entrada usa regras próprias. Confira a referência a PROJETO.md se quiser compartilhar essas regras." = "Un archivo de entrada usa sus propias reglas. Revisa su referencia a PROJETO.md si quieres compartir esas reglas.";
 "Usar esta pasta nos próximos projetos" = "Usar esta carpeta para futuros proyectos";
 "Usar pedido" = "Usar solicitud";
 "Verificando…" = "Comprobando…";
@@ -173,3 +169,7 @@
 "Comandos do Terminal" = "Comandos del terminal";
 "Escolha um comando para copiar." = "Elige un comando para copiar.";
 "Comando copiado. Cole no Terminal." = "Comando copiado. Pégalo en el terminal.";
+"Escreva o objetivo nas instruções antes de começar." = "Escribe tu objetivo en las instrucciones antes de empezar.";
+"O agente retomará sua conversa mais recente e atualizará o arquivo de progresso." = "El agente retomará tu última conversación y actualizará el archivo de progreso.";
+"Uma entrada usa regras próprias. Confira o caminho das instruções compartilhadas para usar as mesmas regras." = "Un agente usa reglas propias. Comprueba la ruta de las instrucciones compartidas para usar las mismas reglas.";
+"Anexo copiado." = "Archivo adjunto copiado.";

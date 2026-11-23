@@ -15,6 +15,7 @@ app_list_projects() {
 app_project_info() {
   local file profile codex_entry=AGENTS.md weight
   PROJECT="$(normalize_path "$1")" || return 1
+  project_context || return 1
   PREF_DIR="$(project_preference_dir "$PROJECT")" || return 1
   profile="$(read_value "$PREF_DIR/tool")"
   case "$profile" in codex|claude) ;; *) profile="$(project_profile)" || profile=codex ;; esac
@@ -25,7 +26,7 @@ app_project_info() {
     else printf 'missing\n'; fi
   done
   if instructions_unfilled; then printf 'template\n'
-  elif [ -f "$PROJECT/INSTRUCOES/PROJETO.md" ]; then printf 'ready\n'
+  elif [ -f "$PROJECT/${CTX_INSTRUCTIONS}" ]; then printf 'ready\n'
   else printf 'missing\n'; fi
   if [ -f "$PROJECT/AGENTS.override.md" ]; then
     printf 'override\n'
@@ -52,12 +53,13 @@ app_launch() {
   app_require_tool || return 1
   if [ "$verb" = novo ] && [ -n "$prompt_file" ]; then load_prompt_file "$prompt_file" || return 1; fi
   set_project "$folder" || return 1
+  project_context || return 1
   case "$verb" in
     novo|recente|escolher) ;;
     handoff) INITIAL_PROMPT="$prompt_file"; verb=novo ;;
     resumo)
-      [ -d "$PROJECT/DOCS" ] && [ ! -L "$PROJECT/DOCS" ] || {
-        warn "$(ui 'Prepare DOCS/ no app antes de salvar o andamento.' 'Prepare DOCS/ in the app before saving progress.')"
+      [ -d "$PROJECT/${CTX_DOCS}" ] && [ ! -L "$PROJECT/${CTX_DOCS}" ] || {
+        warn "$(ui 'Prepare o contexto do projeto antes de salvar o andamento.' 'Set up project context before saving progress.')"
         return 1
       }
       INITIAL_PROMPT="$(prompt_encerrar_text)"
@@ -178,6 +180,9 @@ app_command() {
     version:0) printf '%s\n' "$VERSION" ;;
     list:0) app_list_projects ;;
     info:1) app_project_info "$1" ;;
+    layout:1)
+      PROJECT="$(normalize_path "$1")" && project_context &&
+        printf '%s\n' "$CTX_INSTRUCTIONS" "$CTX_PROGRESS" "$CTX_CONTINUE" "$CTX_PROMPTS" "$CTX_DOCS" "$CTX_ATTACHMENTS" ;;
     prefs:2)
       case "$2" in codex|claude) TOOL="$2" ;; *) return 2 ;; esac
       PROJECT="$(normalize_path "$1")" || return 1

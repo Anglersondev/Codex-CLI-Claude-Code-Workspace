@@ -4,9 +4,30 @@ $ErrorActionPreference = 'Stop'
 $version = '1.0'
 $state = if ($env:ASSISTENTE_STATE_DIR) { $env:ASSISTENTE_STATE_DIR } else { Join-Path $env:LOCALAPPDATA 'Assistente IA' }
 $langFile = Join-Path $state 'language'
-$script:lang = if ($env:ASSISTENTE_LANG -in @('en', 'pt-BR')) { $env:ASSISTENTE_LANG } elseif (Test-Path -LiteralPath $langFile) { (Get-Content -LiteralPath $langFile -TotalCount 1 -Encoding UTF8).Trim() } elseif ([Globalization.CultureInfo]::CurrentUICulture.Name -like 'en*') { 'en' } else { 'pt-BR' }
-if ($script:lang -notin @('en', 'pt-BR')) { $script:lang = 'pt-BR' }
-function T([string]$pt, [string]$en) { if ($script:lang -eq 'en') { $en } else { $pt } }
+$script:lang = if ($env:ASSISTENTE_LANG -in @('en', 'es', 'pt-BR')) { $env:ASSISTENTE_LANG } elseif (Test-Path -LiteralPath $langFile) { (Get-Content -LiteralPath $langFile -TotalCount 1 -Encoding UTF8).Trim() } elseif ([Globalization.CultureInfo]::CurrentUICulture.Name -like 'en*') { 'en' } else { 'pt-BR' }
+if ($script:lang -notin @('en', 'es', 'pt-BR')) { $script:lang = 'pt-BR' }
+function T([string]$pt, [string]$en, [string]$es = $en) {
+  switch ($script:lang) { 'en' { $en } 'es' { $es } default { $pt } }
+}
+function Project-Layout([string]$folder) {
+  $layouts = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'lib\project-layouts.tsv') -Encoding UTF8 |
+    ConvertFrom-Csv -Delimiter "`t" -Header Language, Instructions, Progress, Continue, Close, Summary, Start, Plan, Attachments, Code, Archive, Backups
+  $folderMatch = $null
+  foreach ($layout in $layouts) {
+    $layout | Add-Member NoteProperty Rules (Split-Path -Parent $layout.Instructions)
+    $layout | Add-Member NoteProperty Docs (Split-Path -Parent $layout.Progress)
+    $layout | Add-Member NoteProperty Prompts (Split-Path -Parent $layout.Continue)
+    foreach ($relative in @($layout.Instructions, $layout.Progress, $layout.Continue, $layout.Close, $layout.Summary, $layout.Start, $layout.Plan)) {
+      if (Test-Path -LiteralPath (Join-Path $folder $relative)) { return $layout }
+    }
+    if (-not $folderMatch -and ((Test-Path -LiteralPath (Join-Path $folder $layout.Rules) -PathType Container) -or
+        (Test-Path -LiteralPath (Join-Path $folder $layout.Attachments) -PathType Container))) {
+      $folderMatch = $layout
+    }
+  }
+  if ($folderMatch) { return $folderMatch }
+  $layouts | Where-Object Language -eq $script:lang
+}
 function Read-Choice([string]$pt, [string]$en) { Read-Host (T $pt $en) }
 function Save-Text([string]$path, [string]$value) {
   $parent = Split-Path -Parent $path
@@ -98,11 +119,14 @@ function Project-Menu {
       foreach ($bucket in @('CODEX', 'CLAUDE')) { [IO.Directory]::CreateDirectory((Join-Path $parent $bucket)) | Out-Null }
       New-Item -ItemType Directory -Path $path | Out-Null
       Save-Text (Join-Path $path '.assistente-ia\tool') $tool
-      foreach ($folder in @('INSTRUCOES', 'PROMPTS', 'ANEXOS', 'DOCS', 'CODIGO')) { New-Item -ItemType Directory -Path (Join-Path $path $folder) -Force | Out-Null }
-      Save-Text (Join-Path $path 'INSTRUCOES\PROJETO.md') (T '# Instruções do projeto' '# Project instructions')
-      Save-Text (Join-Path $path 'CLAUDE.md') '@INSTRUCOES/PROJETO.md'
-      Save-Text (Join-Path $path 'DOCS\ANDAMENTO.md') (T '# Andamento' '# Progress')
-      Save-Text (Join-Path $path 'AGENTS.md') (T 'Leia INSTRUCOES/PROJETO.md antes de trabalhar neste projeto.' 'Read INSTRUCOES/PROJETO.md before working on this project.')
+      $layout = Project-Layout $path
+      foreach ($folder in @($layout.Rules, $layout.Prompts, $layout.Attachments, $layout.Docs, $layout.Code)) { New-Item -ItemType Directory -Path (Join-Path $path $folder) -Force | Out-Null }
+      Save-Text (Join-Path $path $layout.Instructions) (T '# Instruções do projeto' '# Project instructions' '# Instrucciones del proyecto')
+      Save-Text (Join-Path $path 'CLAUDE.md') ('@' + $layout.Instructions)
+      Save-Text (Join-Path $path $layout.Progress) (T '# Andamento' '# Progress' '# Progreso')
+      Save-Text (Join-Path $path 'AGENTS.md') (T "Leia $($layout.Instructions) antes de trabalhar neste projeto." "Read $($layout.Instructions) before working on this project." "Lee $($layout.Instructions) antes de trabajar en este proyecto.")
+      Save-Text (Join-Path $path $layout.Continue) (T "Leia $($layout.Progress) e retome pelo próximo passo." "Read $($layout.Progress) and continue from the next step." "Lee $($layout.Progress) y continúa con el próximo paso.")
+      Save-Text (Join-Path $path $layout.Close) (T "Atualize $($layout.Progress) com as mudanças confirmadas, os testes e o próximo passo." "Update $($layout.Progress) with confirmed changes, tests and the next step." "Actualiza $($layout.Progress) con los cambios confirmados, las pruebas y el próximo paso.")
       Set-Project $path
     }
     '2' {
@@ -145,16 +169,19 @@ function Agent-Menu([string]$mode) {
     if ($promptChoice -eq '2') { $file = Read-Choice 'Caminho do arquivo' 'File path'; if ($file -notmatch '\.(md|txt)$' -or -not (Test-Path -LiteralPath $file -PathType Leaf)) { Write-Warning (T 'Arquivo inválido.' 'Invalid file.'); return }; $promptText = [IO.File]::ReadAllText((Resolve-Path -LiteralPath $file).ProviderPath); if ($promptText.Length -gt 60000) { Write-Warning (T 'Arquivo muito longo.' 'File too long.'); return } }
     if ($promptText) { $argsList += @('--', $promptText) }
   }
+  if ($mode -in @('notes', 'summary')) {
+    $layout = Project-Layout $script:project
+  }
   if ($mode -eq 'notes') {
-    $notes = Join-Path $script:project 'DOCS\ANDAMENTO.md'
+    $notes = Join-Path $script:project $layout.Progress
     if (-not (Test-Path -LiteralPath $notes -PathType Leaf) -or -not (Select-String -LiteralPath $notes -Pattern '^\s*[^#\s]' -Quiet)) {
-      Write-Warning (T 'Registre o próximo passo em DOCS/ANDAMENTO.md primeiro.' 'First record the next step in DOCS/ANDAMENTO.md.')
+      Write-Warning (T "Registre o próximo passo em $($layout.Progress) primeiro." "First record the next step in $($layout.Progress)." "Primero, anota el próximo paso en $($layout.Progress).")
       return
     }
-    $argsList += @('--', (T 'Leia DOCS/ANDAMENTO.md e retome pelo próximo passo registrado.' 'Read DOCS/ANDAMENTO.md and continue from the recorded next step.'))
+    $argsList += @('--', (T "Leia $($layout.Progress) e retome pelo próximo passo registrado." "Read $($layout.Progress) and continue from the recorded next step." "Lee $($layout.Progress) y continúa con el próximo paso registrado."))
   }
   if ($mode -eq 'summary') {
-    $argsList += @('--', (T 'Atualize DOCS/ANDAMENTO.md com as mudanças confirmadas, os testes e o próximo passo.' 'Update DOCS/ANDAMENTO.md with confirmed changes, tests and the next step.'))
+    $argsList += @('--', (T "Atualize $($layout.Progress) com as mudanças confirmadas, os testes e o próximo passo." "Update $($layout.Progress) with confirmed changes, tests and the next step." "Actualiza $($layout.Progress) con los cambios confirmados, las pruebas y el próximo paso."))
   }
   Write-Host "`n$tool $($argsList -join ' ')"
   if ((Read-Choice 'Enter para começar; 0 cancela' 'Enter to start; 0 cancels') -eq '0') { return }
@@ -169,8 +196,8 @@ function Care-Menu {
   $choice = Read-Choice 'Escolha' 'Choose'
   switch ($choice) {
     '1' { Start-Process -FilePath $script:project }
-    '2' { $file = Join-Path $script:project 'INSTRUCOES\PROJETO.md'; if (-not (Test-Path -LiteralPath $file)) { Save-Text $file (T '# Instruções do projeto' '# Project instructions') }; Start-Process notepad.exe -ArgumentList ('"{0}"' -f $file) }
-    '3' { $path = Join-Path $script:project 'PROMPTS'; New-Item -ItemType Directory -Path $path -Force | Out-Null; Start-Process -FilePath $path }
+    '2' { $file = Join-Path $script:project (Project-Layout $script:project).Instructions; if (-not (Test-Path -LiteralPath $file)) { Save-Text $file (T '# Instruções do projeto' '# Project instructions') }; Start-Process notepad.exe -ArgumentList ('"{0}"' -f $file) }
+    '3' { $path = Join-Path $script:project (Project-Layout $script:project).Prompts; New-Item -ItemType Directory -Path $path -Force | Out-Null; Start-Process -FilePath $path }
     '4' { if (Get-Command git -ErrorAction SilentlyContinue) { & git -C $script:project status --short --branch } else { Write-Warning 'Git unavailable' } }
     '5' { $parent = Choose-Directory; if (-not $parent) { return }; if ($parent -eq $script:project -or $parent.StartsWith($script:project + '\', [StringComparison]::OrdinalIgnoreCase)) { Write-Warning (T 'Escolha uma pasta fora do projeto.' 'Choose a folder outside the project.'); return }; $dest = Join-Path $parent ((Split-Path $script:project -Leaf) + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.zip'); if ((Read-Choice ("$dest - " + (T 'Enter para criar; 0 cancela' 'Enter to create; 0 cancels')) '') -eq '0') { return }; Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory($script:project, $dest, [IO.Compression.CompressionLevel]::Optimal, $true); Write-Host $dest }
     '6' { if (Test-Path -LiteralPath (Join-Path $script:project 'package.json')) { Push-Location -LiteralPath $script:project; try { & npm run dev } finally { Pop-Location } } else { Write-Warning 'package.json unavailable' } }
@@ -178,10 +205,11 @@ function Care-Menu {
 }
 function Settings-Menu {
   Header (T 'Idioma e diagnóstico' 'Language and diagnostics')
-  Write-Host '1) Português (Brasil)  2) English  3) Diagnóstico / Diagnostics'
+  Write-Host '1) Português (Brasil)  2) English  3) Diagnóstico / Diagnostics  4) Español (proyectos)'
   switch (Read-Choice 'Escolha' 'Choose') {
     '1' { $script:lang = 'pt-BR'; Save-Text $langFile $script:lang }
     '2' { $script:lang = 'en'; Save-Text $langFile $script:lang }
+    '4' { $script:lang = 'es'; Save-Text $langFile $script:lang }
     '3' { Write-Host "PowerShell $($PSVersionTable.PSVersion)"; Write-Host "State: $state"; foreach ($tool in @('codex', 'claude', 'git', 'npm')) { $cmd = Get-Command $tool -ErrorAction SilentlyContinue; Write-Host "${tool}: $(if ($cmd) { $cmd.Source } else { 'unavailable' })" } }
   }
 }

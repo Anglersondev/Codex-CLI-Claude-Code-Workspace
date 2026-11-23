@@ -147,7 +147,7 @@ sys.exit(int(os.environ.get("TEST_CODE_STATUS", "0")))
                 project = self.managed_project(tool)
                 self.assert_ok(self.project_shell(project, f"TOOL={tool}; create_project_shortcuts"))
                 if tool == "claude":
-                    self.assertIn("@PROMPTS/ENCERRAR-SESSAO.md", (project / ".claude/commands/wrap-up.md").read_text())
+                    self.assertIn("@PROMPTS/WRAP-UP.md", (project / ".claude/commands/wrap-up.md").read_text())
                     self.assertTrue((project / ".claude/commands/summary.md").exists())
                 else:
                     skill = (project / ".agents/skills/wrap-up/SKILL.md").read_text()

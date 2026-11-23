@@ -19,7 +19,7 @@ import workflows as wf
 from core import (
     APP_VERSION, RELEASES, SUPPORTED_LANGUAGES, WINDOWS, State, attach_file, backup_project, check_release,
     configure_language, create_project, executable, instructions_are_long, managed_path,
-    progress_available, project_creation_root, save_prompt, scaffold, session_arguments, state_directory,
+    progress_available, project_layout, project_creation_root, save_prompt, scaffold, session_arguments, state_directory,
     terminal_process, terminal_worker, text as T,
 )
 
@@ -250,16 +250,17 @@ class Panel:
     def refresh_context(self, event=None):
         if self.project is None or (event is not None and event.widget is not self.root):
             return
-        ready = progress_available(self.project) and (self.project / "PROMPTS" / "CONTINUAR.md").is_file()
+        layout = project_layout(self.project)
+        ready = progress_available(self.project) and (self.project / layout["continue"]).is_file()
         self.continue_control.state(["!disabled"] if ready else ["disabled"])
-        summary_prompt = self.project / "PROMPTS" / "ENCERRAR-SESSAO.md"
+        summary_prompt = self.project / layout["close"]
         self.save_control.state(["!disabled"] if summary_prompt.is_file() else ["disabled"])
         notes = []
         if not ready:
             notes.append(T(
-                "Registre o próximo passo em DOCS/ANDAMENTO.md para retomar depois.",
-                "Record the next step in DOCS/ANDAMENTO.md to continue later.",
-                "Anota el próximo paso en DOCS/ANDAMENTO.md para continuar más tarde.",
+                "Registre o próximo passo em o arquivo de progresso para retomar depois.",
+                "Record the next step in the progress file to continue later.",
+                "Anota el próximo paso en el archivo de progreso para continuar más tarde.",
             ))
         if instructions_are_long(self.project, self.agent.get()):
             notes.append(T(
@@ -383,7 +384,7 @@ class Panel:
         selected = tk.StringVar(value=self.prompt.name if self.prompt else T("Sem pedido selecionado", "No prompt selected", "Ninguna solicitud seleccionada"))
 
         def choose():
-            path = filedialog.askopenfilename(parent=window, initialdir=self.project / "PROMPTS",
+            path = filedialog.askopenfilename(parent=window, initialdir=self.project / project_layout(self.project)["prompts"],
                                                filetypes=[(T("Pedidos", "Prompts", "Solicitudes"), "*.md *.txt")])
             if path:
                 self.prompt = Path(path)
@@ -417,7 +418,7 @@ class Panel:
         self.status.set(T("Contexto preparado.", "Shared context is ready.", "El contexto compartido está listo."))
 
     def open_instructions(self):
-        path = managed_path(self.project, "INSTRUCOES/PROJETO.md")
+        path = managed_path(self.project, project_layout(self.project)["instructions"])
         if not path.is_file() and messagebox.askyesno("Assistente IA", T("Criar os arquivos de contexto que faltam?", "Create the missing context files?", "¿Crear los archivos de contexto que faltan?"), parent=self.root):
             self.prepare()
         if path.is_file():
@@ -434,7 +435,7 @@ class Panel:
         path = filedialog.askopenfilename(parent=self.root)
         if path:
             attach_file(self.project, Path(path))
-            self.status.set(T("Arquivo copiado para ANEXOS.", "File copied to ANEXOS.", "Archivo copiado a ANEXOS."))
+            self.status.set(T("Anexo copiado.", "Attachment copied.", "Archivo adjunto copiado."))
 
     def copy_path(self):
         self.root.clipboard_clear()
@@ -442,10 +443,10 @@ class Panel:
         self.status.set(T("Caminho copiado.", "Path copied.", "Ruta copiada."))
 
     def continue_notes(self):
-        self.launch("new", self.project / "PROMPTS" / "CONTINUAR.md")
+        self.launch("new", self.project / project_layout(self.project)["continue"])
 
     def wrap_up(self):
-        self.launch("resume", self.project / "PROMPTS" / "ENCERRAR-SESSAO.md", force_work=True)
+        self.launch("resume", self.project / project_layout(self.project)["close"], force_work=True)
 
     def launch(self, mode, prompt_override=None, force_work=False, initial_text=""):
         agent = self.agent.get()
@@ -470,7 +471,8 @@ class Panel:
         project = self.project
         window, body = self.dialog(wf.label("review"))
         ttk.Label(body, text=f"{AGENT_NAMES[source]} → {AGENT_NAMES[target]}", style="Section.TLabel").pack(anchor="w")
-        ttk.Label(body, text=wf.label("note_destination"), style="Sub.TLabel").pack(anchor="w", pady=(2, 6))
+        progress = project_layout(project)["progress"]
+        ttk.Label(body, text=wf.label("note_destination").format(path=progress), style="Sub.TLabel").pack(anchor="w", pady=(2, 6))
 
         def editor(key, height):
             ttk.Label(body, text=wf.label(key)).pack(anchor="w")
@@ -499,11 +501,11 @@ class Panel:
                 raise ValueError(wf.label("busy_folder"))
             wf.save_checkpoint(project, source, target, changes.get("1.0", "end-1c"),
                                tests.get("1.0", "end-1c"), next_step.get("1.0", "end-1c"))
-            self.status.set(wf.label("saved"))
+            self.status.set(wf.label("saved").format(path=progress))
             window.destroy()
             if open_agent:
                 select_target()
-                self.launch("new", initial_text=wf.label("resume_prompt"))
+                self.launch("new", initial_text=wf.label("resume_prompt").format(path=progress))
             else:
                 self.refresh_context()
 
@@ -652,7 +654,7 @@ class Panel:
     def dev_server(self):
         project = self.project
         candidates = [project, *project.iterdir()]
-        code = project / "CODIGO"
+        code = project / project_layout(project)["code"]
         if code.is_dir():
             candidates.extend(code.iterdir())
         packages = []

@@ -33,9 +33,9 @@ enum PanelLanguage: String, CaseIterable, Identifiable {
         }
     }
 
-    // The legacy Bash launcher ships Portuguese and English menus.
+    // The launcher maps Spanish to its English menu and keeps Spanish project templates.
     var terminalLanguage: String {
-        self == .portuguese ? "pt-BR" : "en"
+        rawValue
     }
 
     private static let translations: [PanelLanguage: Bundle] = Dictionary(uniqueKeysWithValues:

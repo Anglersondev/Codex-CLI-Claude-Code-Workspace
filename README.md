@@ -47,7 +47,7 @@ flowchart LR
 | To… | Open… | What happens |
 |---|---|---|
 | Check whether your tools are ready | **Settings → Environment check** | Shows versions for Codex CLI, Claude Code, Git, npm and RTK, checks both agent logins, and suggests a fix for failed checks. Token Optimizer has separate entries for each agent’s plugin setting and cached version. |
-| Hand off a task between agents | **Agent for this session → the other agent** | Review the Git change list, record the tests you ran and enter the next step. **Save and open agent** appends your checkpoint to `DOCS/ANDAMENTO.md` and opens the other agent in the same folder with a request to read it. **Save only** keeps the current agent selected. **Select agent only** skips the checkpoint. |
+| Hand off a task between agents | **Agent for this session → the other agent** | Review the Git change list, record the tests you ran and enter the next step. **Save and open agent** appends your checkpoint to `DOCS/PROGRESS.md` and opens the other agent in the same folder with a request to read it. **Save only** keeps the current agent selected. **Select agent only** skips the checkpoint. |
 | Run both agents at once | From the repository root, **Isolated session…** | Choose an agent and a short task name. The panel creates a branch and a sibling working folder. Keep the first terminal open while you work in the second copy. |
 
 For a project called `shop` and a Claude task called `search`, the folder is `shop-claude-search` and the branch is `assistente/claude-search`. The copy starts at the current commit. Commit any local changes you want to include, including instructions and notes. Both folders remain available in recent projects. Review the branch and merge through Git when ready.
@@ -56,16 +56,16 @@ Checkpoints also work without Git. Describe your changes in the editable field. 
 
 ## Share project context between Codex and Claude Code
 
-Projects created in the desktop panel include both agent entry files. Put the goal, project conventions, and recurring constraints in `INSTRUCOES/PROJETO.md`. Both entry files point to that shared document.
+Projects created in the desktop panel include both agent entry files. Put the goal, project conventions, and recurring constraints in `INSTRUCTIONS/PROJECT.md`. Both entry files point to that shared document.
 
 ```text
 my-project/
-├── AGENTS.md                 # Codex project instructions
-├── CLAUDE.md                 # Claude Code project instructions
-├── INSTRUCOES/PROJETO.md      # Shared goals and rules
-├── DOCS/ANDAMENTO.md         # Progress, decisions, and next step
-├── PROMPTS/                  # Reusable requests
-└── ANEXOS/                   # Attachments and supporting files
+├── AGENTS.md                    # Codex project instructions
+├── CLAUDE.md                    # Claude Code project instructions
+├── INSTRUCTIONS/PROJECT.md      # Shared goals and rules
+├── DOCS/PROGRESS.md             # Progress, decisions, and next step
+├── PROMPTS/                     # Reusable requests
+└── ATTACHMENTS/                 # Attachments and supporting files
 ```
 
 For an existing folder, **Set up shared context** creates missing files and preserves custom instructions. Review custom `AGENTS.md` and `CLAUDE.md` files if you want them to reference the shared document. An `AGENTS.override.md` file takes priority for Codex.
@@ -80,12 +80,12 @@ Use **Save session progress** before switching agents or accounts. Once you have
 | Find an older chat | **History** | The selected agent opens its session picker. |
 | Switch from Codex to Claude Code or change accounts | **Save session progress**, then **Continue from project notes** | The new session uses files in your project folder, including the summary you saved. |
 
-**What gets saved automatically?** File edits go to the project when the agent makes them. The launcher saves preferences and recent folders. To keep a reusable progress summary, ask the agent to update `DOCS/ANDAMENTO.md` or choose **Save session progress** and let the agent finish writing. Each agent keeps its own chat history.
+**What gets saved automatically?** File edits go to the project when the agent makes them. The launcher saves preferences and recent folders. To keep a reusable progress summary, ask the agent to update `DOCS/PROGRESS.md` or choose **Save session progress** and let the agent finish writing. Each agent keeps its own chat history.
 
 ### Save and close a session
 
 1. To keep a progress summary, use **More actions → Save progress from the latest session…** on macOS or **Project tools → Save session progress** on Linux and Windows. You can also send this message while the conversation is open:
-   > Update `DOCS/ANDAMENTO.md` with what was done, what was tested, and the next step.
+   > Update `DOCS/PROGRESS.md` with what was done, what was tested, and the next step.
 2. Wait for the agent to confirm it saved the summary, then exit the session. If you only want to keep the changes already written to files, you can exit directly.
 3. To reopen the latest chat with the same agent, use **Resume** or run the corresponding command from the project folder.
 
@@ -94,13 +94,13 @@ Use **Save session progress** before switching agents or accounts. Once you have
 | Codex CLI | `codex resume --last` |
 | Claude Code | `claude --continue` |
 
-The desktop panel and this guide are available in English, Brazilian Portuguese, and Spanish. The terminal-only menus are available in English and Brazilian Portuguese. The commands and on-disk paths are the same in every language. In English, `INSTRUCOES/` means instructions, `ANEXOS/` means attachments, and `DOCS/ANDAMENTO.md` is the progress summary. `CODEX/` and `CLAUDE/` are the agent folders under the default project location.
+The panel is available in English, Brazilian Portuguese, and Spanish. The selected language determines the folder and template names for new projects, including the reusable prompts. Existing projects keep their original paths. `AGENTS.md` and `CLAUDE.md` use the agents’ standard filenames. The standalone terminal’s Portuguese and English menus also offer Spanish project templates.
 
 ### Example: start with Codex and hand off to Claude Code
 
 1. Open your website repository in Assistente IA. Choose **Set up shared context** if the folders are missing.
-2. In `INSTRUCOES/PROJETO.md`, record conventions that apply to every session. For example, “Use npm and run the build before handing off.”
-3. Start a Codex session and implement the change. Before switching, ask Codex to update `DOCS/ANDAMENTO.md` with the changes, checks, and next step.
+2. In `INSTRUCTIONS/PROJECT.md`, record conventions that apply to every session. For example, “Use npm and run the build before handing off.”
+3. Start a Codex session and implement the change. Before switching, ask Codex to update `DOCS/PROGRESS.md` with the changes, checks, and next step.
 4. Select Claude Code and click **Continue from project notes**. Claude starts a new conversation with the saved summary.
 
 A short handoff might look like this:
@@ -137,7 +137,7 @@ To use the existing terminal menus, open `ASSISTENTE-IA-MAC.command`, `ASSISTENT
 | What you see | What to check |
 | --- | --- |
 | The launch button fails or the agent asks you to sign in | Run `codex --version` or `claude --version` in your terminal, then sign in to that CLI. |
-| **Continue from project notes** is unavailable | Record a next step in `DOCS/ANDAMENTO.md` and check that `PROMPTS/CONTINUAR.md` exists. |
+| **Continue from project notes** is unavailable | Record a next step in `DOCS/PROGRESS.md` and check that `PROMPTS/CONTINUE.md` exists. |
 | A project already has its own instructions | Review its `AGENTS.md`, `AGENTS.override.md`, or `CLAUDE.md` and link the shared instructions where appropriate. |
 | Linux opens no terminal | Install a supported graphical terminal and launch the panel from your desktop session. |
 | Windows displays a Python or Tkinter error | Check that Python 3.9+ with Tcl/Tk is installed. |

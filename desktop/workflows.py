@@ -133,7 +133,7 @@ def save_checkpoint(folder, source, target, changes, tests, next_step):
             f"\n### {label('next')}\n{next_step.strip()}\n").encode("utf-8")
     if len(note) > 60000:
         raise ValueError(label("too_large"))
-    path = core.managed_path(folder, "DOCS/ANDAMENTO.md")
+    path = core.managed_path(folder, core.project_layout(folder)["progress"])
     if path.exists() and not path.is_file():
         raise ValueError(label("unsafe_notes"))
     path.parent.mkdir(exist_ok=True)

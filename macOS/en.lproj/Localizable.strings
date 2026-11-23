@@ -50,7 +50,6 @@
 "Escolher arquivo…" = "Choose file…";
 "Escolher pasta" = "Choose folder";
 "Escolher…" = "Choose…";
-"Escreva o objetivo em PROJETO.md antes de começar." = "Write your goal in PROJETO.md before getting started.";
 "Esforço" = "Effort";
 "Evitar dupla compactação do Terminal" = "Avoid double compression in Terminal";
 "Falha ao aplicar a atualização. %@" = "The update could not be applied. %@";
@@ -78,7 +77,6 @@
 "O SHA-256 do ZIP diverge do publicado." = "The ZIP SHA-256 does not match the release.";
 "O Terminal do macOS não foi encontrado." = "macOS Terminal was not found.";
 "O Terminal não iniciou a sessão. Abra o Terminal uma vez e tente novamente." = "Terminal did not start the session. Open Terminal once and try again.";
-"O agente retomará sua conversa mais recente e atualizará DOCS/ANDAMENTO.md." = "The agent will resume your latest chat and update DOCS/ANDAMENTO.md.";
 "O app consulta no máximo uma vez por dia quando estiver em uso. Atualizações do Assistente são aplicadas ao sair." = "The app checks at most once a day while in use. Assistente updates are applied when you quit.";
 "O bundle baixado tem versão ou identificação diferente da esperada." = "The downloaded app has an unexpected version or bundle identifier.";
 "O download da versão publicada falhou." = "The release download failed.";
@@ -118,7 +116,6 @@
 "Trabalhar" = "Work";
 "Trocar conta…" = "Switch account…";
 "Trocar de conta?" = "Switch accounts?";
-"Uma entrada usa regras próprias. Confira a referência a PROJETO.md se quiser compartilhar essas regras." = "One entry uses its own rules. Check its PROJETO.md reference if you want to share those rules.";
 "Usar esta pasta nos próximos projetos" = "Use this folder for future projects";
 "Usar pedido" = "Use prompt";
 "Verificando…" = "Checking…";
@@ -146,7 +143,6 @@
 "Salvar cópia ZIP neste local" = "Save ZIP backup here";
 "Nenhum package.json encontrado neste projeto." = "No package.json was found in this project.";
 "Pedido salvo e selecionado para a próxima sessão." = "Prompt saved and selected for the next session.";
-"Arquivo copiado para ANEXOS." = "File copied to ANEXOS.";
 "Cópia ZIP criada." = "ZIP backup created.";
 "Novo pedido" = "New prompt";
 "Nome do pedido" = "Prompt name";
@@ -173,3 +169,7 @@
 "Comandos do Terminal" = "Terminal commands";
 "Escolha um comando para copiar." = "Choose a command to copy.";
 "Comando copiado. Cole no Terminal." = "Command copied. Paste it into your terminal.";
+"Escreva o objetivo nas instruções antes de começar." = "Write your goal in the instructions before starting.";
+"O agente retomará sua conversa mais recente e atualizará o arquivo de progresso." = "The agent will resume your latest conversation and update the progress file.";
+"Uma entrada usa regras próprias. Confira o caminho das instruções compartilhadas para usar as mesmas regras." = "An agent uses custom rules. Check the shared instructions path to use the same rules.";
+"Anexo copiado." = "Attachment copied.";

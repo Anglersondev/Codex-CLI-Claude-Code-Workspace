@@ -54,11 +54,15 @@ struct CheckpointPanel: View {
     @ViewState private var loaded = false
     @ViewState private var failure: String?
 
+    private func progressText(_ key: String) -> String {
+        wf(key).replacingOccurrences(of: "{path}", with: workspace.layout?.progress ?? "")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(wf("review")).font(.title2.bold())
             Text(project.agent.name + " → " + project.other.name).font(.headline)
-            Text(wf("note_destination")).foregroundStyle(.secondary)
+            Text(progressText("note_destination")).foregroundStyle(.secondary)
             if !loaded { ProgressView().controlSize(.small) }
             editor("files", $changes, height: 85)
             editor("tests", $tests, height: 46)
@@ -105,7 +109,7 @@ struct CheckpointPanel: View {
                     "\n### \(wf("next"))\n\(next)\n"
                 guard note.utf8.count <= 60000 else { throw AppFailure(wf("too_large")) }
                 _ = try await Backend.run(["checkpoint-append", path, note])
-                workspace.notice = wf("saved")
+                workspace.notice = progressText("saved")
             }
             guard saved else {
                 failure = workspace.message
@@ -124,7 +128,7 @@ struct CheckpointPanel: View {
         }
         if done && save {
             await workspace.terminalAction(["launch", path, agent.rawValue, "handoff", workspace.workMode,
-                                            workspace.model, workspace.effort, wf("resume_prompt")])
+                                            workspace.model, workspace.effort, progressText("resume_prompt")])
         }
     }
 }

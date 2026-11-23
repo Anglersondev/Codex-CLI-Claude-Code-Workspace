@@ -45,6 +45,32 @@ def text(pt, en, es):
     return {"pt-BR": pt, "en": en, "es": es}[PANEL_LANGUAGE]
 
 
+LAYOUTS = {}
+for line in (Path(__file__).resolve().parents[1] / "lib" / "project-layouts.tsv").read_text(encoding="utf-8").splitlines():
+    language, *paths = line.split("\t")
+    LAYOUTS[language] = dict(zip(
+        ("instructions", "progress", "continue", "close", "summary", "start", "plan",
+         "attachments", "code", "archive", "backups"), paths
+    ))
+    for directory, role in (("rules", "instructions"), ("docs", "progress"), ("prompts", "continue")):
+        LAYOUTS[language][directory] = LAYOUTS[language][role].split("/")[0]
+
+
+def project_language(folder):
+    roles = ("instructions", "progress", "continue", "close", "summary", "start", "plan")
+    for language, layout in LAYOUTS.items():
+        if any((folder / layout[role]).exists() or is_link(folder / layout[role]) for role in roles):
+            return language
+    for language, layout in LAYOUTS.items():
+        if any((folder / layout[role]).is_dir() for role in ("rules", "attachments")):
+            return language
+    return PANEL_LANGUAGE
+
+
+def project_layout(folder):
+    return LAYOUTS[project_language(folder)]
+
+
 def state_directory():
     if "ASSISTENTE_STATE_DIR" in os.environ:
         return Path(os.environ["ASSISTENTE_STATE_DIR"])
@@ -155,29 +181,36 @@ def write_new(path, content, keep_existing=False):
 
 
 def scaffold(folder, agent, goal=""):
+    language = project_language(folder)
+    layout = LAYOUTS[language]
+
+    def template(pt, en, es):
+        return {"pt-BR": pt, "en": en, "es": es}[language]
+
+    rules, progress = layout["instructions"], layout["progress"]
     files = {
-        "AGENTS.md": text("Leia INSTRUCOES/PROJETO.md antes de trabalhar neste projeto.\n",
-                          "Read INSTRUCOES/PROJETO.md before working on this project.\n", "Lee INSTRUCOES/PROJETO.md antes de trabajar en este proyecto.\n"),
-        "CLAUDE.md": "@INSTRUCOES/PROJETO.md\n",
-        "INSTRUCOES/PROJETO.md": text("# Instruções do projeto\n\nObjetivo: ", "# Project instructions\n\nGoal: ", "# Instrucciones del proyecto\n\nObjetivo: ") + goal + "\n",
-        "DOCS/ANDAMENTO.md": text("# Andamento\n\n## O que funciona\n\n## Próximo passo\n",
+        "AGENTS.md": template(f"Leia {rules} antes de trabalhar neste projeto.\n",
+                          f"Read {rules} before working on this project.\n", f"Lee {rules} antes de trabajar en este proyecto.\n"),
+        "CLAUDE.md": f"@{rules}\n",
+        layout["instructions"]: template("# Instruções do projeto\n\nObjetivo: ", "# Project instructions\n\nGoal: ", "# Instrucciones del proyecto\n\nObjetivo: ") + goal + "\n",
+        layout["progress"]: template("# Andamento\n\n## O que funciona\n\n## Próximo passo\n",
                                   "# Progress\n\n## What works\n\n## Next step\n", "# Progreso\n\n## Qué funciona\n\n## Próximo paso\n"),
-        "PROMPTS/CONTINUAR.md": text(
-            "Leia INSTRUCOES/PROJETO.md e DOCS/ANDAMENTO.md. Confira os arquivos e continue a tarefa registrada. "
+        layout["continue"]: template(
+            f"Leia {rules} e {progress}. Confira os arquivos e continue a tarefa registrada. "
             "Se o próximo passo estiver indefinido, peça esclarecimento.\n",
-            "Read INSTRUCOES/PROJETO.md and DOCS/ANDAMENTO.md. Check the files and continue the recorded task. "
+            f"Read {rules} and {progress}. Check the files and continue the recorded task. "
             "If the next step is unclear, ask for clarification.\n",
-            "Lee INSTRUCOES/PROJETO.md y DOCS/ANDAMENTO.md. Comprueba los archivos y continúa con la tarea registrada. "
+            f"Lee {rules} y {progress}. Comprueba los archivos y continúa con la tarea registrada. "
             "Si el próximo paso no está claro, pide una aclaración.\n",
         ),
-        "PROMPTS/ENCERRAR-SESSAO.md": text("Atualize DOCS/ANDAMENTO.md com as mudanças confirmadas, os testes e o próximo passo. Mantenha o resumo curto.\n",
-                                          "Update DOCS/ANDAMENTO.md with confirmed changes, tests, and the next step. Keep it concise.\n", "Actualiza DOCS/ANDAMENTO.md con los cambios confirmados, las pruebas y el próximo paso. Sé breve.\n"),
+        layout["close"]: template(f"Atualize {progress} com as mudanças confirmadas, os testes e o próximo passo. Mantenha o resumo curto.\n",
+                                          f"Update {progress} with confirmed changes, tests, and the next step. Keep it concise.\n", f"Actualiza {progress} con los cambios confirmados, las pruebas y el próximo paso. Sé breve.\n"),
         ".assistente-ia/tool": agent + "\n",
     }
-    directories = {name: managed_path(folder, name) for name in ("INSTRUCOES", "DOCS", "PROMPTS", "ANEXOS", ".assistente-ia")}
+    directories = {name: managed_path(folder, name) for name in (layout["rules"], layout["docs"], layout["prompts"], layout["attachments"], ".assistente-ia")}
     paths = {name: managed_path(folder, name) for name in files}
     if any(path.exists() and not path.is_file() for path in paths.values()):
-        raise ValueError(text("Um caminho reservado já está em uso.", "A reserved path is already in use.", "Una ruta reservada ya está en uso."))
+        raise ValueError(template("Um caminho reservado já está em uso.", "A reserved path is already in use.", "Una ruta reservada ya está en uso."))
     for path in directories.values():
         path.mkdir(exist_ok=True)
     for name, path in paths.items():
@@ -223,7 +256,7 @@ def preferred_agent(folder):
 
 def progress_available(folder):
     try:
-        path = managed_path(folder, "DOCS/ANDAMENTO.md")
+        path = managed_path(folder, project_layout(folder)["progress"])
         with path.open(encoding="utf-8-sig", errors="replace") as stream:
             for line in stream:
                 note = line.strip()
@@ -239,7 +272,7 @@ def instructions_are_long(folder, agent):
     if agent == "codex" and (folder / "AGENTS.override.md").is_file():
         entry = "AGENTS.override.md"
     size = 0
-    for name in (entry, "INSTRUCOES/PROJETO.md"):
+    for name in (entry, project_layout(folder)["instructions"]):
         try:
             size += managed_path(folder, name).stat().st_size
         except (OSError, ValueError):
@@ -251,7 +284,7 @@ def save_prompt(folder, name, prompt):
     validate_name(name)
     if not prompt.strip() or len(prompt.encode("utf-8")) > 60000:
         raise ValueError(text("O pedido deve ter texto e até 60 KB.", "The prompt must have text and be at most 60 KB.", "La solicitud debe tener texto y ocupar como máximo 60 KB."))
-    target = managed_path(folder, f"PROMPTS/{name}.md")
+    target = managed_path(folder, f"{project_layout(folder)['prompts']}/{name}.md")
     target.parent.mkdir(exist_ok=True)
     write_new(target, prompt.rstrip() + "\n")
     return target
@@ -259,7 +292,7 @@ def save_prompt(folder, name, prompt):
 
 def attach_file(folder, source):
     name = source.name
-    target = managed_path(folder, f"ANEXOS/{name}")
+    target = managed_path(folder, f"{project_layout(folder)['attachments']}/{name}")
     target.parent.mkdir(exist_ok=True)
     with source.open("rb") as original, target.open("xb") as copied:
         try:

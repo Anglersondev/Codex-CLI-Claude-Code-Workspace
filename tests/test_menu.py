@@ -225,13 +225,13 @@ class MenuTests(base.AssistantTests):
         self.assert_ok(result)
         project = self.parent / "CODEX" / name
         self.assertIn("Create project · 4 of 4", result.stdout)
-        self.assertIn("Respond in English", (project / "INSTRUCOES/PROJETO.md").read_text())
+        self.assertIn("Respond in English", (project / "INSTRUCTIONS/PROJECT.md").read_text())
         self.assertIn("Describe the purpose", (project / "README.md").read_text())
-        self.assertIn("Check the actual file state", (project / "PROMPTS/CONTINUAR.md").read_text())
+        self.assertIn("Check the actual file state", (project / "PROMPTS/CONTINUE.md").read_text())
         self.assert_ok(self.project_shell(project, "has_real_progress && exit 1; exit 0"))
         filled = self.project_shell(project, "fill_project_objective 'Build a website' && project_doctor", "")
         self.assert_ok(filled)
-        self.assertIn("- Goal: Build a website", (project / "INSTRUCOES/PROJETO.md").read_text())
+        self.assertIn("- Goal: Build a website", (project / "INSTRUCTIONS/PROJECT.md").read_text())
         self.assertIn("Build a website", (project / "README.md").read_text())
 
 

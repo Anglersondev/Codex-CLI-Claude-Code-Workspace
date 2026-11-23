@@ -54,12 +54,13 @@ app_checkpoint_files() {
 app_checkpoint_append() {
   local note="$2" file
   PROJECT="$(normalize_path "$1")" || return 1
-  file="$PROJECT/DOCS/ANDAMENTO.md"
+  project_context || return 1
+  file="$PROJECT/${CTX_PROGRESS}"
   text_has_content "$note" || return 2
   [ "$(LC_ALL=C printf '%s' "$note" | wc -c)" -le 60000 ] || { printf '@too_large\n' >&2; return 1; }
-  if ! safe_project_path DOCS/ANDAMENTO.md >/dev/null 2>&1 ||
+  if ! safe_project_path "${CTX_PROGRESS}" >/dev/null 2>&1 ||
       { [ -e "$file" ] && [ ! -f "$file" ]; }; then printf '@unsafe_notes\n' >&2; return 1; fi
-  mkdir -p -- "$PROJECT/DOCS" && printf '%s' "$note" >> "$file"
+  mkdir -p -- "$PROJECT/${CTX_DOCS}" && printf '%s' "$note" >> "$file"
 }
 
 app_worktree_create() {
