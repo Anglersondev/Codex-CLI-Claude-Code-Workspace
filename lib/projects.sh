@@ -18,10 +18,20 @@ project_profile() {
   else return 1; fi
 }
 
+selected_project_agent() {
+  local value
+  if [ -n "$SESSION_TOOL" ]; then printf '%s' "$SESSION_TOOL"; return; fi
+  if [ -n "$PREF_DIR" ] && [ "$(read_value "$PREF_DIR/path")" = "$PROJECT" ] && [ -f "$PREF_DIR/tool" ]; then
+    value="$(read_value "$PREF_DIR/tool")"
+    case "$value" in codex|claude) printf '%s' "$value"; return 0 ;; esac
+  fi
+  project_profile
+}
+
 choose_project_tool() {
   local profile
   if [ -n "$SESSION_TOOL" ]; then TOOL="$SESSION_TOOL"; return 0; fi
-  profile="$(project_profile)"
+  profile="$(selected_project_agent)"
   if [ -n "$profile" ]; then
     TOOL="$profile"
     say "$(ui 'Ferramenta deste projeto' 'Agent for this project'): $TOOL"

@@ -1,6 +1,8 @@
 #!/bin/bash
 # Bridge for the macOS app. Machine-readable commands use one value per line.
 
+. "$BASE_DIR/lib/workflows.sh"
+
 app_list_projects() {
   local path
   [ -f "$STATE_DIR/recents" ] || return 0
@@ -41,7 +43,7 @@ app_project_info() {
 }
 
 app_launch() {
-  local folder="$1" verb="$3" prompt_file="$7"
+  local folder="$1" verb="$3" prompt_file="$7" summary=0
   TOOL="$2" WORKMODE="$4" MODEL="$5" EFFORT="$6"
   case "$TOOL" in codex|claude) ;; *) return 2 ;; esac
   case "$WORKMODE" in trabalhar|planejar) ;; *) return 2 ;; esac
@@ -52,16 +54,18 @@ app_launch() {
   set_project "$folder" || return 1
   case "$verb" in
     novo|recente|escolher) ;;
+    handoff) INITIAL_PROMPT="$prompt_file"; verb=novo ;;
     resumo)
       [ -d "$PROJECT/DOCS" ] && [ ! -L "$PROJECT/DOCS" ] || {
         warn "$(ui 'Prepare DOCS/ no app antes de salvar o andamento.' 'Prepare DOCS/ in the app before saving progress.')"
         return 1
       }
       INITIAL_PROMPT="$(prompt_encerrar_text)"
-      verb=recente WORKMODE=trabalhar ;;
+      verb=recente summary=1 ;;
     *) return 2 ;;
   esac
   save_preferences || return 1
+  if [ "$summary" = 1 ]; then WORKMODE=trabalhar; fi
   if [ "${ASSISTENTE_BASH_COMPRESSION:-avoid}" = avoid ] && rtk_hook_active "$TOOL"; then
     export TOKEN_OPTIMIZER_BASH_COMPRESS=0 TOKEN_OPTIMIZER_NO_UPDATED_TOOL_OUTPUT=1
   fi
@@ -192,6 +196,13 @@ app_command() {
       PROJECT="$(normalize_path "$1")" || return 1
       prepare_shared_project ;;
     launch:7) app_launch "$@" ;;
+    probe:1) app_probe "$1" ;;
+    checkpoint-files:1) app_checkpoint_files "$1" ;;
+    checkpoint-append:2) app_checkpoint_append "$1" "$2" ;;
+    worktree-create:3) app_worktree_create "$@" ;;
+    select-agent:2)
+      case "$2" in codex|claude) ;; *) return 2 ;; esac
+      set_project "$1" && put "$PREF_DIR/tool" "$2" ;;
     tools:0) app_tool_status ;;
     rtk-gain:0) rtk_gains ;;
     rtk-hook:2) rtk_toggle "$1" "$2" confirmado ;;

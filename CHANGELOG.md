@@ -8,6 +8,9 @@ First release of **Assistente IA** in the Codex CLI & Claude Code Workspace repo
 - Graphical launchers for Linux and Windows using Python and Tkinter.
 - English, Brazilian Portuguese, and Spanish, plus automatic language selection.
 - Choose between agent folders or creating directly in the selected folder. Either layout lets you choose Codex or Claude for each session.
+- Check tool versions, agent sign-in, RTK hooks and Token Optimizer settings from the panel.
+- Review a checkpoint when switching agents and run parallel terminal sessions in separate Git worktrees.
+- Save progress and continue from notes directly in the Windows terminal menu.
 - Copy Codex, Claude Code, Git, npm and RTK commands from the panel.
 - One workspace with `AGENTS.md`, `CLAUDE.md`, shared instructions, reusable prompts, and project progress notes.
 - New, resume, and history actions for the official Codex and Claude Code terminal sessions.

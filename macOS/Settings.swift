@@ -41,6 +41,14 @@ struct SettingsPanel: View {
                 }
                 Section(tr("Agentes e contas")) {
                     ForEach(Agent.allCases) { agent in agentRow(agent) }
+                    Button(wf("diagnosis")) {
+                        Task {
+                            await workspace.perform {
+                                workspace.detail = Workspace.TextResult(title: wf("diagnosis"), text: try await environmentReport())
+                            }
+                        }
+                    }.disabled(workspace.busy)
+                    if workspace.busy { ProgressView().controlSize(.small) }
                 }
                 Section(tr("Integrações")) {
                     LabeledContent("RTK") {

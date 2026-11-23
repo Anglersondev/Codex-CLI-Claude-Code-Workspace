@@ -29,13 +29,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb xterm python3-tk
           ASSISTENTE_TEST_NATIVE_TERMINAL=1 xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -p 'test_desktop.py'
+          ASSISTENTE_TEST_WORKFLOW_UI=1 xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -p test_workflows.py
           xvfb-run -a /usr/bin/python3 desktop/panel.py --smoke-test
       - if: runner.os == 'Windows'
         env:
           ASSISTENTE_TEST_NATIVE_TERMINAL: '1'
+          ASSISTENTE_TEST_WORKFLOW_UI: '1'
         run: |
           powershell -NoProfile -ExecutionPolicy RemoteSigned -File ASSISTENTE-IA-WINDOWS.ps1 -Check
           python -m unittest discover -s tests -p 'test_desktop.py'
+          python -m unittest discover -s tests -p test_workflows.py
           python desktop/panel.py --smoke-test
 
   macos:

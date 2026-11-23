@@ -69,6 +69,8 @@ struct Dashboard: View {
     @ViewState private var wrap = false
     @ViewState private var promptEditor: ProjectAction?
     @ViewState private var packages: DevPackages?
+    @ViewState private var handoff: WorkflowProject?
+    @ViewState private var isolated: WorkflowProject?
     private let accent = Color(nsColor: .systemBlue)
 
     var body: some View {
@@ -170,6 +172,8 @@ struct Dashboard: View {
         .sheet(item: $promptEditor) { item in
             NewPromptPanel(project: item.path, workspace: workspace)
         }
+        .sheet(item: $handoff) { item in CheckpointPanel(project: item, workspace: workspace) }
+        .sheet(item: $isolated) { item in WorktreePanel(project: item, workspace: workspace) }
         .sheet(item: $packages) { item in
             DevPanel(project: item, workspace: workspace)
         }
@@ -209,9 +213,12 @@ struct Dashboard: View {
             projectHeader(folder)
             section("Sessão no Terminal") {
                 Text(tr("Agente desta sessão")).font(.subheadline.weight(.semibold))
-                Picker(tr("Agente desta sessão"), selection: $workspace.agent) {
+                Picker(tr("Agente desta sessão"), selection: Binding(get: { workspace.agent }, set: { target in
+                    if target != workspace.agent { handoff = WorkflowProject(path: path, agent: workspace.agent) }
+                })) {
                     ForEach(Agent.allCases) { agent in Text(agent.name).tag(agent) }
                 }
+                .disabled(!workspace.sessionReady || workspace.busy)
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .accessibilityLabel(Text(tr("Agente desta sessão")))
@@ -225,6 +232,7 @@ struct Dashboard: View {
                     .keyboardShortcut(.return, modifiers: .command)
                     Button(tr("Continuar")) { Task { await workspace.start("recente") } }
                     Button(tr("Histórico…")) { Task { await workspace.start("escolher") } }
+                    Button(wf("isolated")) { isolated = WorkflowProject(path: path, agent: workspace.agent) }
                 }
                 .disabled(!workspace.sessionReady || workspace.busy || workspace.updatingIntegrations)
                 Text(tr("Ao sair da sessão no Terminal, você volta a esta janela."))

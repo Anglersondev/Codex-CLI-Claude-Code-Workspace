@@ -28,11 +28,23 @@ Instala [Codex CLI](https://learn.chatgpt.com/docs/cli) o [Claude Code](https://
 3. Selecciona **Nueva sesión**, **Continuar** o **Historial**. Trabaja en el terminal y vuelve al panel al terminar.
 4. En **Ajustes → Idioma**, elige español, inglés, portugués de Brasil o **Automático**.
 
-Usa **Agente de esta sesión** para alternar entre Codex y Claude en el mismo proyecto. La organización solo define dónde se crea el proyecto. Para trasladar el contexto, usa **Guardar progreso**, cambia de agente y pulsa **Continuar desde las notas del proyecto**.
+Usa **Agente de esta sesión** para alternar entre Codex y Claude en el mismo proyecto. La organización solo define dónde se crea el proyecto. Al seleccionar el otro agente, el panel abre un checkpoint para que lo revises.
 
 `AGENTS.md` y `CLAUDE.md` apuntan a `INSTRUCOES/PROJETO.md` en los proyectos organizados. Usa ese archivo para compartir reglas y objetivos. Guarda decisiones y el próximo paso en `DOCS/ANDAMENTO.md`. Al cambiar de agente o cuenta, **Continuar desde las notas del proyecto** abre una sesión nueva con ese resumen. Cada agente conserva su propio historial.
 
 El panel reúne solicitudes guardadas, archivos adjuntos, estado de Git, servidor npm, copias ZIP y acceso a la terminal. Los menús de terminal siguen disponibles en los lanzadores de cada sistema. Consulta la [guía para Linux y Windows](desktop/LEIA-ME.md) o la [documentación completa](README.md).
+
+## Diagnóstico, cambio de agente y sesiones paralelas
+
+| Quiero… | Dónde ir | Qué ocurre |
+|---|---|---|
+| Comprobar las herramientas | **Ajustes → Diagnóstico del entorno** | Muestra las versiones de Codex CLI, Claude Code, Git, npm y RTK, comprueba el inicio de sesión y sugiere cómo resolver los fallos. Para Token Optimizer muestra la configuración de cada agente y la versión encontrada en la caché. |
+| Pasar una tarea de un agente al otro | **Agente de esta sesión → el otro agente** | Revisa los archivos modificados, anota las pruebas que ejecutaste e indica el próximo paso. **Guardar y abrir agente** añade el checkpoint a `DOCS/ANDAMENTO.md` y abre el otro agente en esa carpeta con la petición de leerlo. **Solo guardar** registra el checkpoint y mantiene el agente actual. **Solo seleccionar agente** permite cambiar sin guardar. |
+| Trabajar con ambos a la vez | Desde la raíz del repositorio, **Sesión aislada…** | Elige el agente y un nombre corto para la tarea. El panel crea una rama y una carpeta junto al proyecto. Puedes dejar el primer terminal abierto mientras trabajas en la copia. |
+
+Para un proyecto llamado `tienda` y una tarea de Claude llamada `buscar`, la carpeta será `tienda-claude-buscar` y la rama será `assistente/claude-buscar`. La copia parte del commit actual. Haz commit de los cambios locales que quieras incluir, como instrucciones y notas. Ambas carpetas quedan en los proyectos recientes. Cuando revises el resultado, puedes fusionar las ramas con Git.
+
+También puedes guardar un checkpoint sin Git. Describe los cambios en el campo editable. El panel muestra hasta 80 archivos y registra los resultados de las pruebas que indiques.
 
 ## Contexto compartido y progreso
 

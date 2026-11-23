@@ -38,11 +38,14 @@ class MenuTests(base.AssistantTests):
 
     def test_m05_close_with_summary_sends_prompt_codex(self):
         project = self.with_project("codex")
+        self.assert_ok(self.project_shell(project, 'put "$PREF_DIR/codex.mode" planejar'))
         result = self.run_main(input_text="3\n\n\n0\n", timeout=12)
         self.assert_ok(result)
         calls = self.session_calls()
         self.assertEqual(len(calls), 1, self.calls())
         self.assertEqual(calls[0]["args"][:2], ["resume", "--last"])
+        self.assertIn("workspace-write", calls[0]["args"])
+        self.assert_ok(self.project_shell(project, '[ "$(read_value "$PREF_DIR/codex.mode")" = planejar ]'))
         text = (project / "PROMPTS/ENCERRAR-SESSAO.md").read_text().strip()
         self.assertIn(text, calls[0]["args"])
         self.assertEqual(calls[0]["args"][calls[0]["args"].index(text) - 1], "--")

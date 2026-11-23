@@ -44,6 +44,7 @@ class AssistantTests(unittest.TestCase):
         for key in list(self.env):
             if any(s in key for s in ("API_KEY", "AUTH_TOKEN", "ACCESS_TOKEN")):
                 self.env.pop(key, None)
+        self.env.pop("ASSISTENTE_LANG", None)
         self.env.update({
             "HOME": str(self.home),
             "CODEX_HOME": str(self.home / ".codex"),
@@ -58,7 +59,7 @@ class AssistantTests(unittest.TestCase):
         })
         self.create_cli("codex")
         self.create_cli("claude")
-        for name in ("osascript", "open", "pbcopy", "screencapture"):
+        for name in ("osascript", "open", "pbcopy", "screencapture", "defaults"):
             (self.bin / name).write_text("#!/bin/bash\nexit 1\n")
             (self.bin / name).chmod(0o755)
 
@@ -973,6 +974,21 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         info = self.run_main("--app", "info", str(project))
         self.assert_ok(info)
         self.assertTrue({"override", "progress", "large-context"}.issubset(info.stdout.splitlines()))
+
+    def test_handoff_uses_new_agent_in_terminal_and_reads_latest_checkpoint(self):
+        folder = self.managed_project("codex")
+        self.assert_ok(self.run_main("--app", "checkpoint-append", str(folder), "\n### Next\nReview the layout.\n"))
+        self.assert_ok(self.run_main("--app", "select-agent", str(folder), "claude"))
+        self.assert_ok(self.project_shell(folder, 'choose_project_tool && [ "$TOOL" = claude ]'))
+        self.assert_ok(self.run_main("--app", "launch", str(folder), "claude", "handoff",
+                                     "trabalhar", "", "", "Read DOCS/ANDAMENTO.md"))
+        handoff = self.session_calls()[-1]
+        self.assertEqual(handoff["cwd"], str(folder))
+        self.assertEqual(handoff["name"], "claude")
+        self.assertNotIn("--continue", handoff["args"])
+        self.assertEqual(handoff["args"][-2:], ["--", "Read DOCS/ANDAMENTO.md"])
+        self.assert_ok(self.project_shell(folder, "quick_resume", "\n"))
+        self.assertIn("--continue", self.session_calls()[-1]["args"])
 
     def test_98_app_can_create_a_shared_project_without_agent_subfolders(self):
         project = self.parent / "Pasta única"

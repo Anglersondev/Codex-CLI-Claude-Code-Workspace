@@ -1,0 +1,257 @@
+{
+  "diagnosis": [
+    "Diagnóstico do ambiente",
+    "Environment check",
+    "Diagnóstico del entorno"
+  ],
+  "checking": [
+    "Verificando ferramentas…",
+    "Checking tools…",
+    "Comprobando herramientas…"
+  ],
+  "missing_codex": [
+    "Instale o Codex CLI e reabra o painel. No Terminal, confira com codex --version.",
+    "Install Codex CLI and reopen the panel. In Terminal, check with codex --version.",
+    "Instala Codex CLI y vuelve a abrir el panel. En el terminal, comprueba con codex --version."
+  ],
+  "missing_claude": [
+    "Instale o Claude Code e reabra o painel. Confira com claude --version.",
+    "Install Claude Code and reopen the panel. Check with claude --version.",
+    "Instala Claude Code y vuelve a abrir el panel. Comprueba con claude --version."
+  ],
+  "missing_rtk": [
+    "Opcional. Para compactar a saída do Terminal, instale o RTK e confira com rtk --version.",
+    "Optional. To compress terminal output, install RTK and check with rtk --version.",
+    "Opcional. Para comprimir la salida del terminal, instala RTK y comprueba con rtk --version."
+  ],
+  "missing_git": [
+    "Instale o Git para habilitar a lista de mudanças e as sessões isoladas. Depois reabra o painel.",
+    "Install Git to enable change lists and isolated sessions. Then reopen the panel.",
+    "Instala Git para habilitar la lista de cambios y las sesiones aisladas. Después vuelve a abrir el panel."
+  ],
+  "missing_npm": [
+    "Instale o Node.js com npm para iniciar servidores npm pelo painel.",
+    "Install Node.js with npm to launch npm servers from the panel.",
+    "Instala Node.js con npm para iniciar servidores npm desde el panel."
+  ],
+  "version_error": [
+    "Executável encontrado. Execute --version com essa ferramenta no Terminal para conferir a instalação.",
+    "Executable found. Run this tool with --version in Terminal to check its installation.",
+    "Ejecutable encontrado. Usa --version con la herramienta en el terminal para comprobar su instalación."
+  ],
+  "auth_ok": [
+    "Login reconhecido.",
+    "Signed in.",
+    "Sesión iniciada."
+  ],
+  "auth_codex": [
+    "Login pendente. Use Ajustes → Entrar ou execute codex login.",
+    "Sign-in needed. Use Settings → Sign in or run codex login.",
+    "Debes iniciar sesión. Usa Ajustes → Iniciar sesión o ejecuta codex login."
+  ],
+  "auth_claude": [
+    "Login pendente. Use Ajustes → Entrar ou execute claude auth login.",
+    "Sign-in needed. Use Settings → Sign in or run claude auth login.",
+    "Debes iniciar sesión. Usa Ajustes → Iniciar sesión o ejecuta claude auth login."
+  ],
+  "auth_unknown": [
+    "Não foi possível verificar o login. Confira o status no menu Comandos do Terminal.",
+    "Sign-in could not be verified. Check the status command in the Terminal commands menu.",
+    "No se pudo verificar la sesión. Consulta el comando de estado en el menú Comandos del terminal."
+  ],
+  "hook_on": [
+    "RTK configurado.",
+    "RTK hook configured.",
+    "Hook de RTK configurado."
+  ],
+  "hook_off": [
+    "Hook do RTK ausente. Para ativar os hooks, execute",
+    "RTK hook missing. To enable hooks, run",
+    "Falta el hook de RTK. Para activar los hooks, ejecuta"
+  ],
+  "plugin_on": [
+    "Plugin habilitado na configuração do agente.",
+    "Plugin enabled in the agent settings.",
+    "Plugin habilitado en la configuración del agente."
+  ],
+  "plugin_off": [
+    "Plugin opcional. Para usar, instale ou habilite o Token Optimizer no gerenciador de plugins deste agente.",
+    "Optional plugin. To use it, install or enable Token Optimizer in this agent’s plugin manager.",
+    "Plugin opcional. Para usarlo, instala o habilita Token Optimizer en el gestor de plugins de este agente."
+  ],
+  "cache": [
+    "Versão mais recente no cache",
+    "Latest cached version",
+    "Última versión en caché"
+  ],
+  "no_cache": [
+    "Nenhuma versão encontrada no cache deste agente.",
+    "No version found in this agent’s cache.",
+    "No se encontró ninguna versión en la caché de este agente."
+  ],
+  "handoff": [
+    "Trocar de agente",
+    "Switch agent",
+    "Cambiar de agente"
+  ],
+  "review": [
+    "Revisar checkpoint",
+    "Review checkpoint",
+    "Revisar checkpoint"
+  ],
+  "files": [
+    "Arquivos alterados",
+    "Changed files",
+    "Archivos modificados"
+  ],
+  "tests": [
+    "Testes e resultados",
+    "Tests and results",
+    "Pruebas y resultados"
+  ],
+  "next": [
+    "Próximo passo",
+    "Next step",
+    "Próximo paso"
+  ],
+  "no_tests": [
+    "Nenhum teste informado.",
+    "No test result recorded.",
+    "No se registraron resultados de pruebas."
+  ],
+  "clean": [
+    "Nenhuma mudança local encontrada.",
+    "No local changes found.",
+    "No se encontraron cambios locales."
+  ],
+  "no_status": [
+    "Lista do Git indisponível. Você pode descrever as mudanças aqui.",
+    "Git changes unavailable. You can describe the changes here.",
+    "Lista de Git no disponible. Puedes describir los cambios aquí."
+  ],
+  "more_files": [
+    "Lista abreviada. Consulte git status para ver todas as mudanças.",
+    "List shortened. Run git status for all changes.",
+    "Lista abreviada. Usa git status para ver todos los cambios."
+  ],
+  "save_open": [
+    "Salvar e abrir agente",
+    "Save and open agent",
+    "Guardar y abrir agente"
+  ],
+  "switch_only": [
+    "Só selecionar agente",
+    "Select agent only",
+    "Solo seleccionar agente"
+  ],
+  "note_destination": [
+    "O checkpoint será acrescentado a DOCS/ANDAMENTO.md.",
+    "The checkpoint will be appended to DOCS/ANDAMENTO.md.",
+    "El checkpoint se añadirá a DOCS/ANDAMENTO.md."
+  ],
+  "enter_next": [
+    "Informe o próximo passo.",
+    "Enter the next step.",
+    "Indica el próximo paso."
+  ],
+  "saved": [
+    "Checkpoint salvo em DOCS/ANDAMENTO.md.",
+    "Checkpoint saved to DOCS/ANDAMENTO.md.",
+    "Checkpoint guardado en DOCS/ANDAMENTO.md."
+  ],
+  "resume_prompt": [
+    "Leia o checkpoint mais recente em DOCS/ANDAMENTO.md, confira os arquivos citados e retome pelo próximo passo.",
+    "Read the latest checkpoint in DOCS/ANDAMENTO.md, check the referenced files and continue from the recorded next step.",
+    "Lee el último checkpoint de DOCS/ANDAMENTO.md, revisa los archivos citados y continúa desde el próximo paso registrado."
+  ],
+  "isolated": [
+    "Sessão isolada…",
+    "Isolated session…",
+    "Sesión aislada…"
+  ],
+  "isolated_title": [
+    "Nova sessão isolada",
+    "New isolated session",
+    "Nueva sesión aislada"
+  ],
+  "task": [
+    "Nome curto da tarefa",
+    "Short task name",
+    "Nombre corto de la tarea"
+  ],
+  "agent": [
+    "Agente",
+    "Agent",
+    "Agente"
+  ],
+  "base": [
+    "A cópia começa no último commit da pasta selecionada. Faça commit das mudanças locais que deseja incluir.",
+    "The copy starts at the selected folder’s current commit. Commit any local changes you want to include.",
+    "La copia comienza en el último commit de la carpeta seleccionada. Haz commit de los cambios locales que quieras incluir."
+  ],
+  "branch": [
+    "Branch",
+    "Branch",
+    "Rama"
+  ],
+  "folder": [
+    "Pasta",
+    "Folder",
+    "Carpeta"
+  ],
+  "create_open": [
+    "Criar e abrir Terminal",
+    "Create and open Terminal",
+    "Crear y abrir el terminal"
+  ],
+  "invalid_task": [
+    "Use até 40 letras de a a z, números ou hífens, começando por uma letra ou número.",
+    "Use up to 40 lowercase letters, digits or hyphens, starting with a letter or digit.",
+    "Usa hasta 40 letras minúsculas de la a a la z, números o guiones, empezando por una letra o un número."
+  ],
+  "need_repo": [
+    "Abra a pasta raiz de um repositório Git com pelo menos um commit.",
+    "Open the root folder of a Git repository with at least one commit.",
+    "Abre la carpeta raíz de un repositorio Git con al menos un commit."
+  ],
+  "exists": [
+    "Já existe uma pasta ou branch com esse nome. Escolha outro nome de tarefa.",
+    "A folder or branch already has that name. Choose a different task name.",
+    "Ya existe una carpeta o rama con ese nombre. Elige otro nombre de tarea."
+  ],
+  "too_large": [
+    "Reduza o checkpoint para até 60 KB.",
+    "Shorten the checkpoint to 60 KB or less.",
+    "Acorta el checkpoint a un máximo de 60 KB."
+  ],
+  "busy_folder": [
+    "Já há uma sessão nesta pasta. Encerre-a ou abra uma sessão isolada.",
+    "A session is open in this folder. End it or open an isolated session.",
+    "Ya hay una sesión en esta carpeta. Ciérrala o abre una sesión aislada."
+  ],
+  "active_count": [
+    "Sessões abertas",
+    "Open sessions",
+    "Sesiones abiertas"
+  ],
+  "unsafe_notes": [
+    "Confira se DOCS é uma pasta e ANDAMENTO.md é um arquivo comum, sem links simbólicos.",
+    "Check that DOCS is a directory and ANDAMENTO.md is a regular file, with no symbolic links.",
+    "Comprueba que DOCS es una carpeta y ANDAMENTO.md un archivo normal, sin enlaces simbólicos."
+  ],
+  "checkpoints": [
+    "Checkpoint",
+    "Checkpoint",
+    "Checkpoint"
+  ],
+  "cancel": [
+    "Cancelar",
+    "Cancel",
+    "Cancelar"
+  ],
+  "save_only": [
+    "Só salvar",
+    "Save only",
+    "Solo guardar"
+  ]
+}

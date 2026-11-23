@@ -31,6 +31,7 @@ done
 xcrun lipo -create "$scratch/Assistente-arm64" "$scratch/Assistente-x86_64" -output "$bundle/Contents/MacOS/Assistente"
 cp -R "$root/lib" "$resources/"
 cp -R "$root/macOS/en.lproj" "$root/macOS/es.lproj" "$root/macOS/pt-BR.lproj" "$resources/"
+cp "$root/desktop/workflows.json" "$resources/"
 cp "$root/assets/Assistente.icns" "$resources/"
 cp "$root/ASSISTENTE-IA-MAC.command" "$root/GUIA-DE-USO.md" "$root/LEIA-PRIMEIRO.txt" "$root/LICENSE" "$resources/"
 cat > "$bundle/Contents/Info.plist" <<EOF

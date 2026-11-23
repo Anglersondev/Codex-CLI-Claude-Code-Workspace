@@ -12,10 +12,13 @@ import tempfile
 import threading
 import time
 import webbrowser
+import uuid
+
+import workflows as wf
 
 from core import (
     APP_VERSION, RELEASES, SUPPORTED_LANGUAGES, WINDOWS, State, attach_file, backup_project, check_release,
-    configure_language, create_project, executable, instructions_are_long, managed_path, preferred_agent,
+    configure_language, create_project, executable, instructions_are_long, managed_path,
     progress_available, project_creation_root, save_prompt, scaffold, session_arguments, state_directory,
     terminal_process, terminal_worker, text as T,
 )
@@ -47,7 +50,7 @@ class Panel:
         self.update_notice = tk.BooleanVar(value=self.state.config.get("update_notice", False))
         self.status = tk.StringVar()
         self.prompt = None
-        self.job = None
+        self.jobs = {}
         self.messages = queue.Queue()
         self.style()
         self.build()
@@ -111,7 +114,7 @@ class Panel:
         agents.pack(fill="x")
         ttk.Label(agents, text=T("Agente desta sessão", "Agent for this session", "Agente de esta sesión")).pack(side="left", padx=(0, 10))
         for key, name in AGENT_NAMES.items():
-            ttk.Radiobutton(agents, text=name, variable=self.agent, value=key, command=self.refresh_context).pack(side="left", padx=(0, 15))
+            ttk.Radiobutton(agents, text=name, variable=self.agent, value=key, command=self.request_switch).pack(side="left", padx=(0, 15))
         ttk.Label(session, text=T("Codex e Claude podem trabalhar nesta mesma pasta.", "Codex and Claude can work in this same folder.", "Codex y Claude pueden trabajar en esta misma carpeta."), style="Sub.TLabel").pack(anchor="w", pady=(4, 9))
         actions = ttk.Frame(session)
         actions.pack(fill="x")
@@ -121,8 +124,11 @@ class Panel:
             self.button(actions, T("Histórico…", "History…", "Historial…"), lambda: self.launch("history")),
             self.button(actions, T("Opções…", "Options…", "Opciones…"), self.options),
         ]
-        ttk.Label(session, text=T("Ao sair do agente, volte a este painel.", "Exit the agent to return to this panel.", "Sal del agente para volver a este panel."),
-                  style="Sub.TLabel").pack(anchor="w", pady=(7, 0))
+        secondary = ttk.Frame(session)
+        secondary.pack(fill="x", pady=(6, 0))
+        self.session_controls.append(self.button(secondary, wf.label("isolated"), self.worktree_dialog))
+        ttk.Label(secondary, text=T("Ao sair do agente, volte a este painel.", "Exit the agent to return to this panel.", "Sal del agente para volver a este panel."),
+                  style="Sub.TLabel", wraplength=245).pack(side="left", padx=4)
 
         context = ttk.LabelFrame(main, text=T("Contexto e arquivos", "Context and files", "Contexto y archivos"), padding=(12, 9))
         context.pack(fill="x", pady=(0, 10))
@@ -235,9 +241,10 @@ class Panel:
         entries = [name for name in ("AGENTS.md", "CLAUDE.md") if (self.project / name).is_file()]
         self.context.configure(text="  ·  ".join(entries) if entries else T("Contexto a configurar", "Context to set up", "Contexto pendiente de configurar"))
         if select_agent:
-            self.agent.set(preferred_agent(self.project))
+            self.agent.set(self.state.agent_for(self.project))
             self.prompt = None
             self.model.set("")
+        self.current_agent = self.agent.get()
         self.refresh_context()
 
     def refresh_context(self, event=None):
@@ -440,11 +447,11 @@ class Panel:
     def wrap_up(self):
         self.launch("resume", self.project / "PROMPTS" / "ENCERRAR-SESSAO.md", force_work=True)
 
-    def launch(self, mode, prompt_override=None, force_work=False):
+    def launch(self, mode, prompt_override=None, force_work=False, initial_text=""):
         agent = self.agent.get()
         path = prompt_override or (self.prompt if mode == "new" else None)
-        prompt = ""
-        if path:
+        prompt = initial_text
+        if path and not initial_text:
             with path.open("rb") as stream:
                 data = stream.read(60001)
             if len(data) > 60000:
@@ -453,14 +460,122 @@ class Panel:
         args = session_arguments(agent, mode, self.project, self.plan.get() and not force_work, self.model.get().strip(), prompt)
         self.run_terminal([executable(agent) + args])
 
+    def request_switch(self):
+        if self.project is None:
+            return
+        source, target = self.current_agent, self.agent.get()
+        self.agent.set(source)
+        if target == source:
+            return
+        project = self.project
+        window, body = self.dialog(wf.label("review"))
+        ttk.Label(body, text=f"{AGENT_NAMES[source]} → {AGENT_NAMES[target]}", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(body, text=wf.label("note_destination"), style="Sub.TLabel").pack(anchor="w", pady=(2, 6))
+
+        def editor(key, height):
+            ttk.Label(body, text=wf.label(key)).pack(anchor="w")
+            area = tk.Text(body, width=58, height=height, wrap="word", font="TkDefaultFont", undo=True)
+            area.pack(fill="both", expand=True, pady=(2, 6))
+            return area
+
+        changes = editor("files", 5)
+        changes.insert("1.0", wf.label("checking"))
+        changes.configure(state="disabled")
+        tests = editor("tests", 2)
+        next_step = editor("next", 2)
+
+        def select_target():
+            self.state.remember_agent(project, target)
+            self.agent.set(target)
+            self.current_agent = target
+            self.model.set("")
+            self.prompt = None
+            self.refresh_context()
+            if window.winfo_exists():
+                window.destroy()
+
+        def save(open_agent):
+            if open_agent and project in self.jobs:
+                raise ValueError(wf.label("busy_folder"))
+            wf.save_checkpoint(project, source, target, changes.get("1.0", "end-1c"),
+                               tests.get("1.0", "end-1c"), next_step.get("1.0", "end-1c"))
+            self.status.set(wf.label("saved"))
+            window.destroy()
+            if open_agent:
+                select_target()
+                self.launch("new", initial_text=wf.label("resume_prompt"))
+            else:
+                self.refresh_context()
+
+        controls = ttk.Frame(body)
+        controls.pack(fill="x")
+        self.button(controls, wf.label("cancel"), window.destroy)
+        self.button(controls, wf.label("switch_only"), select_target)
+        save_only = self.button(controls, wf.label("save_only"), lambda: save(False))
+        submit = self.button(controls, wf.label("save_open"), lambda: save(True), True)
+        submit.state(["disabled"])
+        save_only.state(["disabled"])
+
+        def populate(value):
+            if not window.winfo_exists():
+                return
+            changes.configure(state="normal")
+            changes.delete("1.0", "end")
+            changes.insert("1.0", value)
+            submit.state(["!disabled"])
+            save_only.state(["!disabled"])
+        self.background(lambda: wf.changed_files(project), populate)
+
+    def worktree_dialog(self):
+        project = self.project
+        window, body = self.dialog(wf.label("isolated_title"))
+        agent = tk.StringVar(value="claude" if self.agent.get() == "codex" else "codex")
+        row = ttk.Frame(body)
+        row.pack(anchor="w")
+        for key, name in AGENT_NAMES.items():
+            ttk.Radiobutton(row, text=name, variable=agent, value=key).pack(side="left")
+        task = tk.StringVar(value=uuid.uuid4().hex[:8])
+        field = self.field(body, wf.label("task"), task)
+        ttk.Label(body, text=wf.label("base"), style="Sub.TLabel", wraplength=420).pack(anchor="w")
+        preview = ttk.Label(body, wraplength=420)
+        preview.pack(anchor="w", pady=8)
+
+        def update(*_):
+            try:
+                folder, branch = wf.worktree_paths(project, agent.get(), task.get())
+                preview.configure(text=f"{branch}\\n{folder}")
+                submit.state(["!disabled"])
+            except ValueError as error:
+                preview.configure(text=str(error))
+                submit.state(["disabled"])
+
+        def start():
+            target_agent, task_name = agent.get(), task.get()
+            window.destroy()
+            def opened(folder):
+                self.state.remember_agent(folder, target_agent)
+                self.select(folder)
+                self.agent.set(target_agent)
+                self.current_agent = target_agent
+                self.launch("new")
+            self.background(lambda: wf.create_worktree(project, target_agent, task_name), opened)
+
+        submit = ttk.Button(body, text=wf.label("create_open"), command=start, style="Accent.TButton")
+        submit.pack(anchor="e")
+        task.trace_add("write", update)
+        agent.trace_add("write", update)
+        update()
+        field.selection_range(0, "end")
+        field.focus_set()
+
     def open_shell(self):
         shell = ["powershell.exe", "-NoLogo"] if WINDOWS else [os.environ.get("SHELL", "/bin/sh"), "-i"]
         self.run_terminal([shell])
 
     def run_terminal(self, commands, folder=None):
-        if self.job:
-            raise ValueError(T("Encerre a sessão aberta antes de abrir outra.", "End the open session before starting another.", "Cierra la sesión abierta antes de iniciar otra."))
-        working = folder or self.project or self.state.parent
+        working = (folder or self.project or self.state.parent).resolve()
+        if working in self.jobs:
+            raise ValueError(wf.label("busy_folder"))
         state = Path(tempfile.mkdtemp(prefix="assistente-"))
         job = state / "job.json"
         try:
@@ -471,26 +586,29 @@ class Panel:
         except (OSError, ValueError, subprocess.SubprocessError):
             shutil.rmtree(state)
             raise
-        self.job = (state, process, time.monotonic())
+        self.jobs[working] = (state, process, time.monotonic())
         self.status.set(T("Sessão aberta no Terminal.", "Session open in Terminal.", "Sesión abierta en Terminal."))
 
     def poll(self):
-        if self.job:
-            folder, process, launched = self.job
+        for working, (folder, process, launched) in list(self.jobs.items()):
             result = process.poll()
             started = (folder / "started").exists()
             ended = (folder / "status").exists() or (WINDOWS and started and result is not None)
             delayed = not started and (result not in (None, 0) or time.monotonic() - launched > 20)
             if ended or delayed:
                 shutil.rmtree(folder, ignore_errors=True)
-                self.job = None
-                self.root.deiconify()
-                self.root.lift()
-                self.root.focus_force()
+                del self.jobs[working]
+                if not self.jobs:
+                    self.root.deiconify()
+                    self.root.lift()
+                    self.root.focus_force()
                 if delayed:
                     self.status.set(T("O Terminal não iniciou. Confira o terminal instalado.", "Terminal did not start. Check the installed terminal.", "El terminal no se inició. Comprueba el terminal instalado."))
                 else:
                     self.refresh_context()
+                    if self.jobs:
+                        self.status.set(f"{wf.label('active_count')} · {len(self.jobs)}")
+                        continue
                     self.status.set(T("De volta ao painel de projetos.", "Back at the project panel.", "De vuelta en el panel de proyectos."))
         while not self.messages.empty():
             self.guard(self.messages.get_nowait())
@@ -509,9 +627,14 @@ class Panel:
 
     def output(self, title, content):
         window, body = self.dialog(title)
-        display = tk.Text(body, width=70, height=17, wrap="word", font="TkFixedFont")
+        scroller = ttk.Frame(body)
+        scroller.pack(fill="both", expand=True)
+        scrollbar = ttk.Scrollbar(scroller)
+        scrollbar.pack(side="right", fill="y")
+        display = tk.Text(scroller, yscrollcommand=scrollbar.set, width=70, height=17, wrap="word", font="TkFixedFont")
         display.insert("1.0", content)
         display.configure(state="disabled")
+        scrollbar.configure(command=display.yview)
         display.pack(fill="both", expand=True)
         ttk.Button(body, text=T("Fechar", "Close", "Cerrar"), command=window.destroy).pack(anchor="e", pady=(8, 0))
 
@@ -584,6 +707,14 @@ class Panel:
         choice.bind("<<ComboboxSelected>>", lambda _event: self.guard(
             lambda: self.change_language(window, SUPPORTED_LANGUAGES[choice.current()])
         ))
+        def diagnose():
+            window.destroy()
+            self.status.set(wf.label("checking"))
+            def show(report):
+                self.status.set("")
+                self.output(wf.label("diagnosis"), report)
+            self.background(wf.diagnostics, show)
+        ttk.Button(body, text=wf.label("diagnosis"), command=diagnose).pack(anchor="w", pady=(0, 7))
         ttk.Label(body, text=T("Agentes e contas", "Agents and accounts", "Agentes y cuentas"), style="Section.TLabel").pack(anchor="w")
         for agent, name in AGENT_NAMES.items():
             row = ttk.Frame(body)

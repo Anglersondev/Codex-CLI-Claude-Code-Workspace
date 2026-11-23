@@ -1,5 +1,6 @@
 """Local project files and terminal launch for the Linux and Windows panel."""
 
+import hashlib
 import json
 import locale
 import os
@@ -86,6 +87,21 @@ class State:
     def set_value(self, key, value):
         self.config[key] = value
         self.write(self.settings.name, json.dumps(self.config, ensure_ascii=False))
+
+    def agent_preferences(self, folder):
+        key = hashlib.sha256(str(folder.resolve()).encode("utf-8")).hexdigest()
+        return State(self.directory / "projects" / key)
+
+    def agent_for(self, folder):
+        prefs = self.agent_preferences(folder)
+        try:
+            agent = (prefs.directory / "tool").read_text(encoding="utf-8-sig").strip()
+        except (OSError, UnicodeError):
+            agent = ""
+        return agent if agent in ("codex", "claude") else preferred_agent(folder)
+
+    def remember_agent(self, folder, agent):
+        self.agent_preferences(folder).write("tool", agent + "\n")
 
     def recent(self):
         try:

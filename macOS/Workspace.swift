@@ -152,6 +152,9 @@ final class Workspace: ObservableObject {
     }
 
     private func terminal(_ args: [String]) async throws {
+        if args.first == "launch", jobs.contains(where: { $0.project == args[1] }) {
+            throw AppFailure(wf("busy_folder"))
+        }
         jobs.append(try await Backend.openTerminal(args))
     }
 

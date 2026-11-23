@@ -870,7 +870,7 @@ quick_close() {
   case "$REPLY" in ''|s|S) ;; *) say_ui 'Cancelado.' 'Canceled.'; INITIAL_PROMPT=''; return 1 ;; esac
   save_preferences || return 1
   started=$SECONDS
-  run_agent_session recente; status=$?
+  WORKMODE=trabalhar run_agent_session recente; status=$?
   INITIAL_PROMPT=''
   if [ "$status" -ne 0 ] && [ "$status" -ne 130 ] && [ $((SECONDS-started)) -lt 8 ]; then
     warn "$(ui 'Não consegui abrir a última conversa (talvez ainda não exista uma neste projeto).' 'Could not open the latest conversation (there may not be one yet).')"
@@ -1315,7 +1315,7 @@ panel() {
     say_ui '  Primeira vez? Veja o guia em Ajuda e ajustes (7) → 6.' '  First time? See the guide in Help and settings (7) → 6.'
     return 0
   fi
-  profile="$(project_profile)"
+  profile="$(selected_project_agent)"
   case "$profile" in codex) tool_name='Codex' ;; claude) tool_name='Claude Code' ;; *) tool_name="$(ui 'a escolher ao abrir' 'choose when opening')" ;; esac
   printf '  %-12s %s\n' "$(ui 'Projeto:' 'Project:')" "$(basename "$PROJECT")"
   printf '  %-12s %s\n' "$(ui 'Pasta:' 'Folder:')" "$PROJECT"
@@ -1409,7 +1409,7 @@ settings_menu() {
 long_conversation_gate() {
   local profile
   opt_enabled peso && type usage_measure >/dev/null 2>&1 || return 0
-  profile="$(project_profile 2>/dev/null)" || return 0
+  profile="$(selected_project_agent 2>/dev/null)" || return 0
   [ -n "$profile" ] || return 0
   usage_measure "$profile" "$PROJECT" >/dev/null 2>&1
   [ "${USAGE_STATE:-}" = muito-longa ] || return 0
@@ -1486,13 +1486,13 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     --check)
       result=0
       /bin/bash -n "$BASE_DIR/ASSISTENTE-IA-MAC.command" || result=1
-      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
+      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
         [ -s "$BASE_DIR/$required" ] || { warn "Arquivo ausente: $required"; result=1; }
       done
       [ ! -f "$BASE_DIR/lib/rtk.sh" ] || /bin/bash -n "$BASE_DIR/lib/rtk.sh" || result=1
       [ ! -f "$BASE_DIR/lib/projects.sh" ] || /bin/bash -n "$BASE_DIR/lib/projects.sh" || result=1
       [ ! -f "$BASE_DIR/lib/dicas.sh" ] || /bin/bash -n "$BASE_DIR/lib/dicas.sh" || result=1
-      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh; do
+      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh; do
         [ ! -f "$BASE_DIR/$extra" ] || /bin/bash -n "$BASE_DIR/$extra" || result=1
       done
       [ "$result" -ne 0 ] || say_ui 'Kit completo. Sintaxe Bash verificada.' 'Kit complete. Bash syntax verified.'

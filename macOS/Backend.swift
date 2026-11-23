@@ -91,6 +91,9 @@ enum Backend {
         let text = String(decoding: data, as: UTF8.self)
         guard process.terminationStatus == 0 else {
             let message = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if message.hasPrefix("@"), let description = workflowStrings[String(message.dropFirst())] {
+                throw AppFailure(description[workflowLanguageIndex])
+            }
             throw AppFailure(message.isEmpty ? tr("A operação terminou com código %d.", process.terminationStatus) : message)
         }
         return text
@@ -120,7 +123,7 @@ enum Backend {
         let fileManager = FileManager.default
         let folder = fileManager.temporaryDirectory.appendingPathComponent("assistente-\(UUID().uuidString)", isDirectory: true)
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
-        let job = TerminalJob(folder: folder)
+        let job = TerminalJob(folder: folder, project: arguments.first == "launch" ? arguments[1] : nil)
         let script = folder.appendingPathComponent("Assistente-IA.command")
         let command = (["/bin/bash", launcher.path, "--app"] + arguments).map(shellQuote).joined(separator: " ")
         let stateOverride = ProcessInfo.processInfo.environment["ASSISTENTE_STATE_DIR"].map {
@@ -167,6 +170,7 @@ enum Backend {
 
 struct TerminalJob: Identifiable {
     let folder: URL
+    let project: String?
     let created = Date()
     var id: URL { folder }
     var startedFile: URL { folder.appendingPathComponent("started") }

@@ -30,7 +30,7 @@ The downloadable Mac app uses an ad hoc code signature. If macOS blocks that bui
 3. Choose **Codex** or **Claude Code**. Click **New session**, **Resume**, or **History**.
 4. Work in the agent's official terminal interface. End the session to return to the project panel.
 
-Select **Agent for this session** whenever you want to switch between Codex and Claude in the same project. The folder layout only controls where new projects are created. Before switching, use **Save progress**, then open the other agent with **Continue from project notes**.
+Select **Agent for this session** whenever you want to switch between Codex and Claude in the same project. The folder layout only controls where new projects are created. Selecting the other agent opens a checkpoint for review.
 
 Use **Settings → Language** to choose English, Brazilian Portuguese, Spanish, or **Automatic** to follow your system. Use **Session options** to pick a model, select a starting prompt, or open a read-only planning session.
 
@@ -41,6 +41,18 @@ flowchart LR
     C --> D[Save progress notes]
     D --> A
 ```
+
+## Environment checks, agent handoffs and parallel sessions
+
+| To… | Open… | What happens |
+|---|---|---|
+| Check whether your tools are ready | **Settings → Environment check** | Shows versions for Codex CLI, Claude Code, Git, npm and RTK, checks both agent logins, and suggests a fix for failed checks. Token Optimizer has separate entries for each agent’s plugin setting and cached version. |
+| Hand off a task between agents | **Agent for this session → the other agent** | Review the Git change list, record the tests you ran and enter the next step. **Save and open agent** appends your checkpoint to `DOCS/ANDAMENTO.md` and opens the other agent in the same folder with a request to read it. **Save only** keeps the current agent selected. **Select agent only** skips the checkpoint. |
+| Run both agents at once | From the repository root, **Isolated session…** | Choose an agent and a short task name. The panel creates a branch and a sibling working folder. Keep the first terminal open while you work in the second copy. |
+
+For a project called `shop` and a Claude task called `search`, the folder is `shop-claude-search` and the branch is `assistente/claude-search`. The copy starts at the current commit. Commit any local changes you want to include, including instructions and notes. Both folders remain available in recent projects. Review the branch and merge through Git when ready.
+
+Checkpoints also work without Git. Describe your changes in the editable field. The panel lists up to 80 files and records the test results you enter.
 
 ## Share project context between Codex and Claude Code
 

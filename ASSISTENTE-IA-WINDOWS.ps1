@@ -25,6 +25,14 @@ function Existing-Directory([string]$path) {
   (Resolve-Path -LiteralPath $path).ProviderPath
 }
 function Project-Tool([string]$path) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { $key = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($path))).Replace('-', '').ToLowerInvariant() }
+  finally { $sha.Dispose() }
+  $selected = Join-Path $state "projects\$key\tool"
+  if (Test-Path -LiteralPath $selected -PathType Leaf) {
+    $value = ([string](Get-Content -LiteralPath $selected -TotalCount 1 -Encoding UTF8)).Trim()
+    if ($value -in @('codex', 'claude')) { return $value }
+  }
   $profile = Join-Path $path '.assistente-ia\tool'
   if (Test-Path -LiteralPath $profile -PathType Leaf) {
     $value = (Get-Content -LiteralPath $profile -TotalCount 1 -Encoding UTF8).Trim()
@@ -92,8 +100,9 @@ function Project-Menu {
       Save-Text (Join-Path $path '.assistente-ia\tool') $tool
       foreach ($folder in @('INSTRUCOES', 'PROMPTS', 'ANEXOS', 'DOCS', 'CODIGO')) { New-Item -ItemType Directory -Path (Join-Path $path $folder) -Force | Out-Null }
       Save-Text (Join-Path $path 'INSTRUCOES\PROJETO.md') (T '# Instruções do projeto' '# Project instructions')
-      $pointer = if ($tool -eq 'codex') { 'AGENTS.md' } else { 'CLAUDE.md' }
-      Save-Text (Join-Path $path $pointer) (T 'Leia INSTRUCOES/PROJETO.md antes de trabalhar neste projeto.' 'Read INSTRUCOES/PROJETO.md before working on this project.')
+      Save-Text (Join-Path $path 'CLAUDE.md') '@INSTRUCOES/PROJETO.md'
+      Save-Text (Join-Path $path 'DOCS\ANDAMENTO.md') (T '# Andamento' '# Progress')
+      Save-Text (Join-Path $path 'AGENTS.md') (T 'Leia INSTRUCOES/PROJETO.md antes de trabalhar neste projeto.' 'Read INSTRUCOES/PROJETO.md before working on this project.')
       Set-Project $path
     }
     '2' {
@@ -116,15 +125,15 @@ function Agent-Menu([string]$mode) {
   $tool = Select-Tool $script:project
   if (-not $tool) { return }
   if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { Write-Warning (T "Instale e autentique $tool primeiro." "Install and sign in to $tool first."); return }
-  $workmode = Read-Choice 'Modo: 1) trabalhar  2) planejar [1]' 'Mode: 1) work  2) plan [1]'
+  $workmode = if ($mode -eq 'summary') { '1' } else { Read-Choice 'Modo: 1) trabalhar  2) planejar [1]' 'Mode: 1) work  2) plan [1]' }
   $argsList = @()
   if ($tool -eq 'codex') {
-    if ($mode -eq 'resume') { $argsList += @('resume', '--last') }
+    if ($mode -in @('resume', 'summary')) { $argsList += @('resume', '--last') }
     if ($mode -eq 'select') { $argsList += 'resume' }
     $argsList += @('--cd', $script:project, '--ask-for-approval', 'on-request', '--sandbox')
     $argsList += $(if ($workmode -eq '2') { 'read-only' } else { 'workspace-write' })
   } else {
-    if ($mode -eq 'resume') { $argsList += '--continue' }
+    if ($mode -in @('resume', 'summary')) { $argsList += '--continue' }
     if ($mode -eq 'select') { $argsList += '--resume' }
     $argsList += @('--permission-mode', $(if ($workmode -eq '2') { 'plan' } else { 'default' }))
   }
@@ -135,6 +144,17 @@ function Agent-Menu([string]$mode) {
     if ($promptChoice -eq '1') { Write-Host (T 'Escreva o pedido; FIM/DONE encerra.' 'Write the prompt; FIM/DONE finishes.'); $lines = @(); while ($true) { $line = Read-Host '> '; if ($line -in @('FIM', 'DONE')) { break }; $lines += $line; if (($lines -join "`n").Length -gt 60000) { Write-Warning (T 'Pedido muito longo.' 'Prompt too long.'); return } }; $promptText = $lines -join "`n" }
     if ($promptChoice -eq '2') { $file = Read-Choice 'Caminho do arquivo' 'File path'; if ($file -notmatch '\.(md|txt)$' -or -not (Test-Path -LiteralPath $file -PathType Leaf)) { Write-Warning (T 'Arquivo inválido.' 'Invalid file.'); return }; $promptText = [IO.File]::ReadAllText((Resolve-Path -LiteralPath $file).ProviderPath); if ($promptText.Length -gt 60000) { Write-Warning (T 'Arquivo muito longo.' 'File too long.'); return } }
     if ($promptText) { $argsList += @('--', $promptText) }
+  }
+  if ($mode -eq 'notes') {
+    $notes = Join-Path $script:project 'DOCS\ANDAMENTO.md'
+    if (-not (Test-Path -LiteralPath $notes -PathType Leaf) -or -not (Select-String -LiteralPath $notes -Pattern '^\s*[^#\s]' -Quiet)) {
+      Write-Warning (T 'Registre o próximo passo em DOCS/ANDAMENTO.md primeiro.' 'First record the next step in DOCS/ANDAMENTO.md.')
+      return
+    }
+    $argsList += @('--', (T 'Leia DOCS/ANDAMENTO.md e retome pelo próximo passo registrado.' 'Read DOCS/ANDAMENTO.md and continue from the recorded next step.'))
+  }
+  if ($mode -eq 'summary') {
+    $argsList += @('--', (T 'Atualize DOCS/ANDAMENTO.md com as mudanças confirmadas, os testes e o próximo passo.' 'Update DOCS/ANDAMENTO.md with confirmed changes, tests and the next step.'))
   }
   Write-Host "`n$tool $($argsList -join ' ')"
   if ((Read-Choice 'Enter para começar; 0 cancela' 'Enter to start; 0 cancels') -eq '0') { return }
@@ -176,7 +196,10 @@ while ($true) {
   Write-Host "  $(T 'Projeto' 'Project'): $(if ($script:project) { $script:project } else { T 'nenhum' 'none' })"
   Write-Host (T ' 1) Continuar  2) Nova conversa  3) Escolher conversa antiga' ' 1) Resume  2) New conversation  3) Choose older conversation')
   Write-Host (T ' 4) Projetos  5) Cuidar do projeto  6) Idioma e diagnóstico  0) Sair' ' 4) Projects  5) Project care  6) Language and diagnostics  0) Exit')
+  Write-Host (T ' 7) Salvar andamento da sessão  8) Retomar pelo andamento' ' 7) Save session progress  8) Continue from progress notes')
   switch (Read-Choice 'Escolha' 'Choose') {
+    '7' { Agent-Menu 'summary'; Pause-Menu }
+    '8' { Agent-Menu 'notes'; Pause-Menu }
     '1' { Agent-Menu 'resume'; Pause-Menu }
     '2' { Agent-Menu 'new'; Pause-Menu }
     '3' { Agent-Menu 'select'; Pause-Menu }

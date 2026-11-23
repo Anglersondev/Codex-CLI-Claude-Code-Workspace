@@ -30,9 +30,21 @@ O app distribuído para Mac usa assinatura ad hoc. Se o macOS bloquear a abertur
 3. Selecione **Codex** ou **Claude Code** e clique em **Nova sessão**, **Continuar** ou **Histórico**.
 4. Use o Terminal para conversar e trabalhar. Ao encerrar a sessão, o painel volta a ficar disponível.
 
-Em **Agente desta sessão**, escolha Codex ou Claude para trabalhar no mesmo projeto. A organização só define onde o projeto novo será criado. Para levar o contexto ao outro agente, use **Salvar andamento**, troque o agente e clique em **Retomar pelo andamento**.
+Em **Agente desta sessão**, escolha Codex ou Claude para trabalhar no mesmo projeto. A organização só define onde o projeto novo será criado. Ao selecionar o outro agente, o painel oferece um checkpoint para revisar antes da troca.
 
 Em **Ajustes → Idioma**, escolha português do Brasil, inglês, espanhol ou o idioma do sistema. **Opções da sessão** reúne modelo, permissões e pedido inicial.
+
+## Diagnóstico, troca de agente e trabalho em paralelo
+
+| Quero… | Onde clicar | O que acontece |
+|---|---|---|
+| Saber se posso começar | **Ajustes → Diagnóstico do ambiente** | Mostra as versões de Codex CLI, Claude Code, Git, npm e RTK, verifica o login dos agentes e indica a correção quando uma consulta falha. Para o Token Optimizer, mostra a configuração por agente e a versão encontrada no cache. |
+| Passar a tarefa de Codex para Claude ou voltar | **Agente desta sessão → outro agente** | Revise a lista do Git, informe quais testes rodou e qual é o próximo passo. **Salvar e abrir agente** acrescenta o checkpoint a `DOCS/ANDAMENTO.md` e abre o outro agente nessa pasta com o pedido de ler o registro. **Só salvar** registra o checkpoint e mantém o agente atual. **Só selecionar agente** permite trocar sem salvar. |
+| Usar os dois ao mesmo tempo | Na raiz do repositório, **Sessão isolada…** | Escolha o agente e dê um nome curto à tarefa. O painel cria uma branch e uma pasta ao lado do projeto. O primeiro Terminal pode ficar aberto enquanto você trabalha na cópia. |
+
+Por exemplo, com o projeto `loja` e a tarefa `busca` no Claude, a nova pasta se chama `loja-claude-busca` e a branch é `assistente/claude-busca`. A cópia começa no commit atual. Faça commit antes se quiser levar alterações locais, inclusive instruções e checkpoints. As duas pastas ficam nos projetos recentes. Depois de revisar o trabalho, você pode juntar as branches com o Git.
+
+O checkpoint funciona também em projetos sem Git. Nesse caso, descreva as mudanças no campo editável. O painel lista até 80 arquivos e registra somente os testes que você informar.
 
 ## Contexto compartilhado e andamento
 
