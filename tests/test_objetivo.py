@@ -45,14 +45,14 @@ class ObjectiveTests(base.AssistantTests):
             with self.subTest(tool=tool):
                 result = self.run_shell("create_project", f"2\n{self.parent}\nProj {tool}\n{choice}\n2\n\n{FRASE}\n")
                 self.assert_ok(result)
-                project = self.parent / f"Proj {tool}"
+                project = self.parent / tool.upper() / f"Proj {tool}"
                 self.assertIn("- Objetivo: " + FRASE, (project / "INSTRUCOES/PROJETO.md").read_text())
                 self.assertIn(FRASE, (project / "README.md").read_text())
 
     def test_o05_create_project_without_answer_still_works(self):
         result = self.run_shell("create_project", f"2\n{self.parent}\nSem objetivo\n1\n2\n\n\n")
         self.assert_ok(result)
-        self.assertTrue((self.parent / "Sem objetivo/INSTRUCOES/PROJETO.md").exists())
+        self.assertTrue((self.parent / "CODEX/Sem objetivo/INSTRUCOES/PROJETO.md").exists())
 
     def test_o06_rejects_multiline_and_long(self):
         project = self.managed_project("codex")

@@ -168,9 +168,24 @@ def scaffold(folder, agent, goal=""):
         write_new(path, files[name], keep_existing=True)
 
 
+def project_creation_root(parent):
+    return parent.parent if parent.name.upper() in ("CODEX", "CLAUDE") else parent
+
+
 def create_project(parent, name, agent, goal):
     validate_name(name)
-    project = parent / name
+    if agent not in ("codex", "claude"):
+        raise ValueError("Unknown agent")
+    root = project_creation_root(parent.resolve(strict=True))
+    groups = {agent: managed_path(root, agent.upper()) for agent in ("codex", "claude")}
+    project = groups[agent] / name
+    if project.exists() or is_link(project):
+        raise FileExistsError(project)
+    for directory in groups.values():
+        if directory.exists() and not directory.is_dir():
+            raise NotADirectoryError(directory)
+    for directory in groups.values():
+        directory.mkdir(exist_ok=True)
     project.mkdir()
     scaffold(project, agent, goal)
     write_new(project / ".gitignore", ".env\n.env.*\n!.env.example\nnode_modules/\n.venv/\n__pycache__/\n")

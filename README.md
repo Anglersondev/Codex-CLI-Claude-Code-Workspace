@@ -26,7 +26,7 @@ The downloadable Mac app uses an ad hoc code signature. If macOS blocks that bui
 ## Quick start
 
 1. Click **Default folder** in the sidebar and pick where to keep new projects.
-2. Click **New** to create a project or **Open** to select an existing folder or Git repository.
+2. Click **New** and choose an agent. Assistente IA creates the `CODEX/` and `CLAUDE/` folders under the default folder if needed, then creates your project under the selected agent. Use **Open** for existing folders.
 3. Choose **Codex** or **Claude Code**. Click **New session**, **Resume**, or **History**.
 4. Work in the agent's official terminal interface. End the session to return to the project panel.
 

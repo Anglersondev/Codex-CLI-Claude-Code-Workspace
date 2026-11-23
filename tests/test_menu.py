@@ -220,7 +220,7 @@ class MenuTests(base.AssistantTests):
         name = "English project"
         result = self.run_shell("create_project", f"2\n{self.parent}\n{name}\n1\n2\n\n\n")
         self.assert_ok(result)
-        project = self.parent / name
+        project = self.parent / "CODEX" / name
         self.assertIn("Create project · 4 of 4", result.stdout)
         self.assertIn("Respond in English", (project / "INSTRUCOES/PROJETO.md").read_text())
         self.assertIn("Describe the purpose", (project / "README.md").read_text())

@@ -49,10 +49,10 @@ O kit organiza os projetos em uma pasta da ferramenta:
 Pasta escolhida: /Users/seu-usuario/Documents/Projetos-IA
 Nome informado: Loja da Ana
 Ferramenta:      Codex
-Resultado:       /Users/seu-usuario/Documents/Projetos-IA/Loja da Ana
+Resultado:       /Users/seu-usuario/Documents/Projetos-IA/CODEX/Loja da Ana
 ```
 
-Codex e Claude usam esse mesmo caminho. O agente escolhido fica como preferência inicial. Para alternar no menu de Terminal, use a opção `9`.
+O Assistente cria `CODEX/` e `CLAUDE/` se faltarem e coloca o novo projeto na pasta do agente escolhido. Os dois agentes continuam podendo abrir o mesmo projeto. Para alternar no menu de Terminal, use a opção `9`.
 
 Você pode selecionar o destino pelo Finder ou informar o caminho manualmente. A pasta pode estar em Documentos, em um disco externo ou em um local sincronizado disponível no Mac. Se o Finder for cancelado, siga a orientação do menu para voltar ou usar o caminho manual. A criação exige um nome novo; se o projeto já existe, abra-o por **`5` → `2`**.
 

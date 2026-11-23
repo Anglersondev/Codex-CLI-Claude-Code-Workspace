@@ -24,7 +24,7 @@ Instala [Codex CLI](https://learn.chatgpt.com/docs/cli) o [Claude Code](https://
 ## Trabajar con un proyecto
 
 1. Usa **Carpeta predeterminada** para elegir dónde guardar los proyectos nuevos.
-2. Pulsa **Nuevo** o **Abrir**. Después elige **Codex** o **Claude Code**.
+2. Pulsa **Nuevo** y elige el agente. El panel crea `CODEX/` y `CLAUDE/` si faltan y guarda el proyecto en la carpeta del agente elegido. Usa **Abrir** para proyectos existentes.
 3. Selecciona **Nueva sesión**, **Continuar** o **Historial**. Trabaja en el terminal y vuelve al panel al terminar.
 4. En **Ajustes → Idioma**, elige español, inglés, portugués de Brasil o **Automático**.
 

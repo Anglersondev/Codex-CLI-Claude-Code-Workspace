@@ -75,11 +75,20 @@ function Project-Menu {
       $tool = switch (Read-Choice 'Ferramenta' 'Agent') { '1' { 'codex' } '2' { 'claude' } default { $null } }
       if (-not $tool) { return }
       $group = if ($tool -eq 'codex') { 'CODEX' } else { 'CLAUDE' }
+      if ((Split-Path $parent -Leaf) -in @('CODEX', 'CLAUDE')) { $parent = Split-Path $parent -Parent }
       $path = Join-Path (Join-Path $parent $group) $name
       if (Test-Path -LiteralPath $path) { Write-Warning (T 'A pasta já existe.' 'Folder already exists.'); return }
       Write-Host "$path"
       if ((Read-Choice 'Enter para criar; 0 cancela' 'Enter to create; 0 cancels') -eq '0') { return }
-      New-Item -ItemType Directory -Path $path -Force | Out-Null
+      foreach ($bucket in @('CODEX', 'CLAUDE')) {
+        $entry = Get-Item -LiteralPath (Join-Path $parent $bucket) -Force -ErrorAction SilentlyContinue
+        if ($entry -and (-not $entry.PSIsContainer -or ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint))) {
+          Write-Warning (T 'CODEX e CLAUDE precisam ser pastas comuns.' 'CODEX and CLAUDE must be regular folders.')
+          return
+        }
+      }
+      foreach ($bucket in @('CODEX', 'CLAUDE')) { [IO.Directory]::CreateDirectory((Join-Path $parent $bucket)) | Out-Null }
+      New-Item -ItemType Directory -Path $path | Out-Null
       Save-Text (Join-Path $path '.assistente-ia\tool') $tool
       foreach ($folder in @('INSTRUCOES', 'PROMPTS', 'ANEXOS', 'DOCS', 'CODIGO')) { New-Item -ItemType Directory -Path (Join-Path $path $folder) -Force | Out-Null }
       Save-Text (Join-Path $path 'INSTRUCOES\PROJETO.md') (T '# Instruções do projeto' '# Project instructions')

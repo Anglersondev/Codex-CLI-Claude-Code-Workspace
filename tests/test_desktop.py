@@ -29,13 +29,17 @@ class PortablePanelTests(unittest.TestCase):
         prefs.set_parent(self.root)
         self.assertEqual(core.State(self.root / "state").parent, self.root)
         project = core.create_project(prefs.parent, "Site da Ana's café", "claude", "Publicar o site")
+        self.assertEqual(project, self.root.resolve() / "CLAUDE" / project.name)
+        self.assertTrue((self.root / "CODEX").is_dir())
         self.assertEqual(prefs.select(project), project.resolve())
         self.assertEqual(prefs.recent(), [project.resolve()])
         self.assertEqual(core.preferred_agent(project), "claude")
         self.assertIn("INSTRUCOES/PROJETO.md", (project / "AGENTS.md").read_text(encoding="utf-8"))
         self.assertIn("@INSTRUCOES/PROJETO.md", (project / "CLAUDE.md").read_text(encoding="utf-8"))
         with self.assertRaises(FileExistsError):
-            core.create_project(prefs.parent, project.name, "codex", "Outro objetivo")
+            core.create_project(prefs.parent, project.name, "claude", "Outro objetivo")
+        other = core.create_project(project.parent, project.name, "codex", "Outro objetivo")
+        self.assertEqual(other, self.root.resolve() / "CODEX" / project.name)
 
     def test_prepare_preserves_existing_context(self):
         custom = self.root / "AGENTS.md"

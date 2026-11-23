@@ -26,7 +26,7 @@ O app distribuído para Mac usa assinatura ad hoc. Se o macOS bloquear a abertur
 ## Primeiro projeto
 
 1. Clique em **Pasta padrão** na barra lateral para escolher onde guardar projetos novos.
-2. Clique em **Novo** para criar uma pasta ou **Abrir** para selecionar um projeto existente.
+2. Clique em **Novo** e selecione o agente. O Assistente cria `CODEX/` e `CLAUDE/` dentro da pasta padrão se estiverem faltando. O projeto entra na pasta do agente escolhido. Use **Abrir** para projetos existentes.
 3. Selecione **Codex** ou **Claude Code** e clique em **Nova sessão**, **Continuar** ou **Histórico**.
 4. Use o Terminal para conversar e trabalhar. Ao encerrar a sessão, o painel volta a ficar disponível.
 

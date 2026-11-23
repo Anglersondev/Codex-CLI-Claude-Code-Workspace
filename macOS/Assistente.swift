@@ -472,7 +472,7 @@ struct CreateProject: View {
                 }
                 LabeledContent(tr("Criar em")) {
                     HStack {
-                        Text(parent?.path ?? tr("Escolha uma pasta")).lineLimit(1).truncationMode(.head)
+                        Text(destination?.path ?? tr("Escolha uma pasta")).lineLimit(1).truncationMode(.head)
                         Button(tr("Escolher…")) { if let selection = chooseDirectory() { parent = selection } }
                     }
                 }
@@ -492,11 +492,17 @@ struct CreateProject: View {
     }
 
     private var cleanName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var projectRoot: URL? {
+        guard let parent else { return nil }
+        return ["CODEX", "CLAUDE"].contains(parent.lastPathComponent.uppercased())
+            ? parent.deletingLastPathComponent() : parent
+    }
+    private var destination: URL? { projectRoot?.appendingPathComponent(agent.rawValue.uppercased()) }
 
     private func create(_ open: Bool) {
         guard let parent else { return }
         dismiss()
-        if rememberParent { UserDefaults.standard.set(parent.path, forKey: "projectParent") }
+        if rememberParent { UserDefaults.standard.set(projectRoot?.path ?? parent.path, forKey: "projectParent") }
         Task { await workspace.create(parent: parent, name: cleanName, goal: goal, agent: agent, open: open) }
     }
 }

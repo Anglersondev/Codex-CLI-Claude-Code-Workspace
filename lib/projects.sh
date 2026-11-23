@@ -295,12 +295,35 @@ EOF
   return "$status"
 }
 
+project_creation_root() {
+  local parent="$1" base
+  base="$(basename -- "$parent")"
+  case "$base" in
+    [Cc][Oo][Dd][Ee][Xx]|[Cc][Ll][Aa][Uu][Dd][Ee]) dirname -- "$parent" ;;
+    *) printf '%s\n' "$parent" ;;
+  esac
+}
+
+project_creation_group() {
+  case "$TOOL" in codex) printf 'CODEX\n' ;; claude) printf 'CLAUDE\n' ;; *) return 1 ;; esac
+}
+
 create_project_at() {
-  local parent="$1" name="$2" kind="$3" target
+  local parent="$1" name="$2" kind="$3" target root group folder
   valid_name "$name" || { warn "$(ui 'Nome de projeto inválido.' 'Invalid project name.')"; return 1; }
   case "$kind" in 1|2) ;; *) return 1 ;; esac
   parent="$(normalize_path "$parent")" || return 1
-  target="${parent%/}/$name"
+  root="$(project_creation_root "$parent")" || return 1
+  group="$(project_creation_group)" || return 1
+  for folder in "${root%/}/CODEX" "${root%/}/CLAUDE"; do
+    if [ -L "$folder" ] || { [ -e "$folder" ] && [ ! -d "$folder" ]; }; then
+      warn "$(ui 'O destino precisa ser uma pasta comum:' 'The destination must be a regular directory:') $folder"
+      return 1
+    fi
+  done
+  target="${root%/}/$group/$name"
+  [ ! -e "$target" ] && [ ! -L "$target" ] || { warn "$(ui 'Essa pasta já existe.' 'That folder already exists.')"; return 1; }
+  mkdir -p -- "${root%/}/CODEX" "${root%/}/CLAUDE" || return 1
   if ! mkdir -- "$target"; then
     warn "$(ui 'Não foi possível criar a pasta. Se ela já existe, abra o projeto existente.' 'Could not create the folder. If it already exists, open the existing project.')"
     return 1
@@ -313,7 +336,7 @@ create_project_at() {
 }
 
 create_project() {
-  local parent name target kind
+  local parent name target kind root group
   header_ui 'Criar projeto · 1 de 4: local' 'Create project · 1 of 4: location'
   say_ui 'Escolha a pasta que receberá o projeto compartilhado.' 'Choose the parent folder for the shared project.'
   choose_folder || return 1
@@ -329,7 +352,9 @@ create_project() {
   header_ui 'Criar projeto · 3 de 4: ferramenta e estrutura' 'Create project · 3 of 4: agent and layout'
   say_ui 'Escolha o agente preferido. A mesma pasta funciona com os dois.' 'Choose the preferred agent. Both can use the same folder.'
   choose_tool || return 1
-  target="${parent%/}/$name"
+  root="$(project_creation_root "$parent")" || return 1
+  group="$(project_creation_group)" || return 1
+  target="${root%/}/$group/$name"
   [ ! -e "$target" ] && [ ! -L "$target" ] || { warn 'Essa pasta já existe. Abra o projeto existente; nada foi sobrescrito.'; return 1; }
   say_ui '1) Mínimo — pasta do projeto e identificação da ferramenta' '1) Minimal — project folder and agent profile'
   say_ui '2) Organizado — instruções, prompts, documentos e anexos (recomendado)' '2) Organized — instructions, prompts, documents, and attachments (recommended)'

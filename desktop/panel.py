@@ -16,7 +16,7 @@ import webbrowser
 from core import (
     APP_VERSION, RELEASES, SUPPORTED_LANGUAGES, WINDOWS, State, attach_file, backup_project, check_release,
     configure_language, create_project, executable, instructions_are_long, managed_path, preferred_agent,
-    progress_available, save_prompt, scaffold, session_arguments, state_directory,
+    progress_available, project_creation_root, save_prompt, scaffold, session_arguments, state_directory,
     terminal_process, terminal_worker, text as T,
 )
 
@@ -281,9 +281,23 @@ class Panel:
         window, body = self.dialog(T("Novo projeto", "New project", "Nuevo proyecto"))
         parent = tk.StringVar(value=str(self.state.parent))
         remember = tk.BooleanVar()
+        agent = tk.StringVar(value=self.agent.get())
         name = self.field(body, T("Nome", "Name", "Nombre"))
         goal = self.field(body, T("Objetivo (opcional)", "Goal (optional)", "Objetivo (opcional)"))
-        ttk.Label(body, textvariable=parent, wraplength=380, style="Sub.TLabel").pack(anchor="w", pady=4)
+        row = ttk.Frame(body)
+        row.pack(anchor="w")
+        for key, label in AGENT_NAMES.items():
+            ttk.Radiobutton(row, text=label, variable=agent, value=key).pack(side="left", padx=(0, 12))
+        preview = ttk.Label(body, wraplength=380, style="Sub.TLabel")
+        preview.pack(anchor="w", pady=4)
+
+        def show_destination(*_args):
+            root = project_creation_root(Path(parent.get()))
+            preview.configure(text=str(root / agent.get().upper()))
+
+        parent.trace_add("write", show_destination)
+        agent.trace_add("write", show_destination)
+        show_destination()
 
         def change():
             value = filedialog.askdirectory(parent=window, initialdir=parent.get())
@@ -296,9 +310,9 @@ class Panel:
         def create(start):
             try:
                 destination = Path(parent.get())
-                folder = create_project(destination, name.get().strip(), self.agent.get(), goal.get().strip())
+                folder = create_project(destination, name.get().strip(), agent.get(), goal.get().strip())
                 if remember.get():
-                    self.state.set_parent(destination)
+                    self.state.set_parent(project_creation_root(destination))
                 self.select(folder)
             except (OSError, ValueError) as error:
                 messagebox.showerror("Assistente IA", str(error), parent=window)

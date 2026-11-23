@@ -34,6 +34,7 @@ jobs:
         env:
           ASSISTENTE_TEST_NATIVE_TERMINAL: '1'
         run: |
+          powershell -NoProfile -ExecutionPolicy RemoteSigned -File ASSISTENTE-IA-WINDOWS.ps1 -Check
           python -m unittest discover -s tests -p 'test_desktop.py'
           python desktop/panel.py --smoke-test
 
@@ -69,8 +70,12 @@ jobs:
         run: |
           set -euo pipefail
           archives=("$RUNNER_TEMP"/Assistente-IA-App-*.zip "$RUNNER_TEMP/Assistente-IA-Source.zip" "$RUNNER_TEMP/SHA256SUMS.txt")
-          if gh release view "$RELEASE_TAG" --json isDraft >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${archives[@]}"
+          if draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
+            if [ "$draft" = true ]; then
+              gh release upload "$RELEASE_TAG" "${archives[@]}"
+            else
+              printf 'Release %s is already published.\n' "$RELEASE_TAG"
+            fi
           else
             gh release create "$RELEASE_TAG" "${archives[@]}" --verify-tag --draft --generate-notes
           fi

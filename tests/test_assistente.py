@@ -167,7 +167,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         inputs = f"2\n{self.parent}\n{name}\n1\n1\n\n"
         result = self.run_shell("create_project", inputs)
         self.assert_ok(result)
-        project = self.parent / name
+        project = self.parent / "CODEX" / name
         self.assertTrue(project.is_dir(), result.stdout + result.stderr)
         self.assertFalse((self.parent / "Projetos-IA").exists())
         self.assertEqual([p.name for p in project.iterdir()], [".assistente-ia"])
@@ -177,7 +177,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         name = "Organizado"
         result = self.run_shell("create_project", f"2\n{self.parent}\n{name}\n1\n2\n\n")
         self.assert_ok(result)
-        project = self.parent / name
+        project = self.parent / "CODEX" / name
         for item in ("README.md", "AGENTS.md", "INSTRUCOES/PROJETO.md", "DOCS", "ANEXOS", "PROMPTS"):
             self.assertTrue((project / item).exists(), item + result.stdout + result.stderr)
         self.assertTrue((project / "CLAUDE.md").is_file())
@@ -194,7 +194,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         self.assertFalse(self.calls())
 
     def test_11_existing_project_is_not_overwritten(self):
-        project = self.parent / "Existente"
+        project = self.parent / "CODEX" / "Existente"
         project.mkdir(parents=True)
         content = project / "README.md"
         content.write_text("PRESERVAR")
@@ -216,7 +216,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         name = "Teste $(touch INJETADO) `touch INJETADO2` & ação"
         result = self.run_shell("create_project", f"2\n{self.parent}\n{name}\n1\n1\n\n")
         self.assert_ok(result)
-        self.assertTrue((self.parent / name).is_dir(), result.stdout + result.stderr)
+        self.assertTrue((self.parent / "CODEX" / name).is_dir(), result.stdout + result.stderr)
         self.assertFalse((self.root / "INJETADO").exists())
         self.assertFalse((self.root / "INJETADO2").exists())
 
@@ -322,14 +322,16 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         target = self.parent / "Destino"
         target.mkdir()
         (target / "preservar").write_text("original")
-        (self.parent / "Atalho").symlink_to(target, target_is_directory=True)
+        (self.parent / "CODEX").mkdir()
+        (self.parent / "CODEX/Atalho").symlink_to(target, target_is_directory=True)
         result = self.run_shell("create_project", f"2\n{self.parent}\nAtalho\n1\n2\n\n")
         self.assertNotEqual(result.returncode, 0)
-        self.assertTrue((self.parent / "Atalho").is_symlink())
+        self.assertTrue((self.parent / "CODEX/Atalho").is_symlink())
         self.assertEqual([x.name for x in target.iterdir()], ["preservar"])
 
     def test_34_broken_symlink_is_not_replaced(self):
-        link = self.parent / "Atalho quebrado"
+        (self.parent / "CODEX").mkdir()
+        link = self.parent / "CODEX/Atalho quebrado"
         link.symlink_to(self.parent / "Ausente")
         result = self.run_shell("create_project", f"2\n{self.parent}\nAtalho quebrado\n1\n2\n\n")
         self.assertNotEqual(result.returncode, 0)
@@ -650,16 +652,16 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
     def test_67_claude_preference_uses_both_native_entries(self):
         result = self.run_shell("create_project", f"2\n{self.parent}\nClaude compartilhado\n2\n2\n\n")
         self.assert_ok(result)
-        project = self.parent / "Claude compartilhado"
+        project = self.parent / "CLAUDE/Claude compartilhado"
         self.assertEqual((project / ".assistente-ia/tool").read_text().strip(), "claude")
         self.assertIn("@INSTRUCOES/PROJETO.md", (project / "CLAUDE.md").read_text())
         self.assertIn("INSTRUCOES/PROJETO.md", (project / "AGENTS.md").read_text())
-        self.assertFalse((self.parent / "CLAUDE").exists())
+        self.assertTrue((self.parent / "CODEX").is_dir())
 
     def test_68_selected_legacy_group_is_used_as_parent(self):
         for tool, choice in (("CODEX", "1"), ("CLAUDE", "2")):
             group = self.parent / tool
-            group.mkdir()
+            group.mkdir(exist_ok=True)
             result = self.run_shell("create_project", f"2\n{group}\nMeu projeto\n{choice}\n1\n\n")
             self.assert_ok(result)
             self.assertTrue((group / "Meu projeto/.assistente-ia/tool").is_file())
@@ -794,13 +796,13 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(list(outside.iterdir()), [])
 
-    def test_81_old_group_symlink_is_ignored_when_creating_shared_project(self):
+    def test_81_group_symlink_is_rejected(self):
         outside = self.parent / "Externo"
         outside.mkdir()
         (self.parent / "CODEX").symlink_to(outside, target_is_directory=True)
         result = self.run_shell("create_project", f"2\n{self.parent}\nNovo\n1\n2\n\n")
-        self.assert_ok(result)
-        self.assertTrue((self.parent / "Novo" / "AGENTS.md").is_file())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.parent / "CLAUDE").exists())
         self.assertEqual(list(outside.iterdir()), [])
 
     def test_82_invalid_profile_does_not_launch(self):
@@ -884,7 +886,7 @@ sys.exit(int(os.environ.get("TEST_RUN_STATUS", "0")))
 
     def test_90_app_creates_and_launches_both_agents_in_same_project(self):
         name = "Loja da Ana's site"
-        project = self.parent / name
+        project = self.parent / "CODEX" / name
         created = self.run_main("--app", "create", str(self.parent), name, "codex", "Publicar a loja")
         self.assert_ok(created)
         self.assertEqual(created.stdout.splitlines(), [str(project)])
