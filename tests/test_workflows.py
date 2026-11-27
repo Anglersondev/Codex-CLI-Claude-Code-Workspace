@@ -141,7 +141,12 @@ class WorkflowTests(unittest.TestCase):
 . $env:WORKFLOW_LAUNCHER -Check
 $script:project = $env:WORKFLOW_PROJECT
 function Read-Choice { return '' }
-function codex { Write-Output ("CALL " + (Get-Location).Path + " " + ($args -join '|')) }
+function Resolve-AgentCommand([string]$name) { return @{ File = $name; Prefix = @() } }
+function Invoke-Agent($command, [string[]]$arguments) {
+    if ($command.File -ne 'codex') { throw "Unexpected agent: $($command.File)" }
+    [Console]::WriteLine("CALL " + (Get-Location).Path + " " + ($arguments -join '|'))
+    return 0
+}
 Agent-Menu 'resume'
 Agent-Menu 'select'
 Agent-Menu 'summary'

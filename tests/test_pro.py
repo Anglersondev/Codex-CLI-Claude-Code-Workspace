@@ -269,7 +269,7 @@ class ParityTests(Base):
     def test_safe_backup_filters_match_between_shell_and_python(self):
         folder = self.project("backup")
         for relative in (".env", ".env.example", ".ENV.local", "id_rsa", "certs/server.pem", "src/app.py", "src/.npmrc",
-                         "node_modules/pkg/index.js", "build/out.bin", ".git/config", "docs/manual.md", ".aws/credentials"):
+                         "node_modules/pkg/index.js", "build/out.bin", ".git/config", "DOCS/manual.md", ".aws/credentials"):
             (folder / relative).parent.mkdir(parents=True, exist_ok=True)
             (folder / relative).write_text("x", encoding="utf-8")
         (folder / "atalho").symlink_to(self.home)
@@ -280,7 +280,7 @@ class ParityTests(Base):
         self.assertEqual(shell, python)
         for secret in (".env", ".ENV.local", "id_rsa", "certs/server.pem", "src/.npmrc", ".aws", ".git", "node_modules", "atalho"):
             self.assertNotIn(secret, python)
-        for kept in (".env.example", "src/app.py", "docs/manual.md", "certs"):
+        for kept in (".env.example", "src/app.py", "DOCS/manual.md", "certs"):
             self.assertIn(kept, python)
 
     def test_sanitized_reports_match_between_shell_and_python(self):
