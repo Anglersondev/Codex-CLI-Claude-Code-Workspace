@@ -354,6 +354,98 @@ class RestoreTests(Base):
             core.restore_backup(source, destination)
 
 
+@unittest.skipUnless(os.environ.get("ASSISTENTE_TEST_WORKFLOW_UI") == "1", "requires Tk display")
+class PanelTests(Base):
+    """Drives the new panel windows without a person: library, command palette, context audit, compaction."""
+
+    def panel(self, folder):
+        import tkinter as tk
+        import panel
+        root = tk.Tk()
+        self.addCleanup(root.destroy)
+        with mock.patch.dict(os.environ, {"ASSISTENTE_STATE_DIR": str(self.root / "state"), "ASSISTENTE_LANG": "pt-BR"}):
+            app = panel.Panel(root)
+        app.select(folder)
+        app.background = lambda work, success, show_error=True: success(work())
+        errors = mock.patch.object(panel.messagebox, "showerror", side_effect=AssertionError)
+        errors.start()
+        self.addCleanup(errors.stop)
+        return root, app, panel
+
+    def widgets(self, parent, kind):
+        found = []
+        for child in parent.winfo_children():
+            if isinstance(child, kind):
+                found.append(child)
+            found += self.widgets(child, kind)
+        return found
+
+    def test_library_window_searches_copies_and_starts_a_session(self):
+        import tkinter as tk
+        from tkinter import ttk
+        folder = self.project()
+        root, app, panel = self.panel(folder)
+        with mock.patch.object(panel.library, "entries", return_value=library.entries("pt-BR")):
+            app.prompt_library()
+        window = root.grab_current()
+        search = self.widgets(window, ttk.Entry)[0]
+        search.insert(0, "acessibilidade wcag")
+        tree = self.widgets(window, ttk.Treeview)[0]
+        self.assertEqual(len(tree.get_children()), 1)
+        preview = self.widgets(window, tk.Text)[0]
+        self.assertIn("WCAG 2.2", preview.get("1.0", "end"))
+        buttons = {button.cget("text"): button for button in self.widgets(window, ttk.Button)}
+        buttons[panel.wf.label("copy_to_project")].invoke()
+        saved = folder / "PROMPTS/acessibilidade.md"
+        self.assertEqual(saved.read_text(encoding="utf-8"), library.load()["acessibilidade"]["pt-BR"]["text"] + "\n")
+        with mock.patch.object(panel.library, "entries", return_value=library.entries("pt-BR")):
+            app.prompt_library()
+        window = root.grab_current()
+        self.widgets(window, ttk.Entry)[0].insert(0, "WCAG")
+        {button.cget("text"): button for button in self.widgets(window, ttk.Button)}[panel.wf.label("copy_to_project")].invoke()
+        self.assertTrue((folder / "PROMPTS/acessibilidade-2.md").is_file(), "a second copy never overwrites the first")
+        with mock.patch.object(panel.library, "entries", return_value=library.entries("pt-BR")), \
+                mock.patch.object(app, "launch") as launch:
+            app.prompt_library()
+            window = root.grab_current()
+            self.widgets(window, ttk.Entry)[0].insert(0, "revisar o trabalho do outro agente")
+            {button.cget("text"): button for button in self.widgets(window, ttk.Button)}[panel.wf.label("use_now")].invoke()
+        launch.assert_called_once_with("new", initial_text=library.load()["revisao-alternativa"]["pt-BR"]["text"])
+
+    def test_palette_context_audit_and_compaction(self):
+        import tkinter as tk
+        from tkinter import ttk
+        folder = self.project()
+        checkpoints = "".join(f"\n## Checkpoint · 2026-11-0{day} · codex → claude\n\n### Próximo passo\nPasso {day}\n" for day in range(1, 7))
+        (folder / "DOCS/ANDAMENTO.md").write_text("# Andamento\n" + checkpoints, encoding="utf-8")
+        (folder / "CLAUDE.md").write_text(f"token {SECRET_VALUE}\n", encoding="utf-8")
+        root, app, panel = self.panel(folder)
+        app.command_palette()
+        window = root.grab_current()
+        field = self.widgets(window, ttk.Entry)[0]
+        field.insert(0, "auditoria do CONTEXTO")
+        listing = self.widgets(window, tk.Listbox)[0]
+        self.assertEqual(listing.get(0, "end"), (panel.wf.label("context_audit"),))
+        field.focus_force()
+        root.update()
+        field.event_generate("<Return>")
+        root.update()
+        report = root.grab_current()
+        text = self.widgets(report, tk.Text)[0].get("1.0", "end")
+        self.assertIn("checkpoints", text)
+        self.assertIn("CLAUDE.md:1", text)
+        self.assertNotIn(SECRET_VALUE, text)
+        report.destroy()
+        with mock.patch.object(panel.messagebox, "askyesno", return_value=False):
+            app.compact_checkpoints()
+        self.assertEqual(pro.checkpoint_count(folder / "DOCS/ANDAMENTO.md"), 6, "cancel keeps everything")
+        with mock.patch.object(panel.messagebox, "askyesno", return_value=True):
+            app.compact_checkpoints()
+        self.assertEqual(pro.checkpoint_count(folder / "DOCS/ANDAMENTO.md"), 3)
+        self.assertEqual(len(list((folder / "DOCS/LEGADO").glob("ANDAMENTO-checkpoints-*.md"))), 1)
+        self.assertIn("DOCS/LEGADO/ANDAMENTO-checkpoints-", app.status.get())
+
+
 class TranslationTests(unittest.TestCase):
     def test_macos_strings_have_the_same_keys_in_every_language(self):
         pattern = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*=', re.M)

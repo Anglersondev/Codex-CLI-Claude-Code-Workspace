@@ -17,8 +17,11 @@ package() {
   mkdir -p "$stage/desktop"
   for file in "$@"; do cp -R "$root/$file" "$stage/"; done
   mkdir -p "$stage/lib"
-  cp "$root/lib/project-layouts.tsv" "$root/lib/build-number" "$root/lib/backup-excludes.txt" "$stage/lib/"
-  cp "$root/desktop/core.py" "$root/desktop/panel.py" "$root/desktop/workflows.py" "$root/desktop/workflows.json" "$stage/desktop/"
+  # Data files read by the Python panel (the Linux package also carries the whole lib/ folder).
+  cp "$root/lib/project-layouts.tsv" "$root/lib/build-number" "$root/lib/backup-excludes.txt" \
+    "$root/lib/secret-patterns.txt" "$root/lib/prompt-library.tsv" "$stage/lib/"
+  cp "$root/desktop/core.py" "$root/desktop/panel.py" "$root/desktop/workflows.py" "$root/desktop/workflows.json" \
+    "$root/desktop/pro.py" "$root/desktop/library.py" "$stage/desktop/"
   cp "$root/desktop/LEIA-ME.md" "$root/LICENSE" "$stage/"
   (cd "$scratch" && zip -qr "$name.zip" "$name")
   mv -f "$scratch/$name.zip" "$destination/$name.zip"

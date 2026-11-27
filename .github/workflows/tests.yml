@@ -1,0 +1,65 @@
+name: Tests
+
+# Runs on every push to main, on pull requests and from the release workflow.
+# Read-only token: nothing here can publish, tag or change the repository.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install the display and Tk used by the panel tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xterm python3-tk
+      - name: Launcher check and RTK tests
+        run: |
+          set -euo pipefail
+          /bin/bash ASSISTENTE-IA-MAC.command --check
+          /bin/bash tests/test_rtk.sh
+      - name: Full Python suite (Bash launcher, panel, workflows, 1.0 Professional)
+        env:
+          ASSISTENTE_TEST_NATIVE_TERMINAL: '1'
+          ASSISTENTE_TEST_WORKFLOW_UI: '1'
+        run: |
+          set -euo pipefail
+          xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -p 'test_*.py'
+          xvfb-run -a /usr/bin/python3 desktop/panel.py --smoke-test
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Launcher check, panel and PowerShell tests
+        shell: pwsh
+        env:
+          ASSISTENTE_TEST_NATIVE_TERMINAL: '1'
+          ASSISTENTE_TEST_WORKFLOW_UI: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Without this, a failing native command earlier in the script is hidden by a later success.
+          $PSNativeCommandUseErrorActionPreference = $true
+          powershell -NoProfile -ExecutionPolicy RemoteSigned -File ASSISTENTE-IA-WINDOWS.ps1 -Check
+          foreach ($suite in 'test_desktop.py', 'test_workflows.py', 'test_windows_launcher.py', 'test_pro.py') {
+            python -m unittest discover -s tests -p $suite
+          }
+          python desktop/panel.py --smoke-test

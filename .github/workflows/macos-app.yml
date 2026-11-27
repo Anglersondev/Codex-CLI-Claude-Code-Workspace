@@ -1,85 +1,93 @@
 name: Build Assistente IA apps
 
+# Builds the apps for a version tag and attaches them to a DRAFT release.
+# It never publishes a release, never moves a tag and never replaces assets of a published release.
 on:
   push:
     tags:
       - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build again (for example v1.0), after a runner failure
+        required: true
 
-permissions:
-  contents: write
+# No job gets more than it needs; only the macOS job can write, and only to releases.
+permissions: {}
 
 concurrency:
-  group: macos-release-${{ github.ref }}
+  group: macos-release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  portable-tests:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  tests:
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb xterm python3-tk
-          ASSISTENTE_TEST_NATIVE_TERMINAL=1 xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -p 'test_desktop.py'
-          ASSISTENTE_TEST_WORKFLOW_UI=1 xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -p test_workflows.py
-          xvfb-run -a /usr/bin/python3 desktop/panel.py --smoke-test
-      - if: runner.os == 'Windows'
-        env:
-          ASSISTENTE_TEST_NATIVE_TERMINAL: '1'
-          ASSISTENTE_TEST_WORKFLOW_UI: '1'
-        run: |
-          powershell -NoProfile -ExecutionPolicy RemoteSigned -File ASSISTENTE-IA-WINDOWS.ps1 -Check
-          python -m unittest discover -s tests -p 'test_desktop.py'
-          python -m unittest discover -s tests -p test_workflows.py
-          python desktop/panel.py --smoke-test
+    uses: ./.github/workflows/tests.yml
 
   macos:
-    needs: portable-tests
+    needs: tests
+    # macos-15 is Apple silicon. When GitHub has no runner free the job waits and then fails with
+    # "job was not acquired"; that is capacity, not code. Run this workflow again from the Actions tab.
     runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - name: Build and verify
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Check the tag
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]{1,4}\.[0-9]{1,4}(\.[0-9]{1,4})?$ ]] || { echo "::error::Invalid tag: $RELEASE_TAG"; exit 1; }
+          git rev-parse --verify --quiet "refs/tags/$RELEASE_TAG" >/dev/null || git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+      - name: Test on macOS
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
           ASSISTENTE_LANG: pt-BR
         run: |
           set -euo pipefail
           /bin/bash ASSISTENTE-IA-MAC.command --check
           python3 -I -m unittest discover -s tests -p 'test_*.py'
           /bin/bash tests/test_rtk.sh
+      - name: Build, package and checksum
+        run: |
+          set -euo pipefail
           export ASSISTENTE_VERSION="${RELEASE_TAG#v}"
+          build="$(cat lib/build-number)"
           /bin/bash macOS/build.sh "$RUNNER_TEMP/Assistente IA.app"
           /usr/bin/ditto -c -k --keepParent "$RUNNER_TEMP/Assistente IA.app" "$RUNNER_TEMP/Assistente-IA-App-macOS.zip"
           /bin/bash desktop/package.sh "$RUNNER_TEMP"
           git archive --format=zip --prefix=Codex-CLI-Claude-Code-Workspace/ \
             --output="$RUNNER_TEMP/Assistente-IA-Source.zip" HEAD
+          {
+            printf 'Assistente IA %s, build %s\n' "$ASSISTENTE_VERSION" "$build"
+            printf 'Commit: %s\n' "$(git rev-parse HEAD)"
+            printf 'Built on: %s, %s\n' "$(sw_vers -productVersion)" "$(xcrun swiftc --version 2>&1 | head -1)"
+            if [ -n "${ASSISTENTE_SIGN_IDENTITY:-}" ]; then printf 'Signature: Developer ID\n'; else printf 'Signature: ad hoc, not notarized\n'; fi
+          } > "$RUNNER_TEMP/Assistente-IA-Build-$build.txt"
           (
             cd "$RUNNER_TEMP"
-            shasum -a 256 Assistente-IA-App-*.zip Assistente-IA-Source.zip > SHA256SUMS.txt
+            shasum -a 256 Assistente-IA-App-*.zip Assistente-IA-Source.zip Assistente-IA-Build-*.txt > SHA256SUMS.txt
           )
-      - name: Attach bundle to the release draft
+      - name: Attach to the release draft
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
           archives=("$RUNNER_TEMP"/Assistente-IA-App-*.zip "$RUNNER_TEMP/Assistente-IA-Source.zip" "$RUNNER_TEMP/SHA256SUMS.txt" "$RUNNER_TEMP"/Assistente-IA-Build-*.txt)
+          [ "${#archives[@]}" -ge 6 ] || { echo "::error::Expected 6 files, found ${#archives[@]}"; exit 1; }
           if draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
-            if [ "$draft" = true ]; then
-              gh release upload "$RELEASE_TAG" "${archives[@]}"
-            else
-              printf 'Release %s is already published.\n' "$RELEASE_TAG"
+            if [ "$draft" != true ]; then
+              echo "::error::Release $RELEASE_TAG is already published. Nothing was replaced; create a new tag or a draft by hand."
+              exit 1
             fi
+            # Replaces only files of the same name in the draft.
+            gh release upload "$RELEASE_TAG" "${archives[@]}" --clobber
           else
             gh release create "$RELEASE_TAG" "${archives[@]}" --verify-tag --draft --generate-notes
           fi
