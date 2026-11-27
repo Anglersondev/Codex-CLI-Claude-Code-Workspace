@@ -54,6 +54,17 @@ También puedes guardar un checkpoint sin Git. Describe los cambios en el campo 
 - En **Copia del proyecto**, revisa los archivos antes de guardar el ZIP. La copia predeterminada omite credenciales comunes, dependencias, cachés y metadatos de Git. **Restaurar ZIP** extrae la copia en una carpeta nueva.
 - El aviso de actualización detecta nuevas compilaciones de la versión **1.0**. Linux y Windows abren las descargas. macOS puede instalar la actualización verificada si activas la opción.
 
+### Novedades de la compilación 3 en el panel de Linux y Windows
+
+- **Biblioteca de solicitudes.** En **Herramientas del proyecto → Biblioteca de solicitudes…**, busca entre 21 solicitudes listas en español, portugués e inglés: auditoría, errores, seguridad, rendimiento, WordPress, accesibilidad, pruebas, producción, ahorro de tokens y revisión por el otro agente. Cópiala a la carpeta de solicitudes del proyecto o abre una sesión con ella. En el menú del terminal de macOS y Linux, elige la opción **7** al empezar una conversación.
+- **Acciones rápidas.** Pulsa `Ctrl+K`, escribe parte del nombre de la acción y pulsa Intro.
+- **Auditoría del contexto.** En **Herramientas del proyecto → Auditoría del contexto**, el panel revisa `AGENTS.md`, `CLAUDE.md`, las instrucciones y el progreso. Muestra posibles credenciales solo por archivo y línea, referencias e imports ausentes, el límite predeterminado de 32 KiB de Codex, líneas repetidas y exceso de checkpoints. Los tamaños son estimaciones (bytes ÷ 4), no recuentos de tokens.
+- **Compactar checkpoints antiguos.** Tras confirmar, los checkpoints antiguos pasan a un archivo nuevo en `DOCUMENTOS/LEGADO/` y los tres últimos se quedan en el progreso.
+- **Revisión por el otro agente.** Al cambiar de agente, **Guardar y pedir revisión** registra el checkpoint, con decisiones y problemas pendientes, y abre el otro agente en modo de planificación con una solicitud de revisión. Cada revisión es un clic; nada se ejecuta en bucle.
+- **Comandos detectados.** En **Comprobaciones**, el panel sugiere comandos de pruebas, compilación y lint encontrados en los archivos del proyecto. Revisa la sugerencia y pulsa **Usar** para rellenar el campo. Nada se instala ni se ejecuta solo.
+
+En macOS, esta compilación ofrece estas herramientas desde el menú del terminal. Los botones de la aplicación nativa todavía no están incluidos.
+
 [Capturas de la aplicación en macOS](README.md#macos-app-screenshots)
 
 ## Contexto compartido y progreso

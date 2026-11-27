@@ -1,0 +1,101 @@
+Assistente IA 1.0 Professional (build 3): resultados reais em 27/11/2026
+Ambiente: Ubuntu 24.04.5 LTS x86_64 (contêiner), GNU bash 5.2.21, Python 3.12.3 com Tk 8.6, PowerShell 7.4.6 (Linux), Git 2.43.0, Xvfb.
+macOS e Windows reais NÃO foram usados nestas execuções.
+
+== Antes (commit ae8d800, sem Tk instalado)
+python3.12 -I -m unittest discover -s tests -p 'test_*.py': Ran 369 tests, FAILED (failures=4, errors=1, skipped=7)
+  ERROR test_menu.test_m39_zip_dialog_has_its_own_sentence (osascript do macOS)
+  FAIL  test_menu.test_system_language_detection_and_saved_choice (AppleLanguages)
+  FAIL  test_menu.test_system_language_falls_back_to_portuguese (AppleLanguages)
+  FAIL  test_objetivo.test_o09_special_characters_are_literal_and_mode_is_kept (stat -f no Linux)
+  FAIL  test_painel.test_s13_statusline_older_than_transcript_is_ignored (stat -f no Linux)
+bash tests/test_rtk.sh: 158 PASS; 0 FAIL
+bash ASSISTENTE-IA-MAC.command --check: exit 0
+
+== Depois (build 3)
+Kit completo. Sintaxe Bash verificada.
+check=0
+158 PASS; 0 FAIL
+rtk=0
+ASSISTENTE_TEST_NATIVE_TERMINAL=1 ASSISTENTE_TEST_WORKFLOW_UI=1 xvfb-run -a python3.12 -m unittest discover -s tests -p 'test_*.py':
+Ran 395 tests in 79.265s
+OK (skipped=5)
+  5 ignorados: 4 exigem JavaScript for Automation do macOS; 1 exige o terminal do Windows.
+xvfb-run -a python3.12 desktop/panel.py --smoke-test: exit 0
+pwsh 7.4.6 no Linux, com LOCALAPPDATA definido: ASSISTENTE-IA-WINDOWS.ps1 -Check exit 0; tests/test_windows_launcher.py (3 testes) OK dentro da suíte
+
+== Desempenho antes (ae8d800)
+== painel --smoke-test (5x)
+0.253 s · maxrss filhos 39780 KB
+0.313 s · maxrss filhos 39560 KB
+0.245 s · maxrss filhos 39768 KB
+0.235 s · maxrss filhos 39864 KB
+0.239 s · maxrss filhos 39776 KB
+== painel em repouso
+RSS após 6 s: 39780 kB
+CPU em 30 s de repouso: 4 ticks de 1/100 s
+Trocas de contexto voluntárias em 30 s: 120
+Threads: 2
+== launcher --check (3x)
+0.056 s · maxrss filhos 11640 KB
+0.054 s · maxrss filhos 11488 KB
+0.058 s · maxrss filhos 11544 KB
+== --app info (3x)
+0.049 s · maxrss filhos 11476 KB
+0.046 s · maxrss filhos 11488 KB
+0.046 s · maxrss filhos 11540 KB
+== --app tools (3x, sem agentes instalados)
+0.094 s · maxrss filhos 23500 KB
+0.086 s · maxrss filhos 23676 KB
+0.089 s · maxrss filhos 23496 KB
+== tamanho do repositório (sem .git)
+4.5M
+
+== Desempenho depois (build 3)
+== painel --smoke-test (5x)
+0.297 s · maxrss filhos 40332 KB
+0.270 s · maxrss filhos 40320 KB
+0.238 s · maxrss filhos 40292 KB
+0.216 s · maxrss filhos 40204 KB
+0.220 s · maxrss filhos 40240 KB
+== painel em repouso
+RSS após 6 s: 40416 kB
+CPU em 30 s de repouso: 1 ticks de 1/100 s
+Trocas de contexto voluntárias em 30 s: 20
+Threads: 2
+== launcher --check (3x)
+0.069 s · maxrss filhos 11496 KB
+0.050 s · maxrss filhos 11460 KB
+0.052 s · maxrss filhos 11496 KB
+== --app info (3x)
+0.056 s · maxrss filhos 11456 KB
+0.051 s · maxrss filhos 11524 KB
+0.061 s · maxrss filhos 11592 KB
+== --app tools (3x, sem agentes instalados)
+0.092 s · maxrss filhos 23496 KB
+0.087 s · maxrss filhos 23576 KB
+0.086 s · maxrss filhos 23436 KB
+== tamanho do repositório (sem .git)
+4.2M
+== --app context-audit (5x, projeto com AGENTS.md de 11966 bytes e 12 checkpoints)
+0.098 s
+0.112 s
+0.093 s
+0.092 s
+0.091 s
+== --app library (5x)
+0.030 s
+0.026 s
+0.021 s
+0.028 s
+0.029 s
+== Python: pro.context_findings + render (média de 20)
+2.3 ms
+✓ Codex: contexto fixo estimado ~3,0 mil tokens (bytes ÷ 4; não é medição)
+✓ Claude Code: contexto fixo estimado ~23 tokens (bytes ÷ 4; não é medição)
+! 12 checkpoints no andamento; compacte os antigos (mantém os 3 últimos)
+== Python: library.entries + search (média de 50)
+0.69 ms
+== tamanho (sem .git e sem __pycache__): base ae8d800 x atual
+base: 3.72 MB
+atual: 3.85 MB

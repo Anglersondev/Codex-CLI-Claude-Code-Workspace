@@ -645,9 +645,9 @@
     "Copiar al proyecto"
   ],
   "use_now": [
-    "Usar na próxima sessão",
-    "Use in next session",
-    "Usar en la próxima sesión"
+    "Abrir sessão nova com este pedido",
+    "Start a new session with it",
+    "Abrir una sesión nueva con esta solicitud"
   ],
   "copied": [
     "Pedido copiado para {path}.",

@@ -1,5 +1,16 @@
 # Assistente IA Mac 1.0 — Alterações e verificações (23/10/2026)
 
+## Build 3 — 1.0 Professional (27/11/2026)
+
+Detalhes, severidades e limites em [AUDITORIA-1.0-PROFESSIONAL.md](AUDITORIA-1.0-PROFESSIONAL.md). Resultados completos em `tests/resultado-1.0-professional.txt`.
+
+- **Correções:** `stat` no Linux (permissões e datas), esforço validado por agente (`ultracode` no Claude Code), restauração de ZIPs do Mac no Linux e no Windows, salvar ZIP por cima no app do Mac, mensagens em inglês que estavam só em português.
+- **Segurança:** argumentos no Windows sem passar pelo `cmd.exe`, cópia ZIP segura no terminal e no Windows, backup que não segue links trocados depois da prévia, regras de credenciais ampliadas.
+- **Novidades:** biblioteca de 21 pedidos, auditoria do contexto, compactação de checkpoints, decisões e pendências no checkpoint, revisão pelo outro agente, ações rápidas (`Ctrl+K`), comandos detectados, limpeza de registros de worktrees, diagnóstico sanitizado.
+- **CI:** testes em todo push e pull request com token somente leitura, falhas do Windows visíveis, arquivo de build gerado, release publicada nunca alterada.
+- **Verificado no Linux (Ubuntu 24.04, Bash 5.2, Python 3.12, Tk 8.6):** `--check` exit 0, `tests/test_rtk.sh` 158 PASS, suíte Python 395 testes OK (5 ignorados por exigirem macOS ou Windows), `panel.py --smoke-test` exit 0. PowerShell 7.4.6 no Linux: `-Check` e 3 testes do launcher.
+- **Não verificado:** compilação e execução no macOS (Swift), Bash 3.2 real, Windows 10/11 e Windows PowerShell 5.1.
+
 A versão continua **1.0**. Abaixo, o que mudou em cada rodada e o que foi realmente verificado.
 
 ## Rodada 1 — auditoria do RTK

@@ -54,6 +54,17 @@ O checkpoint funciona também em projetos sem Git. Nesse caso, descreva as mudan
 - Em **Backup do projeto**, revise o conteúdo antes de salvar. A cópia padrão exclui credenciais comuns, dependências, caches e dados internos do Git. **Restaurar ZIP** extrai a cópia em uma pasta nova.
 - O botão de atualização detecta builds novos da **1.0**. Linux e Windows encaminham para os downloads. O macOS pode instalar o pacote verificado quando a opção estiver ligada.
 
+### Novidades do build 3 no painel de Linux e Windows
+
+- **Biblioteca de pedidos.** Em **Ferramentas do projeto → Biblioteca de pedidos…**, pesquise 21 pedidos prontos em português, inglês e espanhol: auditoria, bugs, segurança, desempenho, WordPress, acessibilidade, testes, produção, economia de tokens e revisão pelo outro agente. Copie para a pasta de pedidos do projeto ou abra uma sessão com o pedido. No menu do Terminal do macOS e do Linux, use a opção **7** ao começar uma conversa.
+- **Ações rápidas.** Pressione `Ctrl+K`, digite parte do nome da ação e tecle Enter.
+- **Auditoria do contexto.** Em **Ferramentas do projeto → Auditoria do contexto**, o painel confere `AGENTS.md`, `CLAUDE.md`, as instruções e o andamento. Mostra possíveis credenciais só pelo arquivo e linha, referências e imports ausentes, o limite padrão de 32 KiB do Codex, linhas repetidas e excesso de checkpoints. Os tamanhos são estimativas (bytes ÷ 4), não contagens de tokens.
+- **Compactar checkpoints antigos.** Depois da confirmação, os checkpoints antigos vão para um arquivo novo em `DOCS/LEGADO/`, e os três últimos ficam no andamento.
+- **Revisão pelo outro agente.** Ao trocar de agente, **Salvar e pedir revisão** grava o checkpoint, com decisões e problemas pendentes, e abre o outro agente no modo Planejar com um pedido de revisão. Cada revisão é um clique; nada roda em ciclo.
+- **Comandos detectados.** Em **Verificações**, o painel sugere comandos de teste, build e lint encontrados nos arquivos do projeto. Revise e clique em **Usar** para preencher o campo. Nada é instalado ou executado sozinho.
+
+No macOS, este build oferece esses recursos pelo menu do Terminal. Os botões no app nativo ainda não foram incluídos.
+
 [Capturas do app no macOS](README.md#macos-app-screenshots)
 
 ## Contexto compartilhado e andamento

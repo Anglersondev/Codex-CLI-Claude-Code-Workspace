@@ -62,6 +62,17 @@ Checkpoints also work without Git. Describe your changes in the editable field. 
 - **Preview and restore backups.** Review the project files before saving a ZIP. The desktop backup skips common credentials, Git metadata, dependencies, and caches. **Restore ZIP** extracts a copy into a new folder at the chosen destination.
 - **Version 1.0 build updates.** The update check compares build numbers when a new revision shares the visible version. macOS can stage a verified update when enabled. Linux and Windows open the release downloads.
 
+### Build 3 tools in the Linux and Windows panel
+
+- **Prompt library.** Open **Project tools → Prompt library…** to search 21 ready-made prompts in English, Portuguese and Spanish: audits, bug fixes, security, performance, WordPress, accessibility, tests, production readiness, token savings and a review by the other agent. Copy one into the project's prompts folder or start a session with it. In the macOS and Linux terminal menu, choose option **7** when starting a conversation.
+- **Quick actions.** Press `Ctrl+K`, type part of an action name and press Enter.
+- **Context audit.** **Project tools → Context audit** checks `AGENTS.md`, `CLAUDE.md`, the project instructions and the progress notes. It reports possible credentials by file and line only, missing references and imports, Codex's 32 KiB default limit, repeated lines and too many checkpoints. Sizes are estimates (bytes ÷ 4), not token counts.
+- **Compact old checkpoints.** After you confirm, older checkpoints move to a new file in `DOCS/LEGACY/` and the last three stay in the progress notes.
+- **Review by the other agent.** When you switch agents, **Save and request review** records the checkpoint, including decisions and open issues, and opens the other agent in plan mode with a review request. Each review is one click; nothing runs in a loop.
+- **Detected commands.** **Checks** suggests test, build and lint commands found in the project's manifest files. Review a suggestion and click **Use** to fill the field. Nothing runs or installs by itself.
+
+The macOS app reaches these tools through its terminal menu in this build. The native buttons are not included yet.
+
 ## macOS app screenshots
 
 The screenshots show the English interface with a demo web project. The same workflows are available in Brazilian Portuguese and Spanish.
@@ -199,7 +210,7 @@ python3 -I -m unittest discover -s tests -p 'test_*.py'
 /bin/bash tests/test_rtk.sh
 ```
 
-GitHub Actions verifies tagged builds and prepares release assets. Use the [SHA-256 checksums](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest/download/SHA256SUMS.txt) to verify the downloads. See [Contributing](CONTRIBUTING.md) for the contribution process.
+GitHub Actions runs the tests on every push and pull request, and builds tagged versions into a draft release that you publish yourself. Use the [SHA-256 checksums](https://github.com/Anglersondev/Codex-CLI-Claude-Code-Workspace/releases/latest/download/SHA256SUMS.txt) to verify the downloads. See [Contributing](CONTRIBUTING.md) for the contribution process.
 
 ## Author and support
 

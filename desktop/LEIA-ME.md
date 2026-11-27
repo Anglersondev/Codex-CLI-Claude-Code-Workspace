@@ -18,10 +18,12 @@ Instale o Codex CLI ou Claude Code usando o instalador oficial. Em **Ajustes**, 
 
 **Ajustes** reúne troca de conta, atualização dos agentes, economia do RTK e avisos opcionais de novas versões publicadas. Use o link **Versões publicadas** para baixar os ZIPs mais recentes. O instalador automático do próprio Assistente fica na edição nativa do Mac.
 
+**Ferramentas do projeto** também traz a **Biblioteca de pedidos** (21 modelos prontos nos três idiomas), a **Auditoria do contexto** e **Compactar checkpoints antigos**. Pressione `Ctrl+K` para buscar qualquer ação pelo nome. Ao trocar de agente, **Salvar e pedir revisão** abre o outro agente em modo Planejar para revisar o último checkpoint.
+
 Para usar o menu de terminal, abra `ASSISTENTE-IA-LINUX.sh` no Linux ou `ASSISTENTE-IA-WINDOWS.cmd` no Windows.
 
 ## English
 
 Extract the full ZIP. Open `ASSISTENTE-IA-LINUX-GUI.sh` on Linux (`sh ASSISTENTE-IA-LINUX-GUI.sh`) or double-click `ASSISTENTE-IA-WINDOWS-GUI.cmd` on Windows. Install Python 3.9+ with Tkinter and the official CLI for Codex or Claude Code. Linux needs a graphical terminal and may require the `python3-tk` package. Use **Settings → Language** to follow the system or select Brazilian Portuguese, English, or Spanish.
 
-Click **Default folder**, choose where to create projects, and select **New** or **Open**. Select your agent and click **New session**. The project panel is available again when the terminal session ends. Use **Settings** for account access, integration preferences, release notifications, and the project links.
+Click **Default folder**, choose where to create projects, and select **New** or **Open**. Select your agent and click **New session**. The project panel is available again when the terminal session ends. Use **Settings** for account access, integration preferences, release notifications, and the project links. **Project tools** also has the **Prompt library**, **Context audit** and **Compact old checkpoints**. Press `Ctrl+K` to find any action by name. When you switch agents, **Save and request review** opens the other agent in plan mode to review the latest checkpoint.

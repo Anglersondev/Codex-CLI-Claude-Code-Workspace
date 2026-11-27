@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import queue
+import shlex
 import shutil
 import subprocess
 import sys
@@ -1012,7 +1013,8 @@ class Panel:
             ttk.Label(suggestions, text=wf.label("suggestions"), style="Sub.TLabel", wraplength=420).pack(anchor="w", pady=(2, 4))
             for kind, command in commands.items():
                 if folder:
-                    command = f'cd "{folder}" && {command}' if not WINDOWS else f'cd /d "{folder}" && {command}'
+                    # Windows folder names cannot contain quotes; elsewhere the name is quoted for the shell.
+                    command = f'cd /d "{folder}" && {command}' if WINDOWS else f"cd {shlex.quote(folder)} && {command}"
                 row = ttk.Frame(suggestions)
                 row.pack(fill="x")
                 ttk.Label(row, text=f"{kind}: {command}", font="TkFixedFont").pack(side="left")

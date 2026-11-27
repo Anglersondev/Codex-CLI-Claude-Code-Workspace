@@ -254,6 +254,7 @@ Na etapa **Como você quer começar?**, o nome e o caminho completo do projeto a
 4. **Começar sem pedido e escrever dentro do agente:** abre o Codex ou Claude para você digitar lá.
 5. **Usar um arquivo `.md` ou `.txt` de outra pasta:** pelo Finder ou pelo caminho; limite de 60 KB.
 6. **Começar com uma imagem (Codex):** PNG, JPG ou WEBP. No Claude, use os anexos do projeto e peça para ler o arquivo.
+7. **Biblioteca de pedidos:** 21 modelos prontos (auditoria completa, bugs, segurança, desempenho, refatoração, arquitetura, funcionalidades, WordPress, front-end, back-end, banco de dados, APIs, SEO técnico, acessibilidade, testes, documentação, revisão de código, produção, economia de tokens, continuação e revisão pelo outro agente). Digite o número para ver o texto, `B` para buscar por palavra. Depois, Enter usa o pedido nesta sessão e `C` copia para `PROMPTS/` sem substituir um arquivo com o mesmo nome. Os modelos ficam no idioma dos projetos (português, inglês ou espanhol).
 
 Escreva o que pretende construir ou corrigir. Um pedido útil contém o objetivo e um resultado observável:
 
@@ -319,17 +320,17 @@ Abra **`6` Cuidar do projeto** no menu principal. A tela é dividida em *Instru�
 | `3` Criar prompt personalizado para este projeto | Dê um nome e escreva o texto. `FIM` salva em `PROMPTS/`; `CANCELAR` volta. Na próxima conversa, escolha “Escolher um prompt salvo” para usar esse prompt. |
 | `4` Capturar parte da tela | Selecione uma região; a imagem fica em `ANEXOS/`. Esc cancela a captura. |
 | `5` Ver alterações do Git | Mostra o status do repositório, sem criar commits. A pasta precisa ser um repositório Git para isso funcionar. |
-| `6` Criar cópia ZIP | Escolha um destino fora do projeto e confirme. A cópia inclui o projeto inteiro, inclusive arquivos ocultos como `.env`, se existirem. |
+| `6` Criar cópia ZIP | Escolha um destino fora do projeto. **Enter** cria a cópia segura, que deixa de fora credenciais comuns (`.env`, chaves, `.npmrc`, `.aws`, `.ssh`…), dados do Git, dependências e caches, pelas regras de `lib/backup-excludes.txt`. **c** cria a cópia completa, com tudo. Outra tecla cancela. Um arquivo existente nunca é substituído. |
 | `7` Abrir site no Safari | Informe o caminho completo de um HTML existente ou a URL local que seu servidor exibiu, por exemplo `http://localhost:3000`. |
 | `8` Executar npm run dev | Usa o pacote na raiz; se ausente, procura em `CODIGO/`, `CODIGO/*` e nas subpastas diretas. Mostra o caminho e, se houver vários, pede a escolha. Exige Node.js/npm e dependências já preparadas. Ctrl+C encerra o servidor. |
 | `9` Instruções permanentes | Edita `INSTRUCOES/PROJETO.md` e oferece atalhos opcionais de Claude/Codex na opção `4`. |
 | `10` Abrir pasta de prompts | Abre `PROMPTS/` no Finder para organizar os pedidos salvos. |
 | `11` Organizar projeto antigo | Escolhe o perfil e mostra a prévia da organização. Só aplica depois da confirmação `ORGANIZAR`. |
-| `12` Verificar se a pasta está organizada | Confere pastas, perfil, entrada do agente, `PROJETO.md`, peso das instruções e `ANDAMENTO.md`; avisa de documentos grandes em `PROMPTS/`, oferece mover para `DOCS/`, anexar a seção Eficiência e criar prompts ausentes, e pergunta o objetivo. Distingue **objetivo em modelo** (aviso forte) de **faltam detalhes de contexto e requisitos** (aviso leve, não obrigatório). Tudo com confirmação e backup. |
+| `12` Verificar se a pasta está organizada | Confere pastas, perfil, entrada do agente, `PROJETO.md`, peso das instruções e `ANDAMENTO.md`; avisa de documentos grandes em `PROMPTS/`, oferece mover para `DOCS/`, anexar a seção Eficiência e criar prompts ausentes, e pergunta o objetivo. Distingue **objetivo em modelo** (aviso forte) de **faltam detalhes de contexto e requisitos** (aviso leve, não obrigatório). Tudo com confirmação e backup. No fim, mostra a **auditoria do contexto** (possíveis credenciais só por arquivo e linha, referências e imports `@` ausentes, limite de 32 KiB do Codex, linhas repetidas, estimativa de tamanho em bytes ÷ 4) e as tecnologias e comandos detectados no projeto, sem executar nada. Com checkpoints demais em `ANDAMENTO.md`, oferece mover os antigos para um arquivo novo em `DOCS/LEGADO/`, mantendo os três últimos. |
 
 Copiar um documento para `ANEXOS/` não o envia automaticamente ao agente. Na conversa, peça por exemplo: “Leia `ANEXOS/requisitos.md` e implemente as alterações”. A leitura de PDF, DOCX ou outros formatos depende dos recursos disponíveis na ferramenta.
 
-Uma cópia ZIP não é validada apenas por ter sido criada. Abra-a e confira os arquivos antes de depender dela como backup ou compartilhá-la. Se o projeto contém credenciais, elas também podem entrar na cópia completa.
+Uma cópia ZIP não é validada apenas por ter sido criada. Abra-a e confira os arquivos antes de depender dela como backup ou compartilhá-la. A cópia segura reconhece só nomes de arquivo conhecidos: uma credencial guardada num arquivo com outro nome entra na cópia. A cópia completa leva tudo, inclusive credenciais.
 
 O servidor de desenvolvimento usa a janela enquanto estiver rodando. Para abrir o site pelo menu em paralelo, abra outra janela do Terminal e execute o kit nela. O menu não instala automaticamente dependências nem escolhe como executar todos os tipos de projeto; `npm run dev` atende aos projetos que definem esse script.
 
