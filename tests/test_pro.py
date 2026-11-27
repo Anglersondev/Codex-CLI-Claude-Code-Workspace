@@ -45,8 +45,8 @@ class Base(unittest.TestCase):
         self.home.mkdir()
         self.env = {key: value for key, value in os.environ.items()
                     if not any(part in key for part in ("API_KEY", "AUTH_TOKEN", "ACCESS_TOKEN"))}
-        self.env.pop("ASSISTENTE_LANG", None)
-        self.env.pop("ASSISTENTE_PROJECT_LANG", None)
+        for setting in ("ASSISTENTE_LANG", "ASSISTENTE_PROJECT_LANG", "LC_ALL", "LC_MESSAGES"):
+            self.env.pop(setting, None)
         self.env.update({
             "HOME": str(self.home), "ASSISTENTE_STATE_DIR": str(self.root / "state"), "ASSISTENTE_TEST_MODE": "1",
             "ASSISTENTE_PLATFORM": "Linux", "LANG": "pt_BR.UTF-8", "TERM": "dumb", "NO_COLOR": "1",

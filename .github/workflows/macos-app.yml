@@ -53,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           /bin/bash ASSISTENTE-IA-MAC.command --check
-          python3 -I -m unittest discover -s tests -p 'test_*.py'
+          env -u LC_ALL -u LC_MESSAGES python3 -I -m unittest discover -s tests -p 'test_*.py'
           /bin/bash tests/test_rtk.sh
       - name: Build, package and checksum
         run: |
