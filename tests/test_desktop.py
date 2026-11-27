@@ -154,14 +154,15 @@ class PortablePanelTests(unittest.TestCase):
             core.session_arguments("codex", "new", self.root, model="--config")
 
     def test_same_version_build_notification(self):
-        release = json.dumps({"tag_name": "v1.0", "assets": [
+        installed_tag = f"v{core.APP_VERSION}"
+        release = json.dumps({"tag_name": installed_tag, "assets": [
             {"name": f"Assistente-IA-Build-{core.APP_BUILD + 1}.txt"},
         ]}).encode()
         context = mock.MagicMock()
         context.__enter__.return_value.read.return_value = release
         with mock.patch.object(core.urllib.request, "urlopen", return_value=context):
-            self.assertEqual(core.check_release(), f"v1.0 · build {core.APP_BUILD + 1}")
-        context.__enter__.return_value.read.return_value = release.replace(b"v1.0", b"v0.9")
+            self.assertEqual(core.check_release(), f"{installed_tag} · build {core.APP_BUILD + 1}")
+        context.__enter__.return_value.read.return_value = release.replace(installed_tag.encode(), b"v0.9")
         with mock.patch.object(core.urllib.request, "urlopen", return_value=context):
             self.assertEqual(core.check_release(), "")
 
@@ -204,9 +205,9 @@ class PortablePanelTests(unittest.TestCase):
         self.assertFalse((self.root / "unsafe").exists())
 
     def test_update_notification_compares_stable_versions(self):
-        self.assertTrue(core.newer_version("v1.0.1"))
-        self.assertFalse(core.newer_version("v1.0.0"))
-        self.assertFalse(core.newer_version("v0.99.0"))
+        self.assertTrue(core.newer_version("v1.0.1", installed="1.0"))
+        self.assertFalse(core.newer_version("v1.0.0", installed="1.0"))
+        self.assertFalse(core.newer_version("v0.99.0", installed="1.0"))
         with self.assertRaises(ValueError):
             core.newer_version("v2.0.0-beta")
 

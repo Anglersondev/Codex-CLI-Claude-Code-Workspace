@@ -18,7 +18,7 @@ import urllib.request
 import zipfile
 
 
-APP_VERSION = "1.0"
+APP_VERSION = "1.0.1"
 RESOURCES = Path(__file__).resolve().parents[1] / "lib"
 APP_BUILD = int((RESOURCES / "build-number").read_text().strip())
 REPOSITORY = "Anglersondev/Codex-CLI-Claude-Code-Workspace"

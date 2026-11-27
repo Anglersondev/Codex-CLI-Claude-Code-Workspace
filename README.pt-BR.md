@@ -52,9 +52,9 @@ O checkpoint funciona também em projetos sem Git. Nesse caso, descreva as mudan
 - Em **Verificações**, configure os comandos de teste e build que roda na raiz do projeto. O painel registra o resultado do Terminal e sugere a inclusão no próximo checkpoint.
 - Em **Gerenciar sessões isoladas**, veja a branch, a pasta e as mudanças pendentes. A remoção de uma pasta limpa preserva a branch. Pastas com arquivos pendentes, inclusive ignorados pelo Git, ficam bloqueadas.
 - Em **Backup do projeto**, revise o conteúdo antes de salvar. A cópia padrão exclui credenciais comuns, dependências, caches e dados internos do Git. **Restaurar ZIP** extrai a cópia em uma pasta nova.
-- O botão de atualização detecta builds novos da **1.0**. Linux e Windows encaminham para os downloads. O macOS pode instalar o pacote verificado quando a opção estiver ligada.
+- O botão de atualização detecta versões mais recentes e compara o número do build entre revisões da mesma versão. Linux e Windows encaminham para os downloads. O macOS pode instalar o pacote verificado quando a opção estiver ligada.
 
-### Novidades do build 3 no painel de Linux e Windows
+### Novidades da versão 1.0.1 (build 3) no painel de Linux e Windows
 
 - **Biblioteca de pedidos.** Em **Ferramentas do projeto → Biblioteca de pedidos…**, pesquise 21 pedidos prontos em português, inglês e espanhol: auditoria, bugs, segurança, desempenho, WordPress, acessibilidade, testes, produção, economia de tokens e revisão pelo outro agente. Copie para a pasta de pedidos do projeto ou abra uma sessão com o pedido. No menu do Terminal do macOS e do Linux, use a opção **7** ao começar uma conversa.
 - **Ações rápidas.** Pressione `Ctrl+K`, digite parte do nome da ação e tecle Enter.

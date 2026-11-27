@@ -1,4 +1,4 @@
-ASSISTENTE IA MAC 1.0
+ASSISTENTE IA MAC 1.0.1
 Seus projetos com Codex ou Claude Code, em um menu simples.
 
 COMECE EM 4 PASSOS
@@ -109,5 +109,5 @@ LIMITES, SEM ROMANCE
   • As pastas organizam o trabalho; não são isolamento de segurança.
 
 Guia completo: GUIA-DE-USO.md · RTK: RTK.md · Testes: MUDANCAS-E-TESTES.md
-Esta é a versão 1.0, com as melhorias das revisões. Seus projetos atuais
+Esta é a versão 1.0.1, com as melhorias do build 3 Professional. Seus projetos atuais
 não precisam ser recriados.

@@ -465,10 +465,12 @@ class TranslationTests(unittest.TestCase):
             self.assertEqual(placeholders[0], placeholders[1], key)
             self.assertEqual(placeholders[0], placeholders[2], key)
 
-    def test_build_number_is_a_positive_integer_and_version_stays_1_0(self):
+    def test_build_number_is_positive_and_platform_versions_match(self):
         self.assertRegex((ROOT / "lib/build-number").read_text(encoding="utf-8").strip(), r"^[1-9][0-9]*$")
-        self.assertIn("VERSION='1.0'", MAIN.read_text(encoding="utf-8"))
-        self.assertEqual(core.APP_VERSION, "1.0")
+        self.assertRegex(core.APP_VERSION, r"^[0-9]{1,4}\.[0-9]{1,4}(\.[0-9]{1,4})?$")
+        self.assertIn(f"VERSION='{core.APP_VERSION}'", MAIN.read_text(encoding="utf-8"))
+        windows = (ROOT / "ASSISTENTE-IA-WINDOWS.ps1").read_text(encoding="utf-8")
+        self.assertIn(f"$version = '{core.APP_VERSION}'", windows)
 
 
 if __name__ == "__main__":

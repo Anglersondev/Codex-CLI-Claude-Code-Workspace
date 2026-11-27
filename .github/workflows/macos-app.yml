@@ -45,6 +45,8 @@ jobs:
           set -euo pipefail
           [[ "$RELEASE_TAG" =~ ^v[0-9]{1,4}\.[0-9]{1,4}(\.[0-9]{1,4})?$ ]] || { echo "::error::Invalid tag: $RELEASE_TAG"; exit 1; }
           git rev-parse --verify --quiet "refs/tags/$RELEASE_TAG" >/dev/null || git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          source_version="$(/bin/bash ASSISTENTE-IA-MAC.command --app version)"
+          [[ "$RELEASE_TAG" == "v$source_version" ]] || { echo "::error::$RELEASE_TAG does not match source version $source_version"; exit 1; }
       - name: Test on macOS
         env:
           ASSISTENTE_LANG: pt-BR
@@ -83,8 +85,8 @@ jobs:
           [ "${#archives[@]}" -ge 6 ] || { echo "::error::Expected 6 files, found ${#archives[@]}"; exit 1; }
           if draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)"; then
             if [ "$draft" != true ]; then
-              echo "::error::Release $RELEASE_TAG is already published. Nothing was replaced; create a new tag or a draft by hand."
-              exit 1
+              echo "Release $RELEASE_TAG is already published. Its assets were preserved."
+              exit 0
             fi
             # Replaces only files of the same name in the draft.
             gh release upload "$RELEASE_TAG" "${archives[@]}" --clobber
