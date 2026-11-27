@@ -536,7 +536,7 @@ select_workmode() {
 }
 load_prompt_file() {
   local file="$1" ext
-  case "$file" in *.md|*.txt|*.MD|*.TXT) ;; *) warn 'Escolha um arquivo .md ou .txt.'; return 1 ;; esac
+  case "$file" in *.md|*.txt|*.MD|*.TXT) ;; *) warn "$(ui 'Escolha um arquivo .md ou .txt.' 'Choose an .md or .txt file.')"; return 1 ;; esac
   [ -f "$file" ] && [ -r "$file" ] || { warn "$(ui 'Arquivo não encontrado ou sem acesso.' 'File not found or unreadable.')"; return 1; }
   [ "$(wc -c < "$file" | tr -d ' ')" -le 60000 ] || { warn "$(ui 'Arquivo maior que 60 KB. Peça ao agente para ler o arquivo dentro do projeto.' 'File exceeds 60 KB. Ask the agent to read it inside the project.')"; return 1; }
   INITIAL_PROMPT="$(cat "$file")"
@@ -555,19 +555,19 @@ choose_saved_prompt() {
       done
     fi
     if [ "${#prompt_files[@]}" -eq 0 ]; then
-      say "Ainda não há pedidos prontos em $PROJECT/${CTX_PROMPTS}/."
-      ask 'Quer criar um pedido pronto para esta pasta agora? [s/N]: ' || return 1
-      case "$REPLY" in s|S) save_prompt || return 1; continue ;; *) return 1 ;; esac
+      say "$(ui 'Ainda não há pedidos prontos em' 'There are no saved prompts yet in') $PROJECT/${CTX_PROMPTS}/."
+      ask_ui 'Quer criar um pedido pronto para esta pasta agora? [s/N]: ' 'Create a saved prompt for this folder now? [y/N]: ' || return 1
+      case "$REPLY" in s|S|y|Y) save_prompt || return 1; continue ;; *) return 1 ;; esac
     fi
-    say "Pedidos prontos deste projeto · $PROJECT/${CTX_PROMPTS}/"
+    say "$(ui 'Pedidos prontos deste projeto' 'Saved prompts in this project') · $PROJECT/${CTX_PROMPTS}/"
     i=0
     while [ "$i" -lt "${#prompt_files[@]}" ]; do
       file="${prompt_files[$i]}"
       printf '%2s) %s%s\n' "$((i+1))" "$(basename "$file")" "$(type prompt_size_note >/dev/null 2>&1 && prompt_size_note "$file")"
       i=$((i+1))
     done
-    say '0) Voltar'
-    ask 'Qual pedido quer usar? ' || return 1
+    say_ui '0) Voltar' '0) Back'
+    ask_ui 'Qual pedido quer usar? ' 'Which prompt do you want to use? ' || return 1
     pick="$REPLY"
     case "$pick" in 0|'') return 1 ;; *[!0-9]*) say_ui 'Digite o número ao lado do pedido.' 'Enter the number beside the prompt.'; continue ;; esac
     [ "${#pick}" -le 6 ] || continue
@@ -608,6 +608,7 @@ choose_prompt() {
   say_ui '4) Começar sem pedido e escrever dentro do agente' '4) Start without a prompt and write inside the agent'
   say_ui '5) Usar um arquivo .md/.txt de outra pasta' '5) Use an .md/.txt file from another folder'
   say_ui '6) Começar com uma imagem (Codex)' '6) Start with an image (Codex)'
+  say_ui '7) Biblioteca de pedidos (21 modelos: auditoria, bugs, segurança...)' '7) Prompt library (21 templates: audit, bugs, security...)'
   say_ui '0) Voltar' '0) Back'
   ask "$(ui 'Escolha' 'Choose') [$default]: " || return 1
   choice="${REPLY:-$default}"
@@ -621,10 +622,11 @@ choose_prompt() {
         line="$REPLY"
         case "$line" in FIM|DONE) return 0 ;; CANCELAR|CANCEL) return 1 ;; esac
         INITIAL_PROMPT="${INITIAL_PROMPT}${line}"$'\n'
-        [ "${#INITIAL_PROMPT}" -le 60000 ] || { warn 'Pedido muito longo. Use um arquivo no projeto.'; return 1; }
+        [ "${#INITIAL_PROMPT}" -le 60000 ] || { warn "$(ui 'Pedido muito longo. Use um arquivo no projeto.' 'Prompt too long. Use a file in the project.')"; return 1; }
       done
       return 1 ;;
     3) choose_saved_prompt ;;
+    7) choose_library_prompt ;;
     4) return 0 ;;
     5)
       say_ui 'Selecione o arquivo .md ou .txt que contém seu pedido.' 'Select the .md or .txt file containing your prompt.'
@@ -636,11 +638,62 @@ choose_prompt() {
       choose_local_file || return 1
       IMAGE="$CHOSEN_FILE"
       [ -f "$IMAGE" ] || { warn "$(ui 'Imagem não encontrada.' 'Image not found.')"; return 1; }
-      case "$IMAGE" in *.png|*.jpg|*.jpeg|*.webp|*.PNG|*.JPG|*.JPEG|*.WEBP) ;; *) warn 'Use PNG, JPG ou WEBP.'; return 1 ;; esac
+      case "$IMAGE" in *.png|*.jpg|*.jpeg|*.webp|*.PNG|*.JPG|*.JPEG|*.WEBP) ;; *) warn "$(ui 'Use PNG, JPG ou WEBP.' 'Use PNG, JPG, or WEBP.')"; return 1 ;; esac
       ask_ui 'O que fazer com a imagem? [Analisar a imagem]: ' 'What should the agent do with the image? [Analyze it]: ' || return 1
       INITIAL_PROMPT="${REPLY:-$(ui 'Analise a imagem e me ajude a trabalhar neste projeto.' 'Analyze the image and help me work on this project.')}" ;;
     *) return 1 ;;
   esac
+}
+# Biblioteca de pedidos (lib/prompt-library.tsv), no idioma dos projetos.
+choose_library_prompt() {
+  local filter='' pick key category title text i entries
+  local -a keys=() labels=()
+  entries="$(library_entries)" || entries=''
+  while :; do
+    keys=() labels=()
+    while IFS=$'\t' read -r key category title; do
+      [ -n "$key" ] || continue
+      if [ -n "$filter" ] && ! printf '%s %s\n' "$category" "$title" | grep -Fqi -- "$filter"; then continue; fi
+      keys[${#keys[@]}]="$key"
+      labels[${#labels[@]}]="$category · $title"
+    done <<LIBRARY
+$entries
+LIBRARY
+    say_ui 'Biblioteca de pedidos (modelos prontos)' 'Prompt library (ready-made prompts)'
+    [ -z "$filter" ] || say "$(ui 'Busca' 'Search'): $filter"
+    [ "${#keys[@]}" -gt 0 ] || say_ui 'Nada encontrado.' 'Nothing found.'
+    i=0
+    while [ "$i" -lt "${#keys[@]}" ]; do
+      printf '%2s) %s\n' "$((i+1))" "${labels[$i]}"
+      i=$((i+1))
+    done
+    say_ui 'B) Buscar por palavra   0) Voltar' 'S) Search by word   0) Back'
+    ask_ui 'Número do pedido: ' 'Prompt number: ' || return 1
+    pick="$REPLY"
+    case "$pick" in
+      0|'') return 1 ;;
+      b|B|s|S)
+        ask_ui 'Palavra (Enter mostra todos): ' 'Word (Enter shows all): ' || return 1
+        if single_line "$REPLY"; then filter="$REPLY"; fi
+        continue ;;
+      *[!0-9]*) say_ui 'Digite o número ao lado do pedido.' 'Enter the number beside the prompt.'; continue ;;
+    esac
+    [ "${#pick}" -le 3 ] || continue
+    pick=$((10#$pick))
+    if [ "$pick" -lt 1 ] || [ "$pick" -gt "${#keys[@]}" ]; then say_ui 'Número fora da lista.' 'Number not in the list.'; continue; fi
+    key="${keys[$((pick-1))]}"
+    text="$(library_text "$key")" || { warn "$(ui 'Pedido indisponível.' 'Prompt unavailable.')"; continue; }
+    rule
+    printf '%s\n' "$text"
+    rule
+    say_ui 'Enter usa agora · C copia para a pasta de pedidos do projeto · 0 volta' 'Enter uses it now · C copies it to the project prompts folder · 0 goes back'
+    ask_ui 'Escolha: ' 'Choose: ' || return 1
+    case "$REPLY" in
+      '') INITIAL_PROMPT="$text"; return 0 ;;
+      c|C)
+        if write_project_prompt "$key" "$text"$'\n'; then say "$(ui 'Pedido salvo' 'Prompt saved'): $PROJECT/${CTX_PROMPTS}/$key.md"; fi ;;
+    esac
+  done
 }
 build_command() {
   local tool="${1:-$TOOL}" mode="${2:-novo}"
@@ -1061,7 +1114,7 @@ write_project_prompt() {
   valid_name "$name" || { warn "$(ui 'Nome de pedido inválido.' 'Invalid prompt name.')"; return 1; }
   text_has_content "$content" || { warn "$(ui 'O pedido está vazio; nada foi salvo.' 'The prompt is empty; nothing was saved.')"; return 1; }
   bytes="$(printf '%s' "$content" | wc -c | tr -d ' ')"
-  [ "$bytes" -le 60000 ] || { warn 'Limite de 60 KB atingido.'; return 1; }
+  [ "$bytes" -le 60000 ] || { warn "$(ui 'Limite de 60 KB atingido.' 'The 60 KB limit was reached.')"; return 1; }
   safe_project_path "${CTX_PROMPTS}/$name.md" || return 1
   [ ! -e "$PROJECT/${CTX_PROMPTS}/$name.md" ] || { warn "$(ui 'Esse pedido já existe.' 'This prompt already exists.')"; return 1; }
   mkdir -p "$PROJECT/${CTX_PROMPTS}" || return 1
@@ -1088,7 +1141,7 @@ save_prompt() {
       CANCELAR|CANCEL) return 1 ;;
     esac
     content="${content}${line}"$'\n'
-    [ "${#content}" -le 60000 ] || { warn 'Limite de 60 KB atingido.'; return 1; }
+    [ "${#content}" -le 60000 ] || { warn "$(ui 'Limite de 60 KB atingido.' 'The 60 KB limit was reached.')"; return 1; }
   done
   warn "$(ui 'A entrada terminou antes do FIM; nada foi salvo.' 'Input ended before DONE; nothing was saved.')"
   return 1
@@ -1556,7 +1609,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     --check)
       result=0
       /bin/bash -n "$BASE_DIR/ASSISTENTE-IA-MAC.command" || result=1
-      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/pro.sh lib/context.sh lib/project-layouts.tsv lib/secret-patterns.txt lib/backup-excludes.txt lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
+      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/pro.sh lib/context.sh lib/project-layouts.tsv lib/secret-patterns.txt lib/backup-excludes.txt lib/prompt-library.tsv lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
         [ -s "$BASE_DIR/$required" ] || { warn "Arquivo ausente: $required"; result=1; }
       done
       [ ! -f "$BASE_DIR/lib/rtk.sh" ] || /bin/bash -n "$BASE_DIR/lib/rtk.sh" || result=1

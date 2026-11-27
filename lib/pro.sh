@@ -207,13 +207,12 @@ checkpoint_compact() {
   temporary="$(mktemp "$file.XXXXXXXX")" || return 1
   keep_file_mode "$file" "$temporary"
   # Seções de checkpoint vão até o próximo título "## " que não seja subtítulo.
-  case "$CTX_LANGUAGE" in en) label='Earlier checkpoints' ;; *) label='Checkpoints anteriores' ;; esac
+  case "$CTX_LANGUAGE" in en) label='Earlier checkpoints' ;; *) label='Checkpoints anteriores' ;; esac  # pt-BR e es usam a mesma expressão
   if ! LC_ALL=C awk -v total="$total" -v keep="$CHECKPOINT_KEEP" -v moved="$archive" -v note="_${label}: $CTX_ARCHIVE/${name}_" '
       /^## / { inside = ($0 ~ /^## Checkpoint · /); if (inside) { seen++; old = (seen <= total - keep) } else old = 0
-               if (inside && seen == total - keep + 1 && !noted) { print note; print ""; noted = 1; blank = 1 } }
+               if (inside && seen == total - keep + 1 && !noted) { print note; print ""; noted = 1 } }
       inside && old { print > moved; next }
-      /^[[:space:]]*$/ { if (blank) next; blank = 1; print; next }
-      { blank = 0; print }
+      { print }
     ' "$file" > "$temporary"; then rm -f "$temporary" "$archive"; return 1; fi
   [ -s "$archive" ] || { rm -f "$temporary" "$archive"; return 1; }
   mv -f "$temporary" "$file" || { rm -f "$temporary"; return 1; }
@@ -300,8 +299,8 @@ pro_sanitize() {
   local home="${HOME%/}" pattern
   pattern="$(pro_secret_pattern)"
   if [ -n "$home" ] && [ "$home" != / ]; then
-    LC_ALL=C sed -E -e "s#$(printf '%s' "$home" | sed 's/[][\.*^$#]/\\&/g')#~#g" -e "s/$pattern/[oculto]/g"
-  else LC_ALL=C sed -E "s/$pattern/[oculto]/g"; fi
+    LC_ALL=C sed -E -e "s#$(printf '%s' "$home" | sed 's/[][\.*^$#]/\\&/g')#~#g" -e "s/$pattern/[***]/g"
+  else LC_ALL=C sed -E "s/$pattern/[***]/g"; fi
 }
 
 app_probe_system() {
@@ -338,4 +337,37 @@ EOF2
     say_ui '  Comandos sugeridos pelos manifestos (revise antes de usar; nada foi executado):' '  Commands suggested by the manifests (review before use; nothing was run):'
     printf '%s' "$commands"
   fi
+}
+
+# --- Biblioteca de pedidos -------------------------------------------------
+# lib/prompt-library.tsv: chave<TAB>idioma<TAB>categoria<TAB>título<TAB>texto (no texto, \n é quebra
+# de linha). O mesmo arquivo é lido por desktop/library.py. Nada do arquivo é executado.
+library_language() {
+  case "${1:-${ASSISTENTE_PROJECT_LANG:-$APP_LANG}}" in es) printf es ;; en) printf en ;; *) printf pt-BR ;; esac
+}
+
+# Uma linha por pedido, na ordem do arquivo: chave<TAB>categoria<TAB>título (pt-BR quando falta tradução).
+library_entries() {
+  local language
+  language="$(library_language "${1:-}")"
+  LC_ALL=C awk -F'\t' -v lang="$language" '
+    /^#/ || NF != 5 { next }
+    !($1 in seen) { seen[$1] = 1; order[++count] = $1 }
+    $2 == lang { chosen[$1] = $3 "\t" $4 }
+    $2 == "pt-BR" { fallback[$1] = $3 "\t" $4 }
+    END { for (i = 1; i <= count; i++) { key = order[i]; value = (key in chosen) ? chosen[key] : fallback[key]; if (value != "") print key "\t" value } }
+  ' "$BASE_DIR/lib/prompt-library.tsv"
+}
+
+# Texto completo de um pedido, com as quebras de linha restauradas.
+library_text() {
+  local key="$1" language
+  case "$key" in ''|-*|*[!a-z0-9-]*) return 1 ;; esac
+  language="$(library_language "${2:-}")"
+  LC_ALL=C awk -F'\t' -v key="$key" -v lang="$language" '
+    /^#/ || NF != 5 || $1 != key { next }
+    $2 == lang { text = $5 }
+    $2 == "pt-BR" { fallback = $5 }
+    END { value = (text != "") ? text : fallback; if (value == "") exit 1; gsub(/\\n/, "\n", value); printf "%s", value }
+  ' "$BASE_DIR/lib/prompt-library.tsv"
 }

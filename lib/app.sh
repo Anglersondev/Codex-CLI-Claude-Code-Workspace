@@ -215,6 +215,9 @@ app_command() {
     worktree-prune:1|worktree-prune:2)
       case "${2:-}" in ''|confirmed) ;; *) return 2 ;; esac
       path="$(normalize_path "$1")" && worktree_prune "$path" "${2:-}" ;;
+    library:0|library:1)
+      library_entries "${1:-}" | LC_ALL=C sed 's/^/=/' ;;
+    library-text:1|library-text:2) library_text "$1" "${2:-}" ;;
     checkpoint-files:1) app_checkpoint_files "$1" ;;
     checkpoint-append:2) app_checkpoint_append "$1" "$2" ;;
     worktree-create:3) app_worktree_create "$@" ;;

@@ -229,31 +229,24 @@ def checkpoint_compact(folder):
     archive_dir = core.managed_path(folder, layout["archive"])
     name = f"{Path(layout['progress']).stem}-checkpoints-{datetime.now():%Y%m%d-%H%M%S}.md"
     relative = f"{layout['archive']}/{name}"
-    label = core.text("Checkpoints anteriores", "Earlier checkpoints", "Checkpoints anteriores")
-    kept, moved, seen, inside, old, noted, blank = [], [], 0, False, False, False, False
+    # Same wording as lib/pro.sh, in the project's language (pt-BR and es share it).
+    label = "Earlier checkpoints" if core.project_language(folder) == "en" else "Checkpoints anteriores"
+    # Every line outside the moved checkpoints is kept byte for byte.
+    kept, moved, seen, inside, old, noted = [], [], 0, False, False, False
     for line in lines:
         if line.startswith("## "):
             inside = bool(CHECKPOINT_HEADING.match(line))
             if inside:
                 seen += 1
-                old = seen <= total - CHECKPOINT_KEEP
-            else:
-                old = False
+            old = inside and seen <= total - CHECKPOINT_KEEP
             if inside and seen == total - CHECKPOINT_KEEP + 1 and not noted:
                 kept += [f"_{label}: {relative}_\n", "\n"]
-                noted, blank = True, True
-        if inside and old:
-            moved.append(line)
-        elif not line.strip():
-            if not blank:
-                kept.append(line)
-            blank = True
-        else:
-            blank = False
-            kept.append(line)
+                noted = True
+        (moved if inside and old else kept).append(line)
     archive_dir.mkdir(parents=True, exist_ok=True)
     archive = archive_dir / name
     core.write_new(archive, "".join(moved))
+    temporary = None
     try:
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="", dir=progress.parent, delete=False) as stream:
             temporary = Path(stream.name)
@@ -261,7 +254,8 @@ def checkpoint_compact(folder):
         shutil.copymode(progress, temporary)
         temporary.replace(progress)
     except BaseException:
-        Path(stream.name).unlink(missing_ok=True)
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
         archive.unlink(missing_ok=True)
         raise
     return relative
@@ -370,7 +364,7 @@ def sanitize(report):
     home = str(Path.home())
     if home and home not in ("/", "\\"):
         report = report.replace(home, "~")
-    return SECRET.sub("[oculto]", report)
+    return SECRET.sub("[***]", report)
 
 
 def system_report():
