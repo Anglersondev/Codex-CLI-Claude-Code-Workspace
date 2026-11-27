@@ -1556,13 +1556,13 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     --check)
       result=0
       /bin/bash -n "$BASE_DIR/ASSISTENTE-IA-MAC.command" || result=1
-      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/context.sh lib/project-layouts.tsv lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
+      for required in lib/rtk.sh lib/projects.sh lib/dicas.sh lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/pro.sh lib/context.sh lib/project-layouts.tsv lib/secret-patterns.txt lib/backup-excludes.txt lib/catalog.js GUIA-DE-USO.md LEIA-PRIMEIRO.txt; do
         [ -s "$BASE_DIR/$required" ] || { warn "Arquivo ausente: $required"; result=1; }
       done
       [ ! -f "$BASE_DIR/lib/rtk.sh" ] || /bin/bash -n "$BASE_DIR/lib/rtk.sh" || result=1
       [ ! -f "$BASE_DIR/lib/projects.sh" ] || /bin/bash -n "$BASE_DIR/lib/projects.sh" || result=1
       [ ! -f "$BASE_DIR/lib/dicas.sh" ] || /bin/bash -n "$BASE_DIR/lib/dicas.sh" || result=1
-      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/context.sh; do
+      for extra in lib/painel.sh lib/statusline.sh lib/statusline-claude.sh lib/app.sh lib/workflows.sh lib/pro.sh lib/context.sh; do
         [ ! -f "$BASE_DIR/$extra" ] || /bin/bash -n "$BASE_DIR/$extra" || result=1
       done
       [ "$result" -ne 0 ] || say_ui 'Kit completo. Sintaxe Bash verificada.' 'Kit complete. Bash syntax verified.'

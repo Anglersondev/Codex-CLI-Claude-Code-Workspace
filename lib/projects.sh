@@ -1088,6 +1088,16 @@ EOF
     say ''
   fi
   if [ "$issues" -eq 0 ]; then say_ui 'Tudo certo com a estrutura.' 'Project structure looks good.'; fi
+  if type context_audit_report >/dev/null 2>&1; then
+    say ''
+    say_ui 'Contexto dos agentes:' 'Agent context:'
+    context_audit_report
+    project_detect_summary
+    if [ "$(checkpoint_count)" -gt $((CHECKPOINT_KEEP + 2)) ]; then
+      ask_ui "Mover checkpoints antigos para ${CTX_ARCHIVE}/ e manter os 3 últimos? [s/N]: " "Move old checkpoints to ${CTX_ARCHIVE}/ and keep the last 3? [y/N]: " || REPLY=''
+      case "$REPLY" in s|S|y|Y) checkpoint_compact | sed -e 's/^=/  → /' ;; *) say_ui 'Mantido como está.' 'Kept as is.' ;; esac
+    fi
+  fi
   say_ui "Instruções permanentes ficam em ${CTX_INSTRUCTIONS}." "Permanent instructions live in ${CTX_INSTRUCTIONS}."
   say_ui "$CTX_PROMPTS/ é só para pedidos reutilizáveis escolhidos um a um; requisitos e referências ficam em ${CTX_DOCS}/." "$CTX_PROMPTS/ is for reusable requests selected one at a time; requirements and references belong in ${CTX_DOCS}/."
 }

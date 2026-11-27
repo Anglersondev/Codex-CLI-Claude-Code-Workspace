@@ -508,5 +508,160 @@
     "Sessões isoladas",
     "Isolated sessions",
     "Sesiones aisladas"
+  ],
+  "decisions": [
+    "Decisões tomadas",
+    "Decisions made",
+    "Decisiones tomadas"
+  ],
+  "open_issues": [
+    "Problemas pendentes",
+    "Open issues",
+    "Problemas pendientes"
+  ],
+  "save_review": [
+    "Salvar e pedir revisão",
+    "Save and request review",
+    "Guardar y pedir revisión"
+  ],
+  "review_hint": [
+    "A revisão abre o outro agente no modo planejar (somente leitura). Nada é aplicado sem você.",
+    "The review opens the other agent in plan mode (read-only). Nothing is applied without you.",
+    "La revisión abre el otro agente en modo planificar (solo lectura). No se aplica nada sin ti."
+  ],
+  "review_prompt": [
+    "Revise o checkpoint mais recente em {path} sem alterar arquivos. Confira as mudanças com git diff, os testes registrados e os riscos de segurança, desempenho e arquitetura. Responda com uma lista de problemas por severidade (crítico, alto, médio, baixo), cada um com arquivo, linha e correção sugerida, e termine com o próximo passo recomendado.",
+    "Review the latest checkpoint in {path} without changing files. Check the changes with git diff, the recorded tests and the security, performance and architecture risks. Reply with a list of issues by severity (critical, high, medium, low), each with file, line and suggested fix, and finish with the recommended next step.",
+    "Revisa el último checkpoint de {path} sin modificar archivos. Comprueba los cambios con git diff, las pruebas registradas y los riesgos de seguridad, rendimiento y arquitectura. Responde con una lista de problemas por gravedad (crítico, alto, medio, bajo), cada uno con archivo, línea y corrección sugerida, y termina con el próximo paso recomendado."
+  ],
+  "context_audit": [
+    "Auditoria do contexto",
+    "Context audit",
+    "Auditoría del contexto"
+  ],
+  "compact_checkpoints": [
+    "Compactar checkpoints antigos…",
+    "Compact old checkpoints…",
+    "Compactar checkpoints antiguos…"
+  ],
+  "compact_confirm": [
+    "Mover os checkpoints antigos para um arquivo novo em {path} e manter os 3 últimos no andamento? Nada é apagado.",
+    "Move old checkpoints to a new file in {path} and keep the last 3 in the progress notes? Nothing is deleted.",
+    "¿Mover los checkpoints antiguos a un archivo nuevo en {path} y conservar los 3 últimos en el progreso? No se borra nada."
+  ],
+  "compacted": [
+    "Checkpoints antigos movidos para {path}.",
+    "Old checkpoints moved to {path}.",
+    "Checkpoints antiguos movidos a {path}."
+  ],
+  "nothing_to_compact": [
+    "Há 3 checkpoints ou menos; nada a compactar.",
+    "There are 3 checkpoints or fewer; nothing to compact.",
+    "Hay 3 checkpoints o menos; no hay nada que compactar."
+  ],
+  "no_progress": [
+    "O arquivo de andamento não existe.",
+    "The progress file does not exist.",
+    "El archivo de progreso no existe."
+  ],
+  "detected": [
+    "Detectado",
+    "Detected",
+    "Detectado"
+  ],
+  "generic_project": [
+    "Projeto genérico (nenhum manifesto conhecido)",
+    "Generic project (no known manifest)",
+    "Proyecto genérico (ningún manifiesto conocido)"
+  ],
+  "suggestions": [
+    "Sugestões lidas dos manifestos do projeto. Revise antes de usar; nada foi executado.",
+    "Suggestions read from the project manifests. Review them before use; nothing was run.",
+    "Sugerencias leídas de los manifiestos del proyecto. Revísalas antes de usarlas; no se ejecutó nada."
+  ],
+  "use_suggestion": [
+    "Usar",
+    "Use",
+    "Usar"
+  ],
+  "prune_worktrees": [
+    "Limpar registros de pastas removidas…",
+    "Clean up records of removed folders…",
+    "Limpiar registros de carpetas eliminadas…"
+  ],
+  "prune_confirm": [
+    "O Git vai remover só os registros abaixo, de pastas que já não existem. Nenhum arquivo ou branch é apagado.",
+    "Git will remove only the records below, for folders that no longer exist. No files or branches are deleted.",
+    "Git eliminará solo los registros de abajo, de carpetas que ya no existen. No se borra ningún archivo ni rama."
+  ],
+  "nothing_to_prune": [
+    "Nenhum registro de pasta removida.",
+    "No records of removed folders.",
+    "No hay registros de carpetas eliminadas."
+  ],
+  "pruned": [
+    "Registros removidos.",
+    "Records removed.",
+    "Registros eliminados."
+  ],
+  "save_report": [
+    "Salvar relatório…",
+    "Save report…",
+    "Guardar informe…"
+  ],
+  "report_saved": [
+    "Relatório salvo sem a pasta pessoal e sem valores com cara de token.",
+    "Report saved without your home folder or token-like values.",
+    "Informe guardado sin tu carpeta personal ni valores con aspecto de token."
+  ],
+  "system": [
+    "Sistema",
+    "System",
+    "Sistema"
+  ],
+  "missing_node": [
+    "Node.js não encontrado",
+    "Node.js not found",
+    "No se encontró Node.js"
+  ],
+  "missing_python3": [
+    "Python 3 não encontrado",
+    "Python 3 not found",
+    "No se encontró Python 3"
+  ],
+  "prompt_library": [
+    "Biblioteca de pedidos…",
+    "Prompt library…",
+    "Biblioteca de solicitudes…"
+  ],
+  "library_search": [
+    "Pesquisar",
+    "Search",
+    "Buscar"
+  ],
+  "copy_to_project": [
+    "Copiar para o projeto",
+    "Copy to project",
+    "Copiar al proyecto"
+  ],
+  "use_now": [
+    "Usar na próxima sessão",
+    "Use in next session",
+    "Usar en la próxima sesión"
+  ],
+  "copied": [
+    "Pedido copiado para {path}.",
+    "Prompt copied to {path}.",
+    "Solicitud copiada a {path}."
+  ],
+  "command_palette": [
+    "Ações rápidas…",
+    "Quick actions…",
+    "Acciones rápidas…"
+  ],
+  "palette_hint": [
+    "Digite para filtrar e Enter para executar.",
+    "Type to filter and press Enter to run.",
+    "Escribe para filtrar y pulsa Intro para ejecutar."
   ]
 }

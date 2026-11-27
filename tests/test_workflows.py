@@ -188,11 +188,16 @@ Write-Output ("SPANISH " + $layout.Progress)
         self.assertIn("tracked.txt", fields[0].get("1.0", "end"))
         fields[1].insert("1.0", "unit tests OK")
         fields[2].insert("1.0", "verify layout")
+        fields[3].insert("1.0", "keep the TSV format")
+        fields[4].insert("1.0", "Windows icon pending")
         with mock.patch.object(panel, "executable", side_effect=lambda name: [name]), mock.patch.object(panel, "terminal_process") as start:
             submit = body.winfo_children()[-1].winfo_children()[-1]
             submit.invoke()
             self.assertEqual(app.agent.get(), "claude")
-            self.assertIn("verify layout", (self.project / "DOCS/ANDAMENTO.md").read_text(encoding="utf-8"))
+            note = (self.project / "DOCS/ANDAMENTO.md").read_text(encoding="utf-8")
+            self.assertIn("verify layout", note)
+            self.assertIn("keep the TSV format", note)
+            self.assertIn("Windows icon pending", note)
             self.assertEqual(start.call_count, 1)
             with self.assertRaises(ValueError):
                 app.launch("new")

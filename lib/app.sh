@@ -2,6 +2,7 @@
 # Bridge for the macOS app. Machine-readable commands use one value per line.
 
 . "$BASE_DIR/lib/workflows.sh"
+. "$BASE_DIR/lib/pro.sh"
 
 app_list_projects() {
   local path
@@ -201,7 +202,19 @@ app_command() {
       PROJECT="$(normalize_path "$1")" || return 1
       prepare_shared_project ;;
     launch:7) app_launch "$@" ;;
-    probe:1) app_probe "$1" ;;
+    probe:1)
+      if [ "$1" = system ]; then app_probe_system; else app_probe "$1"; fi ;;
+    context-audit:1)
+      PROJECT="$(normalize_path "$1")" && HIDE_PROJECT_HEADER=1 context_audit_report | pro_sanitize ;;
+    context-findings:1)
+      PROJECT="$(normalize_path "$1")" && context_findings ;;
+    detect:1)
+      PROJECT="$(normalize_path "$1")" && project_context && project_detect_all ;;
+    checkpoint-compact:1)
+      PROJECT="$(normalize_path "$1")" && checkpoint_compact ;;
+    worktree-prune:1|worktree-prune:2)
+      case "${2:-}" in ''|confirmed) ;; *) return 2 ;; esac
+      path="$(normalize_path "$1")" && worktree_prune "$path" "${2:-}" ;;
     checkpoint-files:1) app_checkpoint_files "$1" ;;
     checkpoint-append:2) app_checkpoint_append "$1" "$2" ;;
     worktree-create:3) app_worktree_create "$@" ;;

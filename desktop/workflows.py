@@ -102,9 +102,10 @@ def optimizer_report(agent):
 
 
 def diagnostics():
+    import pro
     with ThreadPoolExecutor(max_workers=5) as pool:
         groups = list(pool.map(tool_report, ("codex", "claude", "git", "npm", "rtk")))
-    return "\n\n".join([*groups, *(optimizer_report(agent) for agent in AGENTS)])
+    return pro.sanitize("\n\n".join([pro.system_report(), *groups, *(optimizer_report(agent) for agent in AGENTS)]))
 
 
 def git(folder, *args, timeout=20):
@@ -124,14 +125,19 @@ def changed_files(folder):
     return "\n".join(lines[:80] + ([label("more_files")] if len(lines) > 80 else []))
 
 
-def save_checkpoint(folder, source, target, changes, tests, next_step):
+def checkpoint_note(source, target, changes, tests, next_step, decisions="", issues=""):
+    stamp = datetime.now().astimezone().isoformat(timespec="minutes")
+    sections = [(label("files"), changes.strip() or "—"), (label("tests"), tests.strip() or label("no_tests"))]
+    sections += [(label(key), value.strip()) for key, value in (("decisions", decisions), ("open_issues", issues)) if value.strip()]
+    sections.append((label("next"), next_step.strip()))
+    body = "".join(f"\n### {title}\n{value}\n" for title, value in sections)
+    return f"\n\n## {label('checkpoints')} · {stamp} · {source} → {target}\n{body}"
+
+
+def save_checkpoint(folder, source, target, changes, tests, next_step, decisions="", issues=""):
     if {source, target} != set(AGENTS) or not next_step.strip():
         raise ValueError(label("enter_next"))
-    stamp = datetime.now().astimezone().isoformat(timespec="minutes")
-    note = (f"\n\n## {label('checkpoints')} · {stamp} · {source} → {target}\n"
-            f"\n### {label('files')}\n{changes.strip() or '—'}\n"
-            f"\n### {label('tests')}\n{tests.strip() or label('no_tests')}\n"
-            f"\n### {label('next')}\n{next_step.strip()}\n").encode("utf-8")
+    note = checkpoint_note(source, target, changes, tests, next_step, decisions, issues).encode("utf-8")
     if len(note) > 60000:
         raise ValueError(label("too_large"))
     path = core.managed_path(folder, core.project_layout(folder)["progress"])
