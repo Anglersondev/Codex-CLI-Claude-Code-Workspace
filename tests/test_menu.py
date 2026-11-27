@@ -182,6 +182,8 @@ class MenuTests(base.AssistantTests):
         self.assertNotIn("O QUE VOCÊ QUER FAZER?", out)
 
     def test_system_language_detection_and_saved_choice(self):
+        # Caminho do macOS (defaults read -g AppleLanguages), também verificável no Linux.
+        self.env["ASSISTENTE_PLATFORM"] = "Darwin"
         defaults = self.bin / "defaults"
         defaults.write_text('#!/bin/bash\nprintf \'(\\n    "en-US",\\n    "pt-BR"\\n)\\n\'\n')
         defaults.chmod(0o755)
@@ -198,6 +200,7 @@ class MenuTests(base.AssistantTests):
         self.assertIn("WHAT WOULD YOU LIKE TO DO?", out)
 
     def test_system_language_falls_back_to_portuguese(self):
+        self.env["ASSISTENTE_PLATFORM"] = "Darwin"
         defaults = self.bin / "defaults"
         defaults.write_text('#!/bin/bash\nprintf \'(\\n    "es-ES",\\n    "en-US"\\n)\\n\'\n')
         defaults.chmod(0o755)
@@ -205,6 +208,15 @@ class MenuTests(base.AssistantTests):
 
         defaults.write_text('#!/bin/bash\n[ "$3" = AppleLanguages ] && exit 1\nprintf "en_US\\n"\n')
         self.assertIn("WHAT WOULD YOU LIKE TO DO?", self.run_main(input_text="0\n").stdout)
+
+    def test_linux_system_language_uses_locale_variables(self):
+        self.env["ASSISTENTE_PLATFORM"] = "Linux"
+        for key in ("LC_ALL", "LC_MESSAGES", "LANG"):
+            self.env.pop(key, None)
+        self.env["LANG"] = "en_US.UTF-8"
+        self.assertIn("WHAT WOULD YOU LIKE TO DO?", self.run_main(input_text="0\n").stdout)
+        self.env["LC_ALL"] = "pt_BR.UTF-8"
+        self.assertIn("O QUE VOCÊ QUER FAZER?", self.run_main(input_text="0\n").stdout)
 
     def test_english_cli_help_and_aliases(self):
         self.env["ASSISTENTE_LANG"] = "en"
@@ -359,6 +371,7 @@ class MenuTests(base.AssistantTests):
         self.assertIn("Cancelado", empty.stdout)
 
     def test_m39_zip_dialog_has_its_own_sentence(self):
+        self.env["ASSISTENTE_PLATFORM"] = "Darwin"
         project = self.with_project("codex")
         log = self.root / "osascript.log"
         self.cmd_stub("osascript", f'printf "%s\\n" "$*" >> "{log}"\nexit 1\n')

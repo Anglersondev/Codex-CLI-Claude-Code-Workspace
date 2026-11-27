@@ -45,8 +45,10 @@ painel_epoch() {
 
 # Segundos desde 1970 da última modificação do arquivo (vazio se não der para saber).
 painel_mtime() {
-  local value
-  value="$(stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null)" || return 0
+  local value=''
+  # GNU primeiro: no Linux, "stat -f" consulta o sistema de arquivos e mistura a saída.
+  value="$(stat -c %Y "$1" 2>/dev/null)" || value=''
+  case "$value" in ''|*[!0-9]*) value="$(stat -f %m "$1" 2>/dev/null)" || value='' ;; esac
   painel_epoch "$value" 2>/dev/null || true
 }
 

@@ -38,6 +38,92 @@ function Save-Text([string]$path, [string]$value) {
 }
 function Header([string]$title) { Clear-Host; Write-Host "`n  ASSISTENTE IA · WINDOWS $version" -ForegroundColor Cyan; Write-Host "  $title"; Write-Host ('  ' + ('─' * 54)) }
 function Pause-Menu { [void](Read-Host (T 'Enter para voltar' 'Press Enter to go back')) }
+$script:onWindows = [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
+# Quotes one argument for CreateProcess/MSVCRT parsing, the same on Windows PowerShell 5.1 and PowerShell 7.
+function ConvertTo-NativeArgument([string]$value) {
+  if ($value.Length -gt 0 -and $value -notmatch '[\s"]') { return $value }
+  $builder = [Text.StringBuilder]::new('"')
+  $slashes = 0
+  foreach ($character in $value.ToCharArray()) {
+    if ($character -eq [char]'\') { $slashes++; continue }
+    if ($character -eq [char]'"') { [void]$builder.Append([char]'\', $slashes * 2 + 1).Append([char]'"') }
+    else { [void]$builder.Append([char]'\', $slashes).Append($character) }
+    $slashes = 0
+  }
+  [void]$builder.Append([char]'\', $slashes * 2).Append([char]'"')
+  $builder.ToString()
+}
+# Finds an executable that never goes through cmd.exe: .exe files or node.exe with the npm package entry.
+# npm .cmd shims are not used because cmd.exe would interpret &, |, % and quotes in prompts.
+function Resolve-AgentCommand([string]$name) {
+  $entries = @{ codex = '@openai/codex/bin/codex.js'; claude = '@anthropic-ai/claude-code/cli.js'; npm = 'npm/bin/npm-cli.js' }
+  if (-not $script:onWindows) {
+    $found = Get-Command $name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { return @{ File = $found.Source; Prefix = @() } }
+    return $null
+  }
+  $candidates = @()
+  $exe = Get-Command "$name.exe" -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($exe) { $candidates += $exe.Source }
+  $candidates += Join-Path $HOME ".local\bin\$name.exe"
+  if ($name -eq 'codex' -and $env:LOCALAPPDATA) { $candidates += Join-Path $env:LOCALAPPDATA 'Programs\OpenAI\Codex\bin\codex.exe' }
+  foreach ($candidate in $candidates) { if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) { return @{ File = $candidate; Prefix = @() } } }
+  $node = Get-Command 'node.exe' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  $shim = Get-Command "$name.cmd" -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($node -and $shim -and $entries.ContainsKey($name)) {
+    $script = Join-Path (Split-Path -Parent $shim.Source) ('node_modules\' + $entries[$name].Replace('/', '\'))
+    if (Test-Path -LiteralPath $script -PathType Leaf) { return @{ File = $node.Source; Prefix = @($script) } }
+  }
+  return $null
+}
+# Runs in the same console, waits, and returns the real exit code.
+function Invoke-Agent($command, [string[]]$arguments) {
+  $info = [Diagnostics.ProcessStartInfo]::new($command.File)
+  $info.UseShellExecute = $false
+  $info.WorkingDirectory = (Get-Location).ProviderPath
+  $info.Arguments = (@($command.Prefix) + @($arguments) | ForEach-Object { ConvertTo-NativeArgument ([string]$_) }) -join ' '
+  $process = [Diagnostics.Process]::Start($info)
+  $process.WaitForExit()
+  $process.ExitCode
+}
+# Backup rules shared with the desktop panels (lib\backup-excludes.txt).
+function Test-BackupIncluded([IO.FileSystemInfo]$item, [string[]]$rules) {
+  if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
+  $name = $item.Name.ToLowerInvariant()
+  foreach ($rule in $rules) { if ($rule.StartsWith('!') -and $name -like $rule.Substring(1)) { return $true } }
+  foreach ($rule in $rules) { if (-not $rule.StartsWith('!') -and $rule -and $name -like $rule) { return $false } }
+  return $true
+}
+function Write-ProjectZip([string]$project, [string]$destination, [bool]$full) {
+  Add-Type -AssemblyName System.IO.Compression
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  if ($full) { [IO.Compression.ZipFile]::CreateFromDirectory($project, $destination, [IO.Compression.CompressionLevel]::Optimal, $true); return }
+  $rules = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'lib\backup-excludes.txt') -Encoding UTF8 | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+  $root = Get-Item -LiteralPath $project -Force
+  $stream = [IO.File]::Open($destination, [IO.FileMode]::CreateNew)
+  $completed = $false
+  try {
+    $zip = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+      [void]$zip.CreateEntry($root.Name + '/')
+      $pending = [Collections.Generic.Stack[object]]::new()
+      $pending.Push(@($root, $root.Name))
+      while ($pending.Count -gt 0) {
+        $current, $prefix = $pending.Pop()
+        foreach ($item in @(Get-ChildItem -LiteralPath $current.FullName -Force)) {
+          if (-not (Test-BackupIncluded $item $rules)) { continue }
+          $name = $prefix + '/' + $item.Name
+          if ($item.PSIsContainer) { [void]$zip.CreateEntry($name + '/'); $pending.Push(@($item, $name)) }
+          else { [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $item.FullName, $name, [IO.Compression.CompressionLevel]::Optimal) }
+        }
+      }
+    } finally { $zip.Dispose() }
+    $completed = $true
+  } finally {
+    $stream.Dispose()
+    if (-not $completed) { Remove-Item -LiteralPath $destination -Force -ErrorAction SilentlyContinue }
+  }
+}
 function Existing-Directory([string]$path) {
   if ([string]::IsNullOrWhiteSpace($path)) { return $null }
   $path = [Environment]::ExpandEnvironmentVariables($path.Trim().Trim('"'))
@@ -148,7 +234,8 @@ function Agent-Menu([string]$mode) {
   if (-not $script:project) { Project-Menu; if (-not $script:project) { return } }
   $tool = Select-Tool $script:project
   if (-not $tool) { return }
-  if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { Write-Warning (T "Instale e autentique $tool primeiro." "Install and sign in to $tool first."); return }
+  $agentCommand = Resolve-AgentCommand $tool
+  if (-not $agentCommand) { Write-Warning (T "Instale e autentique $tool primeiro (versão oficial .exe ou npm)." "Install and sign in to $tool first (official .exe or npm package)." "Instala e inicia sesión en $tool primero (versión oficial .exe o npm)."); return }
   $workmode = if ($mode -eq 'summary') { '1' } else { Read-Choice 'Modo: 1) trabalhar  2) planejar [1]' 'Mode: 1) work  2) plan [1]' }
   $argsList = @()
   if ($tool -eq 'codex') {
@@ -186,7 +273,10 @@ function Agent-Menu([string]$mode) {
   Write-Host "`n$tool $($argsList -join ' ')"
   if ((Read-Choice 'Enter para começar; 0 cancela' 'Enter to start; 0 cancels') -eq '0') { return }
   Push-Location -LiteralPath $script:project
-  try { & $tool @argsList }
+  try {
+    $code = Invoke-Agent $agentCommand $argsList
+    if ($code -ne 0) { Write-Warning (T "$tool terminou com código $code." "$tool exited with code $code." "$tool terminó con el código $code.") }
+  }
   finally { Pop-Location }
 }
 function Care-Menu {
@@ -199,7 +289,20 @@ function Care-Menu {
     '2' { $file = Join-Path $script:project (Project-Layout $script:project).Instructions; if (-not (Test-Path -LiteralPath $file)) { Save-Text $file (T '# Instruções do projeto' '# Project instructions') }; Start-Process notepad.exe -ArgumentList ('"{0}"' -f $file) }
     '3' { $path = Join-Path $script:project (Project-Layout $script:project).Prompts; New-Item -ItemType Directory -Path $path -Force | Out-Null; Start-Process -FilePath $path }
     '4' { if (Get-Command git -ErrorAction SilentlyContinue) { & git -C $script:project status --short --branch } else { Write-Warning 'Git unavailable' } }
-    '5' { $parent = Choose-Directory; if (-not $parent) { return }; if ($parent -eq $script:project -or $parent.StartsWith($script:project + '\', [StringComparison]::OrdinalIgnoreCase)) { Write-Warning (T 'Escolha uma pasta fora do projeto.' 'Choose a folder outside the project.'); return }; $dest = Join-Path $parent ((Split-Path $script:project -Leaf) + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.zip'); if ((Read-Choice ("$dest - " + (T 'Enter para criar; 0 cancela' 'Enter to create; 0 cancels')) '') -eq '0') { return }; Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory($script:project, $dest, [IO.Compression.CompressionLevel]::Optimal, $true); Write-Host $dest }
+    '5' {
+      $parent = Choose-Directory
+      if (-not $parent) { $parent = Existing-Directory (Read-Choice 'Pasta onde salvar o ZIP' 'Folder for the ZIP') }
+      if (-not $parent) { return }
+      if ($parent -eq $script:project -or $parent.StartsWith($script:project + '\', [StringComparison]::OrdinalIgnoreCase)) { Write-Warning (T 'Escolha uma pasta fora do projeto.' 'Choose a folder outside the project.' 'Elige una carpeta fuera del proyecto.'); return }
+      $dest = Join-Path $parent ((Split-Path $script:project -Leaf) + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.zip')
+      Write-Host $dest
+      Write-Host (T 'Enter) Cópia segura: sem .env, chaves, credenciais, dependências e caches' 'Enter) Safe backup: without .env, keys, credentials, dependencies and caches' 'Enter) Copia segura: sin .env, claves, credenciales, dependencias ni cachés')
+      Write-Host (T 'c) Cópia completa: inclui .env e outros dados privados' 'c) Full backup: includes .env and other private data' 'c) Copia completa: incluye .env y otros datos privados')
+      $mode = Read-Choice '0 cancela' '0 cancels'
+      if ($mode -notin @('', 'c', 'C')) { return }
+      try { Write-ProjectZip $script:project $dest ($mode -in @('c', 'C')); Write-Host $dest }
+      catch { Write-Warning ((T 'Cópia não concluída: ' 'Backup failed: ' 'Copia no completada: ') + $_.Exception.Message) }
+    }
     '6' { if (Test-Path -LiteralPath (Join-Path $script:project 'package.json')) { Push-Location -LiteralPath $script:project; try { & npm run dev } finally { Pop-Location } } else { Write-Warning 'package.json unavailable' } }
   }
 }

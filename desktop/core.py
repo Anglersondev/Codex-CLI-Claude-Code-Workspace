@@ -13,6 +13,7 @@ import subprocess
 import sys
 import stat
 import tempfile
+import time
 import urllib.request
 import zipfile
 
@@ -370,6 +371,25 @@ def backup_entries(folder):
                     if included_in_backup(root / name) and (root / name).is_file())
 
 
+def add_backup_entry(archive, path, name):
+    """Adds one entry without following a link created after the preview."""
+    if path.is_dir() and not is_link(path):
+        archive.write(path, name)
+        return
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+    descriptor = os.open(path, flags)
+    with os.fdopen(descriptor, "rb") as source:
+        status = os.fstat(source.fileno())
+        if not stat.S_ISREG(status.st_mode) or is_link(path):
+            raise ValueError(text("O conteúdo do projeto mudou.", "The project contents changed.", "El contenido del proyecto cambió."))
+        moment = max(status.st_mtime, 315532800)  # ZIP dates start in 1980.
+        info = zipfile.ZipInfo(name, date_time=time.localtime(moment)[:6])
+        info.external_attr = (status.st_mode & 0xFFFF) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        with archive.open(info, "w") as target:
+            shutil.copyfileobj(source, target, 1024 * 1024)
+
+
 def backup_project(folder, destination, entries=None):
     if destination.resolve().is_relative_to(folder.resolve()):
         raise ValueError(text("Escolha destino fora do projeto.", "Choose a destination outside the project.", "Elige un destino fuera del proyecto."))
@@ -382,7 +402,7 @@ def backup_project(folder, destination, entries=None):
                         raise ValueError(text("O conteúdo do projeto mudou.", "The project contents changed.", "El contenido del proyecto cambió."))
                     if not path.is_file() and not path.is_dir():
                         raise ValueError(path)
-                    archive.write(path, path.relative_to(folder.parent).as_posix())
+                    add_backup_entry(archive, path, path.relative_to(folder.parent).as_posix())
         except (OSError, ValueError, zipfile.BadZipFile):
             output.close()
             destination.unlink()
@@ -398,9 +418,16 @@ def restore_backup(source, destination):
             entries = archive.infolist()
             if not entries or len(entries) > 100_000 or sum(f.file_size for f in entries) > 20 * 1024**3:
                 raise ValueError(bad_zip)
+            total = sum(f.file_size for f in entries)
+            if shutil.disk_usage(destination).free < total + 50 * 1024**2:
+                raise ValueError(text("Espaço insuficiente para restaurar este ZIP.",
+                                      "Not enough disk space to restore this ZIP.",
+                                      "No hay espacio suficiente para restaurar este ZIP."))
             seen = set()
             for entry in entries:
                 parts = entry.orig_filename.rstrip("/").split("/")
+                if len(parts) > 1 and parts[0] == ".":
+                    parts = parts[1:]  # Archives made by the macOS app start with ./
                 mode = stat.S_IFMT(entry.external_attr >> 16)
                 if entry.flag_bits & 1 or mode not in (0, stat.S_IFDIR, stat.S_IFREG):
                     raise ValueError(bad_zip)

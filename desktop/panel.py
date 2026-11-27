@@ -54,13 +54,15 @@ class Panel:
         self.jobs = {}
         self.verification_jobs = {}
         self.messages = queue.Queue()
+        self.active_tasks = 0
+        self.poll_timer = None
         self.style()
         self.build()
         self.search.trace_add("write", lambda *_: self.populate_projects())
         self.bind_shortcuts()
         self.render(select_agent=True)
         self.root.bind("<FocusIn>", self.refresh_context)
-        self.root.after(250, self.poll)
+        self.poll_timer = self.root.after(250, self.poll)
         if self.update_notice.get():
             self.root.after(2000, self.check_updates)
 
@@ -298,7 +300,7 @@ class Panel:
         notes = []
         if not ready:
             notes.append(T(
-                "Registre o próximo passo em o arquivo de progresso para retomar depois.",
+                "Registre o próximo passo no arquivo de progresso para retomar depois.",
                 "Record the next step in the progress file to continue later.",
                 "Anota el próximo paso en el archivo de progreso para continuar más tarde.",
             ))
@@ -588,7 +590,7 @@ class Panel:
         def update(*_):
             try:
                 folder, branch = wf.worktree_paths(project, agent.get(), task.get())
-                preview.configure(text=f"{branch}\\n{folder}")
+                preview.configure(text=f"{branch}\n{folder}")
                 submit.state(["!disabled"])
             except ValueError as error:
                 preview.configure(text=str(error))
@@ -632,6 +634,7 @@ class Panel:
             shutil.rmtree(state)
             raise
         self.jobs[working] = (state, process, time.monotonic())
+        self.schedule_poll(250)
         self.status.set(T("Sessão aberta no Terminal.", "Session open in Terminal.", "Sesión abierta en Terminal."))
         return working
 
@@ -669,7 +672,18 @@ class Panel:
                     self.status.set(T("De volta ao painel de projetos.", "Back at the project panel.", "De vuelta en el panel de proyectos."))
         while not self.messages.empty():
             self.guard(self.messages.get_nowait())
-        self.root.after(250, self.poll)
+        self.schedule_poll()
+
+    def schedule_poll(self, delay=None):
+        # Fast checks only while a terminal or a background task is active; idle wakeups stay rare.
+        if delay is None:
+            delay = 250 if self.jobs or self.active_tasks else 1500
+        if self.poll_timer is not None:
+            self.root.after_cancel(self.poll_timer)
+        self.poll_timer = self.root.after(delay, self.poll)
+
+    def task_done(self):
+        self.active_tasks = max(0, self.active_tasks - 1)
 
     def background(self, work, success, show_error=True):
         def run():
@@ -680,7 +694,11 @@ class Panel:
                     self.messages.put(lambda message=str(error): messagebox.showerror("Assistente IA", message, parent=self.root))
             else:
                 self.messages.put(lambda: success(value))
+            finally:
+                self.messages.put(self.task_done)
+        self.active_tasks += 1
         threading.Thread(target=run, daemon=True).start()
+        self.schedule_poll(100)
 
     def output(self, title, content):
         window, body = self.dialog(title)

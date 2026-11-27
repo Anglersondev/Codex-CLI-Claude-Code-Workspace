@@ -49,7 +49,7 @@ app_launch() {
   case "$TOOL" in codex|claude) ;; *) return 2 ;; esac
   case "$WORKMODE" in trabalhar|planejar) ;; *) return 2 ;; esac
   [ -z "$MODEL" ] || valid_model "$MODEL" || { warn "$(ui 'Nome de modelo inválido.' 'Invalid model name.')"; return 2; }
-  case "$EFFORT" in ''|low|medium|high|xhigh|max|ultra|ultracode) ;; *) return 2 ;; esac
+  valid_effort "$TOOL" "$EFFORT" || return 2
   app_require_tool || return 1
   if [ "$verb" = novo ] && [ -n "$prompt_file" ]; then load_prompt_file "$prompt_file" || return 1; fi
   set_project "$folder" || return 1
@@ -210,7 +210,7 @@ app_command() {
     profile-save:5)
       case "$2" in codex|claude) ;; *) return 2 ;; esac
       case "$3" in trabalhar|planejar) ;; *) return 2 ;; esac
-      case "$5" in ''|low|medium|high|xhigh|max|ultra) ;; *) return 2 ;; esac
+      valid_effort "$2" "$5" || return 2
       [ -z "$4" ] || valid_model "$4" || { printf '@invalid_model\n' >&2; return 1; }
       set_project "$1" || return 1
       TOOL="$2" WORKMODE="$3" MODEL="$4" EFFORT="$5"
@@ -231,9 +231,10 @@ app_command() {
       PROJECT="$(normalize_path "$1")" && copy_attachment_file "$2" ;;
     save-prompt:3)
       PROJECT="$(normalize_path "$1")" && write_project_prompt "$2" "$3" ;;
-    backup:2)
+    backup:2|backup:3)
+      case "${3:-safe}" in safe|full) ;; *) return 2 ;; esac
       PROJECT="$(normalize_path "$1")" && path="$(normalize_path "$2")" &&
-        path="$(project_backup_destination "$path")" && write_project_backup "$path" && printf '%s\n' "$path" ;;
+        path="$(project_backup_destination "$path")" && write_project_backup "$path" "${3:-safe}" && printf '%s\n' "$path" ;;
     shell:1)
       PROJECT="$(normalize_path "$1")" && (cd -- "$PROJECT" && run_foreground "${SHELL:-/bin/bash}" -i) ;;
     dev-packages:1)

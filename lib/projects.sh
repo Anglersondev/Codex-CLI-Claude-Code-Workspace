@@ -935,10 +935,12 @@ OBJECTIVE_PLACEHOLDER_EN='- Goal: describe what you want to build and for whom.'
 README_PLACEHOLDER_ES='Describe el propósito del proyecto.'
 README_PLACEHOLDER_EN='Describe the purpose of the project.'
 
-# Mantém as permissões do arquivo original ao regravá-lo (stat do macOS, com alternativa GNU).
+# Mantém as permissões do arquivo original ao regravá-lo (GNU stat, com alternativa do macOS).
+# A ordem importa: no Linux, "stat -f" lista o sistema de arquivos e não falha de forma limpa.
 keep_file_mode() {
-  local mode
-  mode="$(stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1" 2>/dev/null)" || return 0
+  local mode=''
+  mode="$(stat -c %a "$1" 2>/dev/null)" || mode=''
+  case "$mode" in ''|*[!0-7]*) mode="$(stat -f %Lp "$1" 2>/dev/null)" || mode='' ;; esac
   case "$mode" in [0-7][0-7][0-7]|[0-7][0-7][0-7][0-7]) chmod "$mode" "$2" 2>/dev/null ;; esac
   return 0
 }

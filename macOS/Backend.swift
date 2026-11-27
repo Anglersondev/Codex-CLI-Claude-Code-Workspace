@@ -63,7 +63,8 @@ enum Agent: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var name: String { self == .codex ? "Codex" : "Claude Code" }
     var efforts: [String] {
-        self == .codex ? ["low", "medium", "high", "xhigh", "max", "ultra"] : ["low", "medium", "high", "xhigh", "max"]
+        // Documented levels: Codex model_reasoning_effort and Claude Code --effort.
+        self == .codex ? ["low", "medium", "high", "xhigh", "max", "ultra"] : ["low", "medium", "high", "xhigh", "max", "ultracode"]
     }
 }
 

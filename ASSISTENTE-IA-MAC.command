@@ -421,12 +421,22 @@ $rows
 EOF
 }
 valid_model() { case "$1" in ''|-*|*[!a-zA-Z0-9_./:\[\]-]*) return 1 ;; esac; }
+# Níveis documentados por agente (Codex: model_reasoning_effort; Claude Code: --effort).
+# Vazio = padrão do modelo. Um nível de um agente nunca é enviado ao outro.
+valid_effort() {
+  case "$1:$2" in
+    *:) return 0 ;;
+    codex:low|codex:medium|codex:high|codex:xhigh|codex:max|codex:ultra) return 0 ;;
+    claude:low|claude:medium|claude:high|claude:xhigh|claude:max|claude:ultracode) return 0 ;;
+  esac
+  return 1
+}
 load_preferences() {
   MODEL="$(read_value "$PREF_DIR/$TOOL.model")"
   EFFORT="$(read_value "$PREF_DIR/$TOOL.effort")"
   WORKMODE="$(read_value "$PREF_DIR/$TOOL.mode")"
   [ -z "$MODEL" ] || valid_model "$MODEL" || MODEL=''
-  case "$EFFORT" in ''|low|medium|high|xhigh|max|ultra|ultracode) ;; *) EFFORT='' ;; esac
+  valid_effort "$TOOL" "$EFFORT" || EFFORT=''
   case "$WORKMODE" in trabalhar|planejar) ;; *) WORKMODE=trabalhar ;; esac
 }
 select_model() {
@@ -1084,15 +1094,18 @@ save_prompt() {
   return 1
 }
 backup_project() {
-  local dest
-  say_ui 'Escolha onde salvar uma cópia ZIP do projeto inteiro.' 'Choose where to save a ZIP backup of the entire project.'
-  say_ui 'O ZIP inclui arquivos ocultos e pode conter .env e outros dados privados.' 'The ZIP includes hidden files and may contain .env and other private data.'
+  local dest mode=safe
+  say_ui 'Escolha onde salvar uma cópia ZIP do projeto.' 'Choose where to save a ZIP backup of the project.'
+  say_ui 'Por padrão, a cópia deixa de fora .env, chaves, credenciais, dependências e caches (lib/backup-excludes.txt).' 'By default, the backup leaves out .env, keys, credentials, dependencies and caches (lib/backup-excludes.txt).'
   choose_folder 'Escolha a pasta onde salvar a cópia ZIP' || return 1
   dest="$(project_backup_destination "$CHOSEN_FOLDER")" || return 1
   say "$(ui 'Destino' 'Destination'): $dest"
-  ask_ui 'Enter para criar a cópia; 0 para cancelar: ' 'Press Enter to create the backup; 0 to cancel: ' || return 1
-  [ -z "$REPLY" ] || return 1
-  write_project_backup "$dest" && say "$(ui 'Cópia criada' 'Backup created'): $dest"
+  say_ui 'Enter) Cópia segura (recomendada)' 'Enter) Safe backup (recommended)'
+  say_ui 'c) Cópia completa: inclui arquivos ocultos, .env e outros dados privados' 'c) Full backup: includes hidden files, .env and other private data'
+  say_ui '0) Cancelar' '0) Cancel'
+  ask_ui 'Escolha [Enter]: ' 'Choose [Enter]: ' || return 1
+  case "$REPLY" in '') ;; c|C) mode=full ;; *) say_ui 'Cancelado.' 'Canceled.'; return 1 ;; esac
+  write_project_backup "$dest" "$mode" && say "$(ui 'Cópia criada' 'Backup created'): $dest"
 }
 project_backup_destination() {
   local parent="$1" name
@@ -1100,15 +1113,50 @@ project_backup_destination() {
   name="$(basename "$PROJECT")-$(date '+%Y%m%d-%H%M%S').zip"
   printf '%s/%s\n' "${parent%/}" "$name"
 }
+# Lista NUL (./Projeto/...) com as mesmas regras dos painéis: sem links, sem segredos, sem caches.
+backup_entries_list() {
+  local output="$1" rule deny=() allow=() name
+  while IFS= read -r rule || [ -n "$rule" ]; do
+    rule="${rule%$'\r'}"
+    case "$rule" in
+      ''|'#'*) ;;
+      '!'*) [ "${#allow[@]}" -eq 0 ] || allow[${#allow[@]}]=-o; allow[${#allow[@]}]=-iname; allow[${#allow[@]}]="${rule#!}" ;;
+      *) [ "${#deny[@]}" -eq 0 ] || deny[${#deny[@]}]=-o; deny[${#deny[@]}]=-iname; deny[${#deny[@]}]="$rule" ;;
+    esac
+  done < "$BASE_DIR/lib/backup-excludes.txt"
+  [ "${#deny[@]}" -gt 0 ] || return 1
+  [ "${#allow[@]}" -gt 0 ] || allow=(-name '/')
+  name="$(basename "$PROJECT")"
+  (
+    cd "$(dirname "$PROJECT")" || exit 1
+    printf './%s\0' "$name"
+    find "./$name" -mindepth 1 \( -type l -o \( \( "${deny[@]}" \) ! \( "${allow[@]}" \) \) \) -prune \
+      -o \( -type f -o -type d \) -print0
+  ) > "$output"
+}
 write_project_backup() {
-  local dest="$1" directory status=0
+  local dest="$1" mode="${2:-safe}" directory status=0 list
   [ ! -e "$dest" ] && [ ! -L "$dest" ] || { warn "$(ui 'Já existe uma cópia com esse nome.' 'A backup with that name already exists.')"; return 1; }
   directory="$(mktemp -d "${dest%/*}/.assistente-zip.XXXXXXXX")" || return 1
-  if [ "$PLATFORM" = Linux ]; then
-    (cd "$(dirname "$PROJECT")" && run_foreground zip -qry "$directory/project.zip" "./$(basename "$PROJECT")") || status=$?
-  else run_foreground /usr/bin/ditto -c -k --keepParent "$PROJECT" "$directory/project.zip" || status=$?; fi
+  list="$directory/entries"
+  if [ "$mode" = full ]; then
+    if [ "$PLATFORM" = Linux ]; then
+      (cd "$(dirname "$PROJECT")" && run_foreground zip -qry "$directory/project.zip" "./$(basename "$PROJECT")") || status=$?
+    else run_foreground /usr/bin/ditto -c -k --keepParent "$PROJECT" "$directory/project.zip" || status=$?; fi
+  elif ! backup_entries_list "$list"; then
+    status=1
+  elif [ "$PLATFORM" != Linux ] || ! command -v zip >/dev/null 2>&1; then
+    if command -v bsdtar >/dev/null 2>&1; then
+      run_foreground bsdtar -cf "$directory/project.zip" --format zip --no-recursion -C "$(dirname "$PROJECT")" --null -T "$list" || status=$?
+    else warn "$(ui 'Instale zip ou bsdtar para criar a cópia.' 'Install zip or bsdtar to create the backup.')"; status=1; fi
+  elif [ "$(LC_ALL=C tr -cd '\n' < "$list" | wc -c | tr -d ' ')" != 0 ]; then
+    warn "$(ui 'Há nomes com quebra de linha; use a cópia completa ou renomeie esses arquivos.' 'Some names contain line breaks; use a full backup or rename those files.')"
+    status=1
+  else
+    (cd "$(dirname "$PROJECT")" && LC_ALL=C tr '\0' '\n' < "$list" | run_foreground zip -q "$directory/project.zip" -@) || status=$?
+  fi
   if [ "$status" -eq 0 ]; then publish_new_file "$directory/project.zip" "$dest" || status=$?; fi
-  rm -f -- "$directory/project.zip"
+  rm -f -- "$directory/project.zip" "$list"
   rmdir -- "$directory"
   [ "$status" -eq 0 ] || warn "$(ui 'Cópia não concluída. Confira a mensagem acima.' 'Backup failed. Check the message above.')"
   return "$status"

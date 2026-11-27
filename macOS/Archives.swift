@@ -64,7 +64,12 @@ enum ProjectArchive {
         try Data((names.map { "./" + $0 }.joined(separator: "\0") + "\0").utf8).write(to: list)
         _ = try Backend.capture("/usr/bin/bsdtar", ["-cf", archive.path, "--format", "zip", "--no-recursion",
             "--no-xattrs", "--no-acls", "--no-fflags", "--no-mac-metadata", "-C", base.path, "--null", "-T", list.path])
-        try fm.moveItem(at: archive, to: target)
+        // NSSavePanel already asked before replacing an existing file; replace it in one step.
+        if fm.fileExists(atPath: target.path) {
+            _ = try fm.replaceItemAt(target, withItemAt: archive, backupItemName: nil, options: [])
+        } else {
+            try fm.moveItem(at: archive, to: target)
+        }
     }
 
     static func restore(source: URL, parent: URL) throws -> URL {
