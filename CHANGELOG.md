@@ -1,8 +1,10 @@
 # Changelog
 
-## 1.0.1 (Professional build 3)
+## 1.0
 
-This release publishes the audited Professional build as a patch update. See [AUDITORIA-1.0-PROFESSIONAL.md](AUDITORIA-1.0-PROFESSIONAL.md) (Portuguese) for the confirmed problems, test results and measurements.
+### Professional build 3
+
+This release publishes the audited Professional build. See [AUDITORIA-1.0-PROFESSIONAL.md](AUDITORIA-1.0-PROFESSIONAL.md) (Portuguese) for the confirmed problems, test results and measurements.
 
 - **Security.** On Windows, agents start without going through `cmd.exe`, so `&`, `|`, `%` and quotes in a prompt stay text. Terminal and Windows ZIP backups now skip credentials, Git data and dependencies by default; a full copy is a separate choice. Desktop backups no longer follow a file that turns into a link after the preview. The credential and cache rules cover more files (`.npmrc`, `.netrc`, `.aws`, `.ssh`, keystores, Terraform state and others).
 - **Fixes.** File modes and modification times are read correctly on Linux. Saved reasoning efforts are checked per agent, and Claude Code's `ultracode` is available. ZIPs made by the macOS app restore on Linux and Windows. The macOS app can save a backup over an existing file after you confirm.
@@ -15,7 +17,7 @@ This release publishes the audited Professional build as a patch update. See [AU
 - **Worktrees.** Clean up records of worktree folders removed outside the app after a preview. Files and branches are kept.
 - **CI.** Tests run on every push and pull request with a read-only token. Windows failures are no longer hidden by a later success. Release builds attach the build file used by the update check, never change a published release, and can be rerun for a tag when no macOS runner is available.
 
-## 1.0 (builds 1 and 2)
+### Builds 1 and 2
 
 First release of **Assistente IA** in the Codex CLI & Claude Code Workspace repository.
 

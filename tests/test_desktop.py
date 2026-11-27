@@ -154,7 +154,7 @@ class PortablePanelTests(unittest.TestCase):
             core.session_arguments("codex", "new", self.root, model="--config")
 
     def test_same_version_build_notification(self):
-        installed_tag = f"v{core.APP_VERSION}"
+        installed_tag = core.APP_VERSION
         release = json.dumps({"tag_name": installed_tag, "assets": [
             {"name": f"Assistente-IA-Build-{core.APP_BUILD + 1}.txt"},
         ]}).encode()

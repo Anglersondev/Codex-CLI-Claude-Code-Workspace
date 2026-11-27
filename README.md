@@ -62,7 +62,7 @@ Checkpoints also work without Git. Describe your changes in the editable field. 
 - **Preview and restore backups.** Review the project files before saving a ZIP. The desktop backup skips common credentials, Git metadata, dependencies, and caches. **Restore ZIP** extracts a copy into a new folder at the chosen destination.
 - **Version and build updates.** The update check compares versions and uses the build number to distinguish revisions of the same version. macOS can stage a verified update when enabled. Linux and Windows open the release downloads.
 
-### Version 1.0.1 (build 3) tools in the Linux and Windows panel
+### Professional build 3 tools in the Linux and Windows panel
 
 - **Prompt library.** Open **Project tools → Prompt library…** to search 21 ready-made prompts in English, Portuguese and Spanish: audits, bug fixes, security, performance, WordPress, accessibility, tests, production readiness, token savings and a review by the other agent. Copy one into the project's prompts folder or start a session with it. In the macOS and Linux terminal menu, choose option **7** when starting a conversation.
 - **Quick actions.** Press `Ctrl+K`, type part of an action name and press Enter.

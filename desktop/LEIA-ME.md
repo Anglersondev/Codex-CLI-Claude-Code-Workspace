@@ -1,4 +1,4 @@
-# Assistente IA 1.0.1 para Linux e Windows
+# Assistente IA 1.0 Professional para Linux e Windows
 
 Descompacte o ZIP inteiro. Em **Ajustes → Idioma**, selecione português do Brasil, inglês, espanhol ou **Automático** para seguir o sistema.
 

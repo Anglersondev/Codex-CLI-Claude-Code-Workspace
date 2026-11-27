@@ -6,10 +6,11 @@ on:
   push:
     tags:
       - 'v[0-9]*'
+      - '[0-9]*'
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag to build again (for example v1.0), after a runner failure
+        description: Existing version tag to build again (for example 1.0), after a runner failure
         required: true
 
 # No job gets more than it needs; only the macOS job can write, and only to releases.
@@ -43,10 +44,10 @@ jobs:
       - name: Check the tag
         run: |
           set -euo pipefail
-          [[ "$RELEASE_TAG" =~ ^v[0-9]{1,4}\.[0-9]{1,4}(\.[0-9]{1,4})?$ ]] || { echo "::error::Invalid tag: $RELEASE_TAG"; exit 1; }
+          [[ "$RELEASE_TAG" =~ ^v?[0-9]{1,4}\.[0-9]{1,4}(\.[0-9]{1,4})?$ ]] || { echo "::error::Invalid tag: $RELEASE_TAG"; exit 1; }
           git rev-parse --verify --quiet "refs/tags/$RELEASE_TAG" >/dev/null || git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
           source_version="$(/bin/bash ASSISTENTE-IA-MAC.command --app version)"
-          [[ "$RELEASE_TAG" == "v$source_version" ]] || { echo "::error::$RELEASE_TAG does not match source version $source_version"; exit 1; }
+          [[ "${RELEASE_TAG#v}" == "$source_version" ]] || { echo "::error::$RELEASE_TAG does not match source version $source_version"; exit 1; }
       - name: Test on macOS
         env:
           ASSISTENTE_LANG: pt-BR

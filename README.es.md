@@ -54,7 +54,7 @@ También puedes guardar un checkpoint sin Git. Describe los cambios en el campo 
 - En **Copia del proyecto**, revisa los archivos antes de guardar el ZIP. La copia predeterminada omite credenciales comunes, dependencias, cachés y metadatos de Git. **Restaurar ZIP** extrae la copia en una carpeta nueva.
 - El aviso detecta versiones más recientes y compara el número de compilación entre revisiones de la misma versión. Linux y Windows abren las descargas. macOS puede instalar la actualización verificada si activas la opción.
 
-### Novedades de la versión 1.0.1 (compilación 3) en el panel de Linux y Windows
+### Novedades de la versión 1.0 Professional (compilación 3) en el panel de Linux y Windows
 
 - **Biblioteca de solicitudes.** En **Herramientas del proyecto → Biblioteca de solicitudes…**, busca entre 21 solicitudes listas en español, portugués e inglés: auditoría, errores, seguridad, rendimiento, WordPress, accesibilidad, pruebas, producción, ahorro de tokens y revisión por el otro agente. Cópiala a la carpeta de solicitudes del proyecto o abre una sesión con ella. En el menú del terminal de macOS y Linux, elige la opción **7** al empezar una conversación.
 - **Acciones rápidas.** Pulsa `Ctrl+K`, escribe parte del nombre de la acción y pulsa Intro.
